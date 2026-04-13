@@ -95,7 +95,7 @@ export const OrdersStore = signalStore(
         )
       ),
 
-      updateOrder: rxMethod<{ id: number; data: any }>(
+      updateOrder: rxMethod<{ id: string; data: any }>(
         pipe(
           tap(() => patchState(store, { saving: true })),
           switchMap(({ id, data }) =>
@@ -115,7 +115,7 @@ export const OrdersStore = signalStore(
         )
       ),
 
-      updateOrderStatus: rxMethod<{ id: number; status: OrderStatus }>(
+      updateOrderStatus: rxMethod<{ id: string; status: OrderStatus }>(
         pipe(
           tap(() => patchState(store, { saving: true })),
           switchMap(({ id, status }) =>
@@ -134,7 +134,7 @@ export const OrdersStore = signalStore(
         )
       ),
 
-      deleteOrder: rxMethod<number>(
+      deleteOrder: rxMethod<string>(
         pipe(
           switchMap((id) =>
             salesService.deleteOrder(id).pipe(

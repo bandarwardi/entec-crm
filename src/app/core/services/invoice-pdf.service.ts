@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Order } from '../services/sales.service';
 import { formatDate } from '@angular/common';
+import { SOCKET_URL, UPLOADS_URL } from '../constants/api.constants';
 
 @Injectable({
   providedIn: 'root'
@@ -38,7 +39,7 @@ export class InvoicePdfService {
     const warrantyMonths = appYears * 12;
     const invoiceNumber = `#INV-${order.id}`;
     const notes = order.notes || '';
-    const bgUrl = 'http://localhost:3000/uploads/invoice-bg.png';
+    const bgUrl = `${UPLOADS_URL}/invoice-bg.png`;
 
     // Build devices HTML
     let devicesHtml = '';
@@ -63,7 +64,7 @@ export class InvoicePdfService {
       order.attachments.forEach(url => {
         let fullUrl = url;
         if (url.startsWith('/uploads')) {
-          fullUrl = 'http://localhost:3000' + url;
+          fullUrl = SOCKET_URL + url;
         }
         attachmentsHtml += `<img class="screenshot-img" src="${fullUrl}" alt="Attachment" style="height:160px; width:auto; max-width:46%; object-fit:contain; border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,0.28);">`;
       });

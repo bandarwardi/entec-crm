@@ -37,7 +37,7 @@ export const NotificationsStore = signalStore(
         pipe(
           tap(() => patchState(store, { loading: true })),
           switchMap(() => leadService.getReminders()),
-          tap((data) => {
+          tap((data: Lead[]) => {
              // Show badge only if new items found
              const hasNew = data.length > store.reminders().length;
              patchState(store, { reminders: data, loading: false, badgeVisible: hasNew || store.badgeVisible() });
@@ -54,9 +54,9 @@ export const NotificationsStore = signalStore(
             }
             return [];
           }),
-          tap((data) => {
+          tap((data: Lead[]) => {
              const currentIds = new Set(store.reminders().map(r => r.id));
-             const hasNew = data.some(r => !currentIds.has(r.id));
+             const hasNew = data.some((r: Lead) => !currentIds.has(r.id));
              patchState(store, { 
                reminders: data, 
                badgeVisible: hasNew ? true : store.badgeVisible() 

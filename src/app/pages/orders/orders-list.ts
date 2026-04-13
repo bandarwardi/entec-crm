@@ -16,12 +16,13 @@ import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { effect } from '@angular/core';
+import { TooltipModule } from 'primeng/tooltip';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-orders-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, TableModule, ButtonModule, InputTextModule, FormsModule, TagModule, SelectButtonModule, SelectModule, IconFieldModule, InputIconModule, ToastModule, TranslatePipe],
+  imports: [CommonModule, RouterModule, TableModule, ButtonModule, InputTextModule, FormsModule, TagModule, SelectButtonModule, SelectModule, IconFieldModule, InputIconModule, ToastModule, TranslatePipe, TooltipModule],
   providers: [MessageService],
   template: `
     <p-toast></p-toast>
@@ -91,7 +92,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
         </ng-template>
         <ng-template pTemplate="body" let-order>
           <tr>
-            <td class="font-mono text-xs">#{{ order.id }}</td>
+            <td class="font-mono text-xs" [pTooltip]="order.id" tooltipPosition="top">#{{ order.id.slice(0, 5) }}</td>
             <td>
                 <div class="font-bold cursor-pointer hover:text-primary" [routerLink]="['/customers', order.customer?.id]">
                     {{ order.customer?.name }}

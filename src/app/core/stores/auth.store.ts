@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export enum UserStatus {
   ONLINE = 'online',
@@ -23,7 +24,7 @@ export enum BreakReason {
 }
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: 'super-admin' | 'admin' | 'agent';
@@ -57,7 +58,7 @@ export const AuthStore = signalStore(
   withMethods((store) => {
     const http = inject(HttpClient);
     const router = inject(Router);
-    const apiUrl = 'http://localhost:3000/api/auth';
+    const apiUrl = `${API_BASE_URL}/auth`;
     let refreshInterval: any = null;
 
     const stopRefreshTimer = () => {
@@ -130,7 +131,7 @@ export const AuthStore = signalStore(
       updateStatus: rxMethod<{ status: UserStatus; breakReason?: BreakReason; notes?: string }>(
         pipe(
           switchMap((data) =>
-            http.put<User>(`http://localhost:3000/api/users/status`, data).pipe(
+            http.put<User>(`${API_BASE_URL}/users/status`, data).pipe(
               tapResponse({
                 next: (updatedUser) => {
                   patchState(store, { user: updatedUser });

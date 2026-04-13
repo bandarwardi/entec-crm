@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export interface PerformanceDay {
   date: string;
@@ -18,7 +19,7 @@ export interface PerformanceDay {
 }
 
 export interface MonthlyPerformance {
-  user: { id: number; name: string; email: string };
+  user: { id: string; name: string; email: string };
   year: number;
   month: number;
   workSettings: any;
@@ -36,7 +37,7 @@ export interface MonthlyPerformance {
 }
 
 export interface DailyPerformance {
-  user: { id: number; name: string; email: string };
+  user: { id: string; name: string; email: string };
   date: string;
   shiftStart: string;
   shiftEnd: string;
@@ -56,13 +57,13 @@ export interface DailyPerformance {
 })
 export class PerformanceService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3000/api/users';
+  private apiUrl = `${API_BASE_URL}/users`;
 
-  getMonthlyPerformance(userId: number, year: number, month: number): Observable<MonthlyPerformance> {
+  getMonthlyPerformance(userId: string, year: number, month: number): Observable<MonthlyPerformance> {
     return this.http.get<MonthlyPerformance>(`${this.apiUrl}/${userId}/performance?year=${year}&month=${month}`);
   }
 
-  getDailyPerformance(userId: number, date: string): Observable<DailyPerformance> {
+  getDailyPerformance(userId: string, date: string): Observable<DailyPerformance> {
     return this.http.get<DailyPerformance>(`${this.apiUrl}/${userId}/performance/${date}`);
   }
 }

@@ -70,7 +70,7 @@ export const UsersStore = signalStore(
         )
       ),
 
-      updateUser: rxMethod<{ id: number; changes: Partial<User> }>(
+      updateUser: rxMethod<{ id: string; changes: Partial<User> }>(
         pipe(
           tap(() => patchState(store, { loading: true })),
           switchMap(({ id, changes }) =>
@@ -89,7 +89,7 @@ export const UsersStore = signalStore(
         )
       ),
 
-      deleteUser: rxMethod<number>(
+      deleteUser: rxMethod<string>(
         pipe(
           switchMap((id) =>
             userService.deleteUser(id).pipe(

@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -16,7 +17,7 @@ export interface User {
 })
 export class UserService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3000/api/users';
+  private apiUrl = `${API_BASE_URL}/users`;
 
   getUsers(search?: string): Observable<User[]> {
     let url = this.apiUrl;
@@ -30,11 +31,11 @@ export class UserService {
     return this.http.post<User>(this.apiUrl, user);
   }
 
-  updateUser(id: number, user: any): Observable<User> {
+  updateUser(id: string, user: any): Observable<User> {
     return this.http.put<User>(`${this.apiUrl}/${id}`, user);
   }
 
-  deleteUser(id: number): Observable<any> {
+  deleteUser(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
 }

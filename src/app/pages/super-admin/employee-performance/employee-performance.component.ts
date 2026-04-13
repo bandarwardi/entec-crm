@@ -222,14 +222,14 @@ export class EmployeePerformanceComponent implements OnInit {
   performance = signal<MonthlyPerformance | null>(null);
   loading = signal(false);
 
-  selectedUserId = signal<number | null>(null);
+  selectedUserId = signal<string | null>(null);
   selectedMonth: Date = new Date();
 
   ngOnInit() {
     this.route.params.subscribe(params => {
       const userId = params['id'];
       if (userId) {
-        this.selectedUserId.set(Number(userId));
+        this.selectedUserId.set(userId);
         this.loadPerformance();
       } else {
         this.router.navigate(['/super-admin/users']);

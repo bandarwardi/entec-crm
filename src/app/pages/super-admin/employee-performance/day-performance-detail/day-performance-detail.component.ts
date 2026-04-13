@@ -159,7 +159,7 @@ export class DayPerformanceDetailComponent implements OnInit {
   performance = signal<DailyPerformance | null>(null);
   loading = signal(false);
   date = signal<string>('');
-  userId = signal<number>(0);
+  userId = signal<string>('');
 
   filteredActivities = computed(() => {
     const perf = this.performance();
@@ -170,7 +170,7 @@ export class DayPerformanceDetailComponent implements OnInit {
 
   ngOnInit() {
     this.route.params.subscribe(params => {
-      this.userId.set(Number(params['id']));
+      this.userId.set(params['id']);
       this.date.set(params['date']);
       this.loadDetails();
     });

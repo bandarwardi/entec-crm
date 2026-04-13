@@ -150,7 +150,7 @@ export class CustomerDetailComponent implements OnInit {
   ngOnInit() {
     this.route.params.subscribe(params => {
         if (params['id']) {
-            this.salesService.getCustomer(+params['id']).subscribe(c => this.customer.set(c));
+            this.salesService.getCustomer(params['id']).subscribe(c => this.customer.set(c));
         }
     });
   }

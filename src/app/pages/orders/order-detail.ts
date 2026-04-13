@@ -13,12 +13,13 @@ import { SalesService, Order, OrderStatus } from '../../core/services/sales.serv
 import { OrdersStore } from '../../core/stores/orders.store';
 import { InvoicePdfService } from '../../core/services/invoice-pdf.service';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { TooltipModule } from 'primeng/tooltip';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-order-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonModule, CardModule, TableModule, TagModule, SelectModule, FormsModule, ToastModule, TranslatePipe],
+  imports: [CommonModule, RouterModule, ButtonModule, CardModule, TableModule, TagModule, SelectModule, FormsModule, ToastModule, TranslatePipe, TooltipModule],
   providers: [MessageService],
   template: `
     <p-toast></p-toast>
@@ -36,7 +37,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
               <div>
                 <div class="flex items-center gap-3">
                   <p-button icon="pi pi-arrow-left" routerLink="/orders" [rounded]="true" [text]="true" styleClass="text-white bg-white/10 hover:bg-white/20" size="small"></p-button>
-                  <h1 class="text-3xl font-black m-0 text-white tracking-tight">{{ 'orders.detail.title' | t }} <span class="opacity-70">#{{ order()?.id }}</span></h1>
+                   <h1 class="text-3xl font-black m-0 text-white tracking-tight">{{ 'orders.detail.title' | t }} <span class="opacity-70" [pTooltip]="order()?.id" tooltipPosition="top">#{{ order()?.id?.slice(0, 5) }}</span></h1>
                 </div>
                 <div class="flex items-center gap-4 text-xs text-emerald-50/80 font-bold uppercase tracking-widest mt-2">
                     <span>{{ order()?.createdAt | date:'fullDate' }}</span>
@@ -264,7 +265,7 @@ export class OrderDetailComponent implements OnInit {
   ngOnInit() {
     this.route.params.subscribe(params => {
         if (params['id']) {
-            this.salesService.getOrder(+params['id']).subscribe(o => {
+            this.salesService.getOrder(params['id']).subscribe(o => {
                 this.order.set(o);
                 this.currentStatus = o.status;
             });

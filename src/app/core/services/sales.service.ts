@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export enum OrderType {
   NEW = 'new',
@@ -15,7 +16,7 @@ export enum OrderStatus {
 }
 
 export interface Customer {
-  id: number;
+  id: string;
   name: string;
   email: string | null;
   phone: string;
@@ -29,17 +30,17 @@ export interface Customer {
 }
 
 export interface OrderDevice {
-  id: number;
+  id: string;
   macAddress: string;
   deviceKey: string;
   deviceName: string;
 }
 
 export interface Order {
-  id: number;
+  id: string;
   customer: Customer;
-  leadAgent: { id: number; name: string };
-  closerAgent: { id: number; name: string };
+  leadAgent: { id: string; name: string };
+  closerAgent: { id: string; name: string };
   type: OrderType;
   referrerName: string | null;
   amount: number;
@@ -69,7 +70,7 @@ export interface DashboardStats {
     totalLeads: number;
     prevLeads: number;
   };
-  recentOrders: { id: number; customerName: string; amount: number; status: string; createdAt: string }[];
+  recentOrders: { id: string; customerName: string; amount: number; status: string; createdAt: string }[];
   revenueByMonth: { month: string; revenue: number }[];
   topAgents: { name: string; totalRevenue: number; orderCount: number }[];
   ordersByType: { type: string; count: number }[];
@@ -89,7 +90,7 @@ export interface PaginatedResponse<T> {
 })
 export class SalesService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3000/api/sales';
+  private apiUrl = `${API_BASE_URL}/sales`;
 
   // Customers
   getCustomers(params: any): Observable<PaginatedResponse<Customer>> {
@@ -100,7 +101,7 @@ export class SalesService {
     return this.http.get<PaginatedResponse<Customer>>(`${this.apiUrl}/customers`, { params: httpParams });
   }
 
-  getCustomer(id: number): Observable<Customer> {
+  getCustomer(id: string): Observable<Customer> {
     return this.http.get<Customer>(`${this.apiUrl}/customers/${id}`);
   }
 
@@ -108,7 +109,7 @@ export class SalesService {
     return this.http.post<Customer>(`${this.apiUrl}/customers`, data);
   }
 
-  updateCustomer(id: number, data: Partial<Customer>): Observable<Customer> {
+  updateCustomer(id: string, data: Partial<Customer>): Observable<Customer> {
     return this.http.put<Customer>(`${this.apiUrl}/customers/${id}`, data);
   }
 
@@ -125,7 +126,7 @@ export class SalesService {
     return this.http.get<PaginatedResponse<Order>>(`${this.apiUrl}/orders`, { params: httpParams });
   }
 
-  getOrder(id: number): Observable<Order> {
+  getOrder(id: string): Observable<Order> {
     return this.http.get<Order>(`${this.apiUrl}/orders/${id}`);
   }
 
@@ -133,15 +134,15 @@ export class SalesService {
     return this.http.post<Order>(`${this.apiUrl}/orders`, data);
   }
 
-  updateOrder(id: number, data: any): Observable<Order> {
+  updateOrder(id: string, data: any): Observable<Order> {
     return this.http.put<Order>(`${this.apiUrl}/orders/${id}`, data);
   }
 
-  deleteOrder(id: number): Observable<any> {
+  deleteOrder(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/orders/${id}`);
   }
 
-  sendInvoiceEmail(orderId: number): Observable<any> {
+  sendInvoiceEmail(orderId: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/orders/${orderId}/send-invoice`, {});
   }
 

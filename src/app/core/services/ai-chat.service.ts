@@ -1,25 +1,26 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export interface AiConversation {
-  id: number;
-  userId: number;
+  id: string;
+  userId: string;
   title: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AiMessage {
-  id: number;
-  conversationId: number;
+  id: string;
+  conversationId: string;
   role: 'user' | 'model';
   content: string;
   createdAt: string;
 }
 
 export interface SalesScenario {
-  id: number;
+  id: string;
   title: string;
   description: string;
   category: string;
@@ -34,7 +35,7 @@ export interface SalesScenario {
 })
 export class AiChatService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3000/api/ai-chat';
+  private apiUrl = `${API_BASE_URL}/ai-chat`;
 
   // --- Conversations ---
 
@@ -46,15 +47,15 @@ export class AiChatService {
     return this.http.post<AiConversation>(`${this.apiUrl}/conversations`, { title });
   }
 
-  getMessages(conversationId: number): Observable<AiMessage[]> {
+  getMessages(conversationId: string): Observable<AiMessage[]> {
     return this.http.get<AiMessage[]>(`${this.apiUrl}/conversations/${conversationId}/messages`);
   }
 
-  sendMessage(conversationId: number, message: string): Observable<AiMessage> {
+  sendMessage(conversationId: string, message: string): Observable<AiMessage> {
     return this.http.post<AiMessage>(`${this.apiUrl}/conversations/${conversationId}/messages`, { message });
   }
 
-  deleteConversation(conversationId: number): Observable<any> {
+  deleteConversation(conversationId: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/conversations/${conversationId}`);
   }
 
@@ -72,11 +73,11 @@ export class AiChatService {
     return this.http.post<SalesScenario>(`${this.apiUrl}/scenarios`, data);
   }
 
-  updateScenario(id: number, data: Partial<SalesScenario>): Observable<SalesScenario> {
+  updateScenario(id: string, data: Partial<SalesScenario>): Observable<SalesScenario> {
     return this.http.put<SalesScenario>(`${this.apiUrl}/scenarios/${id}`, data);
   }
 
-  deleteScenario(id: number): Observable<any> {
+  deleteScenario(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/scenarios/${id}`);
   }
 }

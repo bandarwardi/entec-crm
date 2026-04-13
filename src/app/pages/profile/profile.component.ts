@@ -10,6 +10,7 @@ import { AuthStore } from '../../core/stores/auth.store';
 import { HttpClient } from '@angular/common/http';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { API_BASE_URL, UPLOADS_URL } from '../../core/constants/api.constants';
 
 @Component({
   selector: 'app-profile',
@@ -25,7 +26,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
           <div class="flex flex-col items-center gap-4">
             <div class="w-32 h-32 rounded-full border-4 border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
               @if (user()?.avatar) {
-                <img [src]="'http://localhost:3000/uploads/' + user()?.avatar" alt="Avatar" class="w-full h-full object-cover">
+                <img [src]="uploadsUrl + '/' + user()?.avatar" alt="Avatar" class="w-full h-full object-cover">
               } @else {
                 <i class="pi pi-user text-6xl text-slate-400"></i>
               }
@@ -34,7 +35,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
             <p-fileupload 
               mode="basic" 
               name="file" 
-              url="http://localhost:3000/api/users/avatar" 
+              [url]="apiBaseUrl + '/users/avatar'" 
               accept="image/*" 
               [auto]="true" 
               [chooseLabel]="'profile.change_avatar' | t" 
@@ -98,6 +99,8 @@ export class ProfileComponent implements OnInit {
   saving = signal(false);
   message = signal('');
   messageType = signal<'success' | 'error'>('success');
+  apiBaseUrl = API_BASE_URL;
+  uploadsUrl = UPLOADS_URL;
 
   ngOnInit() {
     this.user.set(this.authStore.user());
@@ -123,7 +126,7 @@ export class ProfileComponent implements OnInit {
     if (!this.newPassword) return;
     this.saving.set(true);
     
-    this.http.put('http://localhost:3000/api/users/change-password', { password: this.newPassword }).subscribe({
+    this.http.put(`${API_BASE_URL}/users/change-password`, { password: this.newPassword }).subscribe({
       next: () => {
         this.saving.set(false);
         this.message.set(this.i18n.t('profile.password_success'));

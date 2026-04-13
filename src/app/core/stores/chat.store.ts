@@ -7,11 +7,12 @@ import { tapResponse } from '@ngrx/operators';
 import { ChatService } from '../services/chat.service';
 import { AuthStore } from './auth.store';
 import { I18nService } from '../i18n/i18n.service';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export interface Message {
-  id: number;
-  conversationId: number;
-  senderId: number;
+  id: string;
+  conversationId: string;
+  senderId: string;
   content: string | null;
   mediaUrl: string | null;
   mediaType: 'image' | 'file' | null;
@@ -19,17 +20,17 @@ export interface Message {
   isRead: boolean;
   createdAt: string | Date; // Backend sends string
   sender?: {
-    id: number;
+    id: string;
     name: string;
   };
 }
 
 export interface Conversation {
-  id: number;
-  user1Id: number;
-  user2Id: number;
+  id: string;
+  user1Id: string;
+  user2Id: string;
   otherUser: {
-    id: number;
+    id: string;
     name: string;
     email: string;
     role: string;
@@ -70,7 +71,7 @@ export const ChatStore = signalStore(
     const chatService = inject(ChatService);
     const authStore = inject(AuthStore);
     const i18n = inject(I18nService);
-    const apiUrl = 'http://localhost:3000/api/chat';
+    const apiUrl = `${API_BASE_URL}/chat`;
 
     const loadConversations = rxMethod<void>(
       pipe(
@@ -89,7 +90,7 @@ export const ChatStore = signalStore(
       )
     );
 
-    const loadMessages = rxMethod<{ conversationId: number; before?: string }>(
+    const loadMessages = rxMethod<{ conversationId: string; before?: string }>(
       pipe(
         tap(() => patchState(store, { messagesLoading: true })),
         switchMap(({ conversationId, before }) =>
@@ -130,7 +131,7 @@ export const ChatStore = signalStore(
       }));
     };
 
-    const startConversation = rxMethod<{ userId: number }>(
+    const startConversation = rxMethod<{ userId: string }>(
       pipe(
         tap(() => patchState(store, { loading: true })),
         switchMap(({ userId }) =>
@@ -189,13 +190,16 @@ export const ChatStore = signalStore(
     };
 
     const addMessage = (message: Message) => {
+      console.log('ChatStore: addMessage called with', message);
       patchState(store, (state) => {
           const activeConv = state.activeConversation;
-          const isForActive = activeConv?.id === message.conversationId;
+          const msgConvId = message.conversationId || (message as any).conversation;
+          console.log('ChatStore: msgConvId', msgConvId, 'activeConvId', activeConv?.id);
+          const isForActive = activeConv?.id === msgConvId;
           const updatedMessages = isForActive ? [...state.messages, message] : state.messages;
           
           const updatedConversations = state.conversations.map(c => {
-              if (c.id === message.conversationId) {
+              if (c.id === msgConvId) {
                   return { 
                       ...c, 
                       lastMessage: message, 
@@ -223,7 +227,7 @@ export const ChatStore = signalStore(
       });
     };
 
-    const updateTyping = (data: { conversationId: number; isTyping: boolean }) => {
+    const updateTyping = (data: { conversationId: string; isTyping: boolean }) => {
       patchState(store, (state) => ({
           conversations: state.conversations.map(c => 
               c.id === data.conversationId ? { ...c, isTyping: data.isTyping } : c
@@ -231,7 +235,7 @@ export const ChatStore = signalStore(
       }));
     };
 
-    const updateMessagesRead = (data: { conversationId: number; readerId: number }) => {
+    const updateMessagesRead = (data: { conversationId: string; readerId: string }) => {
       patchState(store, (state) => {
           // If the reader is NOT the current user, it means the other person read OUR messages
           const isOtherPersonReading = data.readerId !== authStore.user()?.id;
@@ -260,7 +264,10 @@ export const ChatStore = signalStore(
     const init = () => {
         chatService.connect();
         loadConversations();
-        chatService.newMessage$.subscribe(msg => addMessage(msg));
+        chatService.newMessage$.subscribe(msg => {
+            console.log('ChatStore: Subscription received newMessage', msg);
+            addMessage(msg);
+        });
         chatService.userTyping$.subscribe(data => updateTyping(data));
         chatService.messagesRead$.subscribe(data => updateMessagesRead(data));
     };

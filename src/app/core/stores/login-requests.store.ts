@@ -5,6 +5,7 @@ import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { MessageService } from 'primeng/api';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export interface LoginRequest {
   id: number;
@@ -37,7 +38,7 @@ export const LoginRequestsStore = signalStore(
   withMethods((store) => {
     const http = inject(HttpClient);
     const messageService = inject(MessageService);
-    const apiUrl = 'http://localhost:3000/api/auth';
+    const apiUrl = `${API_BASE_URL}/auth`;
 
     return {
       loadRequests: rxMethod<void>(

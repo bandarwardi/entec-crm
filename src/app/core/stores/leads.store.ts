@@ -127,7 +127,7 @@ export const LeadsStore = signalStore(
         )
       ),
 
-      updateLead: rxMethod<{ id: number; changes: Partial<Lead> }>(
+      updateLead: rxMethod<{ id: string; changes: Partial<Lead> }>(
         pipe(
           switchMap(({ id, changes }) =>
             leadService.updateLead(id, changes).pipe(
@@ -142,7 +142,7 @@ export const LeadsStore = signalStore(
         )
       ),
 
-      deleteLead: rxMethod<number>(
+      deleteLead: rxMethod<string>(
         pipe(
           switchMap((id) =>
             leadService.deleteLead(id).pipe(

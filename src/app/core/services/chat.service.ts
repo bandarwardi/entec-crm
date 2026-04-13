@@ -1,16 +1,16 @@
 import { Injectable, inject } from '@angular/core';
-import { io } from 'socket.io-client';
-import type { Socket } from 'socket.io-client';
+import * as socketIo from 'socket.io-client';
 import { AuthStore } from '../stores/auth.store';
+import { SOCKET_URL } from '../constants/api.constants';
 import { Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
-  private socket: Socket | null = null;
+  private socket: any = null;
   private authStore = inject(AuthStore);
-  private apiUrl = 'http://localhost:3000';
+  private apiUrl = SOCKET_URL;
 
   private newMessageSubject = new Subject<any>();
   newMessage$ = this.newMessageSubject.asObservable();
@@ -23,14 +23,26 @@ export class ChatService {
 
   connect() {
     const token = this.authStore.token();
-    if (!token || (this.socket && this.socket.connected)) return;
+    console.log('Attempting to connect to Chat WebSocket...', { url: this.apiUrl, hasToken: !!token });
+    
+    if (!token) {
+      console.warn('No token found, skipping chat connection');
+      return;
+    }
 
-    this.socket = io(this.apiUrl, {
+    if (this.socket && this.socket.connected) {
+      console.log('Socket already connected');
+      return;
+    }
+
+    const ioFunc = (socketIo as any).io || (socketIo as any).default || socketIo;
+    this.socket = ioFunc(this.apiUrl, {
       auth: { token },
       transports: ['websocket']
     });
 
     this.socket.on('newMessage', (message: any) => {
+      console.log('WS: Received newMessage', message);
       this.newMessageSubject.next(message);
     });
 
@@ -43,11 +55,15 @@ export class ChatService {
     });
 
     this.socket.on('connect', () => {
-      console.log('Connected to Chat WebSocket');
+      console.log('✅ Connected to Chat WebSocket successfully');
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from Chat WebSocket');
+    this.socket.on('connect_error', (error: any) => {
+      console.error('❌ WS Connection error:', error);
+    });
+
+    this.socket.on('disconnect', (reason: string) => {
+      console.log('🔌 Disconnected from Chat WebSocket:', reason);
     });
   }
 
@@ -58,19 +74,19 @@ export class ChatService {
     }
   }
 
-  sendMessage(data: { conversationId: number; content?: string; mediaUrl?: string; mediaType?: string; originalFileName?: string }) {
+  sendMessage(data: { conversationId: string; content?: string; mediaUrl?: string; mediaType?: string; originalFileName?: string }) {
     if (this.socket) {
       this.socket.emit('sendMessage', data);
     }
   }
 
-  emitTyping(conversationId: number, recipientId: number, isTyping: boolean) {
+  emitTyping(conversationId: string, recipientId: string, isTyping: boolean) {
     if (this.socket) {
       this.socket.emit('typing', { conversationId, recipientId, isTyping });
     }
   }
 
-  markAsRead(conversationId: number, recipientId: number) {
+  markAsRead(conversationId: string, recipientId: string) {
     if (this.socket) {
       this.socket.emit('markAsRead', { conversationId, recipientId });
     }

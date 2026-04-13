@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export enum LeadStatus {
   NEW = 'new',
@@ -12,7 +13,7 @@ export enum LeadStatus {
 }
 
 export interface Lead {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   state: string;
@@ -21,7 +22,7 @@ export interface Lead {
   reminderAt: string | null;
   reminderNote: string | null;
   reminderRead?: boolean;
-  createdBy?: { id: number; name: string };
+  createdBy?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -38,7 +39,7 @@ export interface PaginatedResponse<T> {
 })
 export class UserLeadService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3000/api/leads';
+  private apiUrl = `${API_BASE_URL}/leads`;
 
   getLeads(params: { page?: number; limit?: number; search?: string; status?: string; state?: string; hasReminder?: string }): Observable<PaginatedResponse<Lead>> {
     let httpParams = new HttpParams();
@@ -63,11 +64,11 @@ export class UserLeadService {
     return this.http.post<Lead>(this.apiUrl, lead);
   }
 
-  updateLead(id: number, lead: Partial<Lead>): Observable<Lead> {
+  updateLead(id: string, lead: Partial<Lead>): Observable<Lead> {
     return this.http.put<Lead>(`${this.apiUrl}/${id}`, lead);
   }
 
-  deleteLead(id: number): Observable<any> {
+  deleteLead(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
 

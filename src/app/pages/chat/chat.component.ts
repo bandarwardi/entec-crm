@@ -24,6 +24,7 @@ import { map, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { SOCKET_URL } from '../../core/constants/api.constants';
 
 @Component({
   selector: 'app-chat',
@@ -187,15 +188,15 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                         @if (msg.mediaType === 'image') {
                         <div class="image-container rounded-lg overflow-hidden min-h-[100px] flex items-center justify-center">
                           <img 
-                            [src]="'http://localhost:3000' + msg.mediaUrl" 
+                            [src]="socketUrl + msg.mediaUrl" 
                             class="max-w-full max-h-[450px] object-contain rounded-lg cursor-pointer hover:opacity-95 transition-opacity block mx-auto chat-image"
                             alt="Image message"
-                            (click)="openMedia('http://localhost:3000' + msg.mediaUrl)"
+                            (click)="openMedia(socketUrl + msg.mediaUrl)"
                           >
                         </div>
                       } @else {
                           <a 
-                            [href]="'http://localhost:3000' + msg.mediaUrl" 
+                            [href]="socketUrl + msg.mediaUrl" 
                             target="_blank"
                             class="flex items-center gap-2 p-2 bg-black/5 dark:bg-white/5 rounded border border-black/10 dark:border-white/10 no-underline text-inherit"
                           >
@@ -497,6 +498,7 @@ export class ChatComponent implements OnInit {
   messageService = inject(MessageService);
   breakpointObserver = inject(BreakpointObserver);
   i18n = inject(I18nService);
+  socketUrl = SOCKET_URL;
 
   isDarkMode = computed(() => this.layoutService.isDarkTheme());
   
@@ -584,7 +586,7 @@ export class ChatComponent implements OnInit {
     }
   }
 
-  startNewChat(userId: number) {
+  startNewChat(userId: string) {
     this.chatStore.startConversation({ userId });
     this.showUserSearch = false;
     this.userSearchQuery = '';

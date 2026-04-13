@@ -23,6 +23,7 @@ import { MessageService } from 'primeng/api';
 import { effect } from '@angular/core';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { API_BASE_URL } from '../../core/constants/api.constants';
 
 @Component({
   selector: 'app-order-form',
@@ -370,11 +371,11 @@ export class OrderFormComponent implements OnInit {
 
   orderForm!: FormGroup;
   isEdit = false;
-  orderId: number | null = null;
+  orderId: string | null = null;
   users: User[] = [];
   filteredCustomers = signal<any[]>([]);
   isGeocoding = false;
-  uploadUrl = 'http://localhost:3000/api/sales/upload-attachment';
+  uploadUrl = `${API_BASE_URL}/sales/upload-attachment`;
 
   customerTypeOptions = computed(() => [
     { label: this.i18n.t('order_form.existing_customer'), value: 'existing' },
@@ -424,14 +425,14 @@ export class OrderFormComponent implements OnInit {
     this.route.params.subscribe(params => {
       if (params['id']) {
         this.isEdit = true;
-        this.orderId = +params['id'];
-        this.loadOrderData(this.orderId);
+        this.orderId = params['id'];
+        this.loadOrderData(this.orderId!);
       }
     });
 
     this.route.queryParams.subscribe(params => {
       if (params['customerId'] && !this.isEdit) {
-        this.salesService.getCustomer(+params['customerId']).subscribe(c => {
+        this.salesService.getCustomer(params['customerId']).subscribe(c => {
           this.orderForm.patchValue({
             customerType: 'existing',
             existingCustomer: c
@@ -487,11 +488,11 @@ export class OrderFormComponent implements OnInit {
     if (!response && event.xhr?.response) {
       response = JSON.parse(event.xhr.response);
     }
-    
+
     if (response && response.url) {
       let finalUrl = response.url;
       if (finalUrl.startsWith('/uploads')) {
-        finalUrl = 'http://localhost:3000' + finalUrl;
+        finalUrl = 'https://entec-crm-nestjs-production.up.railway.app' + finalUrl;
       }
       const current = this.attachmentsArray?.value || [];
       this.attachmentsArray?.setValue([...current, finalUrl]);
@@ -538,7 +539,7 @@ export class OrderFormComponent implements OnInit {
     this.userService.getUsers().subscribe(u => this.users = u);
   }
 
-  loadOrderData(id: number) {
+  loadOrderData(id: string) {
     this.salesService.getOrder(id).subscribe(o => {
       this.orderForm.patchValue({
         customerType: 'existing',

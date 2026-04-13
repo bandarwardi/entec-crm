@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../constants/api.constants';
 
 export interface WorkSettings {
   id: number;
@@ -26,7 +27,7 @@ export interface Holiday {
 })
 export class WorkSettingsService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3000/api/work-settings';
+  private apiUrl = `${API_BASE_URL}/work-settings`;
 
   getSettings(): Observable<WorkSettings> {
     return this.http.get<WorkSettings>(this.apiUrl);

@@ -65,7 +65,7 @@ export const CustomersStore = signalStore(
         )
       ),
 
-      updateCustomer: rxMethod<{ id: number; changes: Partial<Customer> }>(
+      updateCustomer: rxMethod<{ id: string; changes: Partial<Customer> }>(
         pipe(
           switchMap(({ id, changes }) =>
             salesService.updateCustomer(id, changes).pipe(

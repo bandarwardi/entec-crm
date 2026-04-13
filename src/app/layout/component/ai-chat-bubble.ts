@@ -304,7 +304,7 @@ export class AiChatBubbleComponent implements OnInit {
     });
   }
 
-  deleteConversation(id: number) {
+  deleteConversation(id: string) {
     this.aiChatService.deleteConversation(id).subscribe(() => {
       this.conversations.update(prev => prev.filter(c => c.id !== id));
       if (this.activeConversation()?.id === id) {
@@ -341,7 +341,7 @@ export class AiChatBubbleComponent implements OnInit {
     
     // Add user message to UI immediately
     const tempUserMsg: AiMessage = {
-      id: Date.now(),
+      id: Date.now().toString(),
       conversationId: convId,
       role: 'user',
       content: userMessage,
@@ -363,7 +363,7 @@ export class AiChatBubbleComponent implements OnInit {
       error: (err) => {
         console.error('AI Chat Error:', err);
         const errorMsg: AiMessage = {
-          id: Date.now() + 1,
+          id: (Date.now() + 1).toString(),
           conversationId: convId,
           role: 'model',
           content: this.i18n.t('ai_chat.error_msg'),
