@@ -1,0 +1,72 @@
+/* You can add global styles to this file, and also import other style files */
+@use 'primeicons/primeicons.css';
+@use '@/assets/layout/layout.scss';
+@use '@/assets/demo/demo.scss';
+@import 'leaflet/dist/leaflet.css';
+
+html[dir="rtl"] {
+    font-family: 'Tajawal', sans-serif !important;
+
+    .layout-sidebar {
+        left: auto !important;
+        right: 2rem !important;
+        border-right: 1px solid var(--surface-border);
+        border-left: 1px solid var(--surface-border);
+        transition: transform var(--layout-section-transition-duration), right var(--layout-section-transition-duration);
+    }
+
+    .layout-main-container {
+        margin-left: 0 !important;
+        margin-right: 24rem !important; 
+        transition: margin-right var(--layout-section-transition-duration);
+    }
+
+    .layout-wrapper.layout-static-inactive {
+        .layout-sidebar {
+            transform: translateX(calc(100% + 4rem)) !important;
+        }
+        .layout-main-container {
+            margin-right: 0 !important;
+            padding-right: 2rem;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .layout-main-container {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-right: 2rem;
+            padding-left: 2rem;
+        }
+        
+        .layout-sidebar {
+            right: 0 !important;
+            left: auto !important;
+            top: 0 !important;
+            height: 100vh !important;
+            border-radius: 0 !important;
+            transform: translateX(100%) !important;
+        }
+
+        .layout-wrapper.layout-mobile-active .layout-sidebar {
+            transform: translateX(0) !important;
+        }
+    }
+    
+    // Topbar fixes for RTL
+    .layout-topbar {
+        left: 0;
+        right: 0;
+        
+        .layout-topbar-logo {
+            margin-right: 0;
+            margin-left: auto;
+        }
+        
+        .layout-topbar-menu {
+            margin-left: 0;
+            margin-right: auto;
+        }
+    }
+}
+

@@ -1,0 +1,132 @@
+import { Injectable, effect, signal, computed } from '@angular/core';
+
+export interface LayoutConfig {
+    preset: string;
+    primary: string;
+    surface: string | undefined | null;
+    darkTheme: boolean;
+    menuMode: string;
+    lang: 'ar' | 'en';
+}
+
+interface LayoutState {
+    staticMenuDesktopInactive: boolean;
+    overlayMenuActive: boolean;
+    configSidebarVisible: boolean;
+    mobileMenuActive: boolean;
+    menuHoverActive: boolean;
+    activePath: string | null;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class LayoutService {
+    layoutConfig = signal<LayoutConfig>(
+        JSON.parse(localStorage.getItem('layoutConfig') || 'null') || {
+            preset: 'Aura',
+            primary: 'emerald',
+            surface: null,
+            darkTheme: false,
+            menuMode: 'static',
+            lang: (localStorage.getItem('app_lang') as 'ar' | 'en') || 'ar'
+        }
+    );
+
+    layoutState = signal<LayoutState>({
+        staticMenuDesktopInactive: false,
+        overlayMenuActive: false,
+        configSidebarVisible: false,
+        mobileMenuActive: false,
+        menuHoverActive: false,
+        activePath: null
+    });
+
+    theme = computed(() => (this.layoutConfig().darkTheme ? 'light' : 'dark'));
+
+    isSidebarActive = computed(() => this.layoutState().overlayMenuActive || this.layoutState().mobileMenuActive);
+
+    isDarkTheme = computed(() => this.layoutConfig().darkTheme);
+
+    getPrimary = computed(() => this.layoutConfig().primary);
+
+    getSurface = computed(() => this.layoutConfig().surface);
+
+    isOverlay = computed(() => this.layoutConfig().menuMode === 'overlay');
+
+    transitionComplete = signal<boolean>(false);
+
+    private initialized = false;
+
+    constructor() {
+        effect(() => {
+            const config = this.layoutConfig();
+
+            if (!this.initialized) {
+                this.initialized = true;
+                if (config) {
+                    localStorage.setItem('layoutConfig', JSON.stringify(config));
+                    this.toggleDarkMode(config); // apply without transition on boot
+                }
+                return;
+            }
+
+            localStorage.setItem('layoutConfig', JSON.stringify(config));
+
+            this.handleDarkModeTransition(config);
+        });
+    }
+
+    private handleDarkModeTransition(config: LayoutConfig): void {
+        const supportsViewTransition = 'startViewTransition' in document;
+
+        if (supportsViewTransition) {
+            this.startViewTransition(config);
+        } else {
+            this.toggleDarkMode(config);
+        }
+    }
+
+    private startViewTransition(config: LayoutConfig): void {
+        document.startViewTransition(() => {
+            this.toggleDarkMode(config);
+        });
+    }
+
+    toggleDarkMode(config?: LayoutConfig): void {
+        const _config = config || this.layoutConfig();
+        if (_config.darkTheme) {
+            document.documentElement.classList.add('app-dark');
+        } else {
+            document.documentElement.classList.remove('app-dark');
+        }
+    }
+
+    onMenuToggle() {
+        if (this.isOverlay()) {
+            this.layoutState.update((prev) => ({ ...prev, overlayMenuActive: !this.layoutState().overlayMenuActive }));
+        }
+
+        if (this.isDesktop()) {
+            this.layoutState.update((prev) => ({ ...prev, staticMenuDesktopInactive: !this.layoutState().staticMenuDesktopInactive }));
+        } else {
+            this.layoutState.update((prev) => ({ ...prev, mobileMenuActive: !this.layoutState().mobileMenuActive }));
+        }
+    }
+
+    showConfigSidebar() {
+        this.layoutState.update((prev) => ({ ...prev, configSidebarVisible: true }));
+    }
+
+    hideConfigSidebar() {
+        this.layoutState.update((prev) => ({ ...prev, configSidebarVisible: false }));
+    }
+
+    isDesktop() {
+        return window.innerWidth > 991;
+    }
+
+    isMobile() {
+        return !this.isDesktop();
+    }
+}

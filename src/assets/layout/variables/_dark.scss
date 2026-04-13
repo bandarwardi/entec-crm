@@ -1,0 +1,8 @@
+:root[class*='app-dark'] {
+    --surface-ground: #0f172a;
+    --surface-section: #1e293b;
+    --surface-card: #1e293b;
+    --code-background: var(--p-surface-800);
+    --code-color: var(--p-surface-100);
+    --layout-bg-gradient: radial-gradient(circle at top right, #1e293b, #0f172a);
+}
