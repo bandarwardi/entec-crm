@@ -12,6 +12,7 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService, MessageService, LazyLoadEvent } from 'primeng/api';
 import { UserLeadService, Lead, LeadStatus } from '../../core/services/user-lead.service';
+import { UserService, User } from '../../core/services/user.service';
 import { US_CA_STATES } from '../../core/services/us-ca-states';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
@@ -67,15 +68,12 @@ import { AuthStore } from '../../core/stores/auth.store';
           </div>
           
           <div class="flex flex-wrap gap-3 w-full md:w-auto">
-            <p-iconField iconPosition="left" class="w-full md:w-80">
+            <p-iconField iconPosition="left" class="flex-grow md:flex-initial">
               <p-inputIcon class="pi pi-search text-white/70" />
-              <input 
-                pInputText 
-                type="text" 
-                (input)="onSearch($event)" 
-                [placeholder]="'leads.search_placeholder' | t" 
-                class="w-full rounded-2xl border-white/20 bg-white/10 text-white placeholder:text-white/60 focus:ring-white/30 backdrop-blur-md" 
-              />
+              <input pInputText type="text" (input)="onSearch($event)" 
+                     [placeholder]="'leads.list.search_placeholder' | t" 
+                     autocomplete="off" dir="ltr"
+                     class="w-full md:w-96 rounded-2xl border-white/20 bg-white/10 backdrop-blur-md text-white placeholder:text-white/50 focus:ring-white/20 text-left" />
             </p-iconField>
             <p-button [label]="'leads.import' | t" icon="pi pi-file-import" (onClick)="fileInput.click()" [loading]="store.loading()" styleClass="rounded-2xl bg-white/20 border-white/30 text-white hover:bg-white/30 px-6 font-bold"></p-button>
             <p-button [label]="'leads.export' | t" icon="pi pi-file-export" (onClick)="exportExcel()" [loading]="store.loading()" styleClass="rounded-2xl bg-white/20 border-white/30 text-white hover:bg-white/30 px-6 font-bold"></p-button>
@@ -93,6 +91,10 @@ import { AuthStore } from '../../core/stores/auth.store';
              </div>
              <span class="text-xs font-black text-surface-500 dark:text-surface-400 uppercase tracking-widest">{{ 'ui.search' | t }}</span>
           </div>
+          
+          @if (isSuperAdmin() || isAdmin()) {
+            <p-select [options]="filterAgentOptions()" [(ngModel)]="selectedCreatedBy" (onChange)="applyFilters()" [filter]="true" [placeholder]="'الكل (موظفين)'" class="w-full md:w-48" styleClass="rounded-xl"></p-select>
+          }
           <p-select [options]="filterStatusOptions()" [(ngModel)]="selectedStatus" (onChange)="applyFilters()" [placeholder]="'leads.filter.all_statuses' | t" class="w-full md:w-48" styleClass="rounded-xl"></p-select>
           <p-select [options]="reminderOptions()" [(ngModel)]="selectedReminder" (onChange)="applyFilters()" [placeholder]="'leads.filter.all_reminders' | t" class="w-full md:w-48" styleClass="rounded-xl"></p-select>
           <p-select [options]="filterStateOptions()" [(ngModel)]="selectedState" (onChange)="applyFilters()" [filter]="true" [placeholder]="'leads.filter.all_states' | t" class="w-full md:w-48" styleClass="rounded-xl"></p-select>
@@ -110,7 +112,7 @@ import { AuthStore } from '../../core/stores/auth.store';
           </div>
           <div class="flex flex-col">
             <label class="text-[10px] font-black text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.phone' | t }}</label>
-            <input pInputText formControlName="phone" [placeholder]="'leads.table.phone' | t" class="w-full dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 rounded-xl" />
+            <input pInputText formControlName="phone" dir="ltr" [placeholder]="'leads.table.phone' | t" class="w-full dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 rounded-xl text-left" />
             @if (leadForm.get('phone')?.invalid && leadForm.get('phone')?.touched) {
               <small class="text-red-500 font-bold mt-1 ml-1 text-[10px]">{{ 'leads.validation.phone_required' | t }}</small>
             }
@@ -177,10 +179,10 @@ import { AuthStore } from '../../core/stores/auth.store';
                 [pEditableColumn]="lead.phone" pEditableColumnField="phone" [pEditableColumnDisabled]="editingLeadId !== null">
               <p-cellEditor>
                 <ng-template pTemplate="input">
-                  <input pInputText type="text" [(ngModel)]="lead.phone" (blur)="onEditLead(lead)" class="w-full" />
+                  <input pInputText type="text" [(ngModel)]="lead.phone" (blur)="onEditLead(lead)" dir="ltr" class="w-full text-left" />
                 </ng-template>
                 <ng-template pTemplate="output">
-                  {{ lead.phone }}
+                  <span dir="ltr" class="inline-block">{{ lead.phone }}</span>
                 </ng-template>
               </p-cellEditor>
             </td>
@@ -241,8 +243,8 @@ import { AuthStore } from '../../core/stores/auth.store';
               </span>
             </td>
             <td>
-              @if (!isAgent()) {
-                <p-button icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger" (onClick)="onDeleteLead(lead)"></p-button>
+              @if (isSuperAdmin() || isAdmin() || isAgent()) {
+                <p-button type="button" icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger" (click)="$event.stopPropagation(); onDeleteLead(lead)"></p-button>
               }
             </td>
           </tr>
@@ -271,6 +273,9 @@ import { AuthStore } from '../../core/stores/auth.store';
       </ng-template>
     </p-dialog>
 
+    <!-- Password Confirmation Dialog (REMOVED) -->
+
+
     <style>
       .cell-selection-table .selected-cell {
         background-color: rgba(59, 130, 246, 0.2) !important;
@@ -293,9 +298,12 @@ export class LeadsComponent implements OnInit, OnDestroy {
   private datePipe = inject(DatePipe);
   private leadService = inject(UserLeadService);
   private authStore = inject(AuthStore);
+  private userService = inject(UserService);
   readonly store = inject(LeadsStore);
 
   isAgent = computed(() => this.authStore.user()?.role === 'agent');
+  isAdmin = computed(() => this.authStore.user()?.role === 'admin');
+  isSuperAdmin = computed(() => this.authStore.user()?.role === 'super-admin');
 
   private searchSubject = new Subject<string>();
 
@@ -325,9 +333,16 @@ export class LeadsComponent implements OnInit, OnDestroy {
     { label: this.i18n.t('leads.filter.no_reminder'), value: 'false' }
   ]);
 
+  agents = signal<User[]>([]);
+  filterAgentOptions = computed(() => [
+    { label: 'الكل (موظفين)', value: null },
+    ...this.agents().map(a => ({ label: a.name, value: a.id }))
+  ]);
+
   selectedStatus: string | null = null;
   selectedState: string | null = null;
   selectedReminder: string | null = null;
+  selectedCreatedBy: string | null = null;
 
   // Selection Logic
   isSelecting = false;
@@ -345,6 +360,8 @@ export class LeadsComponent implements OnInit, OnDestroy {
   selectedLead: any = {};
   editingLeadId: number | null = null;
   
+  leadToDelete: Lead | null = null;
+  
   constructor() {
     this.searchSubject.pipe(
       debounceTime(400),
@@ -356,7 +373,8 @@ export class LeadsComponent implements OnInit, OnDestroy {
         search: term,
         status: this.selectedStatus || undefined,
         state: this.selectedState || undefined,
-        hasReminder: this.selectedReminder || undefined
+        hasReminder: this.selectedReminder || undefined,
+        createdBy: this.selectedCreatedBy || undefined
       });
     });
 
@@ -385,6 +403,12 @@ export class LeadsComponent implements OnInit, OnDestroy {
 
   initialLoad() {
     this.store.loadLeads({ page: 1, limit: this.store.pageSize() });
+
+    if (this.isSuperAdmin() || this.isAdmin()) {
+      this.userService.getUsers().subscribe(users => {
+        this.agents.set(users.filter(u => u.role === 'agent'));
+      });
+    }
   }
 
   applyFilters() {
@@ -394,7 +418,8 @@ export class LeadsComponent implements OnInit, OnDestroy {
       search: this.store.searchTerm(),
       status: this.selectedStatus || undefined,
       state: this.selectedState || undefined,
-      hasReminder: this.selectedReminder || undefined
+      hasReminder: this.selectedReminder || undefined,
+      createdBy: this.selectedCreatedBy || undefined
     });
   }
 
@@ -402,6 +427,7 @@ export class LeadsComponent implements OnInit, OnDestroy {
     this.selectedStatus = null;
     this.selectedState = null;
     this.selectedReminder = null;
+    this.selectedCreatedBy = null;
     this.applyFilters();
   }
 
@@ -413,7 +439,8 @@ export class LeadsComponent implements OnInit, OnDestroy {
       search: this.store.searchTerm(),
       status: this.selectedStatus || undefined,
       state: this.selectedState || undefined,
-      hasReminder: this.selectedReminder || undefined
+      hasReminder: this.selectedReminder || undefined,
+      createdBy: this.selectedCreatedBy || undefined
     });
   }
 
@@ -438,11 +465,14 @@ export class LeadsComponent implements OnInit, OnDestroy {
     this.confirmationService.confirm({
       message: this.i18n.t('leads.delete.confirm_msg'),
       header: this.i18n.t('leads.delete.confirm_title'),
-      acceptLabel: this.i18n.t('ui.yes'),
-      rejectLabel: this.i18n.t('ui.no'),
+      icon: 'pi pi-exclamation-triangle',
       accept: () => {
         this.store.deleteLead(lead.id);
-        this.messageService.add({ severity: 'success', summary: this.i18n.t('ui.success'), detail: this.i18n.t('leads.delete.success') });
+        this.messageService.add({ 
+          severity: 'success', 
+          summary: this.i18n.t('ui.success'), 
+          detail: this.i18n.t('leads.delete.success') 
+        });
       }
     });
   }
@@ -520,27 +550,38 @@ export class LeadsComponent implements OnInit, OnDestroy {
         const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
 
         if (data.length > 0) {
-          const headers = data[0].map(h => String(h).trim());
-          // Check first 3 columns: Name, Phone, State
-          if (headers[0] === 'Name' && headers[1] === 'Phone' && headers[2] === 'State') {
-            const leadsToImport = data.slice(1).map(row => ({
-              name: String(row[0] || ''),
-              phone: String(row[1] || ''),
-              state: String(row[2] || ''),
-              notes: String(row[3] || ''),
-              status: LeadStatus.NEW
-            })).filter(l => l.name && l.phone);
+          const headers = data[0].map(h => String(h || '').trim());
+          
+          // Find column indices by name (flexible)
+          const nameIdx = headers.findIndex(h => h.toLowerCase() === 'name');
+          const phoneIdx = headers.findIndex(h => h.toLowerCase() === 'phone');
+          const stateIdx = headers.findIndex(h => h.toLowerCase() === 'state');
+          const notesIdx = headers.findIndex(h => h.toLowerCase() === 'notes');
 
-            this.confirmationService.confirm({
-              message: this.i18n.t('leads.import.confirm_msg').replace('{count}', leadsToImport.length.toString()),
-              header: this.i18n.t('leads.import.confirm'),
-              accept: () => {
-                this.store.importLeads(leadsToImport);
-                event.target.value = '';
-              }
-            });
+          if (phoneIdx !== -1) {
+            const leadsToImport = data.slice(1).map(row => ({
+              name: nameIdx !== -1 ? String(row[nameIdx] || '') : '',
+              phone: String(row[phoneIdx] || ''),
+              state: stateIdx !== -1 ? String(row[stateIdx] || '') : '',
+              notes: notesIdx !== -1 ? String(row[notesIdx] || '') : '',
+              status: LeadStatus.NEW
+            })).filter(l => l.phone && l.phone.trim() !== ''); // Require at least a phone number
+
+            if (leadsToImport.length > 0) {
+              this.confirmationService.confirm({
+                message: this.i18n.t('leads.import.confirm_msg').replace('{count}', leadsToImport.length.toString()),
+                header: this.i18n.t('leads.import.confirm'),
+                accept: () => {
+                  this.store.importLeads(leadsToImport);
+                  event.target.value = '';
+                }
+              });
+            } else {
+              this.messageService.add({ severity: 'warn', summary: this.i18n.t('ui.warning'), detail: 'لا توجد بيانات صالحة للاستيراد (يجب توفر رقم الهاتف على الأقل)' });
+              event.target.value = '';
+            }
           } else {
-            this.messageService.add({ severity: 'error', summary: this.i18n.t('ui.error'), detail: this.i18n.t('leads.import.error_columns') });
+            this.messageService.add({ severity: 'error', summary: this.i18n.t('ui.error'), detail: 'يجب أن يحتوي ملف الإكسيل على عمود باسم "Phone"' });
             event.target.value = '';
           }
         }
