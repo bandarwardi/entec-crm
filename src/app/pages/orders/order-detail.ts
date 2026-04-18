@@ -56,7 +56,8 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
             
             <div class="flex flex-wrap gap-3 w-full md:w-auto">
                 <p-button [label]="'orders.detail.send_email' | t" icon="pi pi-envelope" (onClick)="sendEmail()" 
-                          [disabled]="ordersStore.saving()"
+                          [loading]="sendingEmail()"
+                          [disabled]="ordersStore.saving() || sendingEmail()"
                           styleClass="rounded-2xl bg-white/10 border-white/30 text-white hover:bg-white/20 px-6 py-3 font-bold"></p-button>
                 <p-button [label]="'orders.detail.edit' | t" icon="pi pi-pencil" [routerLink]="['/orders', order()?.id, 'edit']" 
                           styleClass="rounded-2xl bg-white/10 border-white/30 text-white hover:bg-white/20 px-6 py-3 font-bold"></p-button>
@@ -70,15 +71,15 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
         <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-surface-100 dark:divide-surface-800 bg-surface-50/50 dark:bg-surface-800/30">
           <div class="p-6 text-center">
             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.type' | t }}</span>
-            <p-tag [value]="order()?.type" [severity]="getTypeSeverity(order()?.type || '')" styleClass="text-xs px-4 py-1 rounded-full uppercase font-black"></p-tag>
+            <p-tag [value]="('dashboard.types.' + order()?.type) | t" [severity]="getTypeSeverity(order()?.type || '')" styleClass="text-xs px-4 py-1 rounded-full uppercase font-black"></p-tag>
           </div>
           <div class="p-6 text-center">
             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.payment_method' | t }}</span>
-            <span class="text-lg font-black text-surface-900 dark:text-surface-0">{{ order()?.paymentMethod }}</span>
+            <span class="text-lg font-black text-surface-900 dark:text-surface-0">{{ getPaymentMethodLabel(order()?.paymentMethod || '') }}</span>
           </div>
           <div class="p-6 text-center">
             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.status_label' | t }}</span>
-            <p-tag [value]="order()?.status" [severity]="getStatusSeverity(order()?.status || '')" styleClass="text-xs px-4 py-1 rounded-full uppercase font-black"></p-tag>
+            <p-tag [value]="('orders.status.' + order()?.status) | t" [severity]="getStatusSeverity(order()?.status || '')" styleClass="text-xs px-4 py-1 rounded-full uppercase font-black"></p-tag>
           </div>
         </div>
       </div>
@@ -133,7 +134,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                             
                             <div class="flex justify-between items-center p-5 rounded-2xl bg-surface-50/50 dark:bg-surface-800 shadow-inner">
                                 <span class="text-xs font-bold text-surface-400 uppercase tracking-widest">{{ 'orders.detail.payment_method' | t }}</span>
-                                <span class="font-black text-surface-900 dark:text-surface-0 bg-white dark:bg-surface-900 px-4 py-1 rounded-xl shadow-sm">{{ order()?.paymentMethod }}</span>
+                                <span class="font-black text-surface-900 dark:text-surface-0 bg-white dark:bg-surface-900 px-4 py-1 rounded-xl shadow-sm">{{ getPaymentMethodLabel(order()?.paymentMethod || '') }}</span>
                             </div>
                         </div>
                         <div class="space-y-6">
@@ -237,10 +238,22 @@ export class OrderDetailComponent implements OnInit {
   readonly ordersStore = inject(OrdersStore);
   private messageService = inject(MessageService);
   
-  order = signal<Order | null>(null);
+  orderId = signal<string | null>(null);
+  order = computed(() => {
+    const id = this.orderId();
+    return id ? this.ordersStore.entityMap()[id] || null : null;
+  });
   currentStatus: OrderStatus = OrderStatus.PENDING;
+  sendingEmail = signal(false);
 
   constructor() {
+    effect(() => {
+      const order = this.order();
+      if (order) {
+        this.currentStatus = order.status;
+      }
+    });
+
     effect(() => {
       const error = this.ordersStore.error();
       const lang = this.i18n.currentLang(); // Trigger effect on lang change
@@ -265,10 +278,8 @@ export class OrderDetailComponent implements OnInit {
   ngOnInit() {
     this.route.params.subscribe(params => {
         if (params['id']) {
-            this.salesService.getOrder(params['id']).subscribe(o => {
-                this.order.set(o);
-                this.currentStatus = o.status;
-            });
+            this.orderId.set(params['id']);
+            this.ordersStore.loadOrder(params['id']);
         }
     });
   }
@@ -276,10 +287,6 @@ export class OrderDetailComponent implements OnInit {
   onStatusChange(event: any) {
     if (!this.order()) return;
     this.ordersStore.updateOrderStatus({ id: this.order()!.id, status: this.currentStatus });
-    // Update local state to reflect change immediately if desired, 
-    // though the store handles the underlying data.
-    const updatedOrder = { ...this.order()!, status: this.currentStatus };
-    this.order.set(updatedOrder as Order);
   }
 
   printInvoice() {
@@ -292,6 +299,17 @@ export class OrderDetailComponent implements OnInit {
     if (!this.order()) return;
     const orderId = this.order()!.id;
     const customerEmail = this.order()!.customer.email;
+    const invoiceFile = this.order()!.invoiceFile;
+
+    if (!invoiceFile) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.i18n.t('ui.warning'),
+        detail: 'لا يمكنك إرسال الفاتورة عبر البريد. يرجى إرفاق ملف الفاتورة أولاً من صفحة تعديل الطلب.',
+        life: 5000
+      });
+      return;
+    }
 
     if (!customerEmail) {
       this.messageService.add({
@@ -303,8 +321,10 @@ export class OrderDetailComponent implements OnInit {
       return;
     }
 
+    this.sendingEmail.set(true);
     this.salesService.sendInvoiceEmail(orderId).subscribe({
       next: (res) => {
+        this.sendingEmail.set(false);
         this.messageService.add({
           severity: 'success',
           summary: this.i18n.t('ui.success'),
@@ -313,6 +333,7 @@ export class OrderDetailComponent implements OnInit {
         });
       },
       error: (err) => {
+        this.sendingEmail.set(false);
         this.messageService.add({
           severity: 'error',
           summary: this.i18n.t('ui.error'),
@@ -339,5 +360,25 @@ export class OrderDetailComponent implements OnInit {
       case 'cancelled': return 'danger';
       default: return 'secondary';
     }
+  }
+
+  getPaymentMethodLabel(method: string): string {
+    if (!method) return '';
+    const normalizedMethod = method.trim();
+    const map: { [key: string]: string } = {
+      'credit card': 'order_form.pm_credit',
+      'zelle': 'order_form.pm_zelle',
+      'cash app': 'order_form.pm_cashapp',
+      'venmo': 'order_form.pm_venmo',
+      'paypal': 'order_form.pm_paypal',
+      'apple pay': 'order_form.pm_apple',
+      'google pay': 'order_form.pm_google',
+      'ach transfer': 'order_form.pm_ach',
+      'cash': 'order_form.pm_cash',
+      'check': 'order_form.pm_check',
+      'other': 'order_form.pm_other'
+    };
+    const key = map[normalizedMethod.toLowerCase()] || 'order_form.pm_other';
+    return this.i18n.t(key);
   }
 }

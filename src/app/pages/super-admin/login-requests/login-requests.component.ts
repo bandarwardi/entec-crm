@@ -8,13 +8,14 @@ import { TagModule } from 'primeng/tag';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { PopoverModule } from 'primeng/popover';
+import { DialogModule } from 'primeng/dialog';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { I18nService } from '../../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-login-requests',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, ButtonModule, TagModule, SelectButtonModule, TooltipModule, PopoverModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, TableModule, ButtonModule, TagModule, SelectButtonModule, TooltipModule, PopoverModule, DialogModule, TranslatePipe],
   template: `
     <div class="card font-tajawal shadow-md border-t-4 border-t-primary rounded-[2rem] dark:bg-surface-900 overflow-hidden transition-all hover:shadow-lg">
       <!-- Header with Tabs -->
@@ -153,6 +154,26 @@ import { I18nService } from '../../../core/i18n/i18n.service';
         </p-table>
       }
       </div>
+
+      <!-- Trust Device Dialog -->
+      <p-dialog [(visible)]="trustDialogVisible" [modal]="true" [header]="'login_requests.trust_dialog.header' | t" [style]="{width: '450px'}" styleClass="font-tajawal rounded-3xl" [draggable]="false" [resizable]="false">
+        <div class="flex flex-col gap-6 p-4">
+          <div class="flex items-center gap-4 bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-800">
+            <i class="pi pi-shield text-3xl text-emerald-500"></i>
+            <p class="text-sm font-bold text-emerald-900 dark:text-emerald-100 m-0 leading-relaxed">
+              {{ 'login_requests.trust_dialog.question' | t }}
+            </p>
+          </div>
+          <p class="text-xs text-surface-500 font-medium leading-relaxed px-2">
+            {{ 'login_requests.trust_dialog.description' | t }}
+          </p>
+          <div class="flex flex-col gap-3 mt-2">
+            <p-button [label]="'login_requests.trust_dialog.button_trust' | t" icon="pi pi-check-circle" severity="success" (onClick)="confirmApprove(true)" styleClass="w-full rounded-xl font-bold py-3 p-button-success border-none shadow-md"></p-button>
+            <p-button [label]="'login_requests.trust_dialog.button_once' | t" icon="pi pi-check" severity="secondary" (onClick)="confirmApprove(false)" styleClass="w-full rounded-xl font-bold py-3 bg-surface-100 hover:bg-surface-200 text-surface-700 dark:bg-surface-800 dark:hover:bg-surface-700 dark:text-surface-200 border-none"></p-button>
+          </div>
+        </div>
+      </p-dialog>
+
     </div>
   `,
   styles: [`
@@ -164,6 +185,8 @@ export class LoginRequestsComponent implements OnInit {
   private i18n = inject(I18nService);
 
   activeTab = signal('pending');
+  trustDialogVisible = false;
+  selectedRequestId: number | null = null;
 
   tabOptions = computed(() => [
     { label: this.i18n.t('login_requests.tabs.pending'), value: 'pending' },
@@ -207,7 +230,16 @@ export class LoginRequestsComponent implements OnInit {
   }
 
   approve(id: number) {
-    this.store.updateStatus({ id, status: 'approved' });
+    this.selectedRequestId = id;
+    this.trustDialogVisible = true;
+  }
+
+  confirmApprove(trust: boolean) {
+    if (this.selectedRequestId) {
+      this.store.updateStatus({ id: this.selectedRequestId, status: 'approved', trustDevice: trust });
+      this.trustDialogVisible = false;
+      this.selectedRequestId = null;
+    }
   }
 
   reject(id: number) {

@@ -1,15 +1,16 @@
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 @Component({
     standalone: true,
     selector: 'app-stats-widget',
-    imports: [CommonModule, TranslatePipe],
+    imports: [CommonModule, RouterModule, TranslatePipe],
     template: `
         <!-- Orders -->
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0 shadow-sm border-t-4 border-t-blue-500 border-surface-100 dark:border-surface-800 rounded-2xl p-6 bg-gradient-to-br from-white to-blue-50/30 dark:from-surface-900 dark:to-blue-900/10 transition-all hover:scale-[1.02] hover:shadow-lg h-full">
+            <div routerLink="/orders" class="card mb-0 shadow-sm border-t-4 border-t-blue-500 border-surface-100 dark:border-surface-800 rounded-2xl p-6 bg-gradient-to-br from-white to-blue-50/30 dark:from-surface-900 dark:to-blue-900/10 transition-all hover:scale-[1.02] hover:shadow-lg h-full cursor-pointer">
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-blue-600 dark:text-blue-400 font-black text-xs uppercase tracking-widest mb-1">{{ 'dashboard.stats.orders' | t }}</span>
@@ -30,7 +31,7 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
         <!-- Revenue -->
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0 shadow-sm border-t-4 border-t-emerald-500 border-surface-100 dark:border-surface-800 rounded-2xl p-6 bg-gradient-to-br from-white to-emerald-50/30 dark:from-surface-900 dark:to-emerald-900/10 transition-all hover:scale-[1.02] hover:shadow-lg h-full">
+            <div routerLink="/orders" class="card mb-0 shadow-sm border-t-4 border-t-emerald-500 border-surface-100 dark:border-surface-800 rounded-2xl p-6 bg-gradient-to-br from-white to-emerald-50/30 dark:from-surface-900 dark:to-emerald-900/10 transition-all hover:scale-[1.02] hover:shadow-lg h-full cursor-pointer">
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-widest mb-1">{{ 'dashboard.stats.revenue' | t }}</span>
@@ -51,7 +52,7 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
         <!-- Customers -->
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0 shadow-sm border-t-4 border-t-cyan-500 border-surface-100 dark:border-surface-800 rounded-2xl p-6 bg-gradient-to-br from-white to-cyan-50/30 dark:from-surface-900 dark:to-cyan-900/10 transition-all hover:scale-[1.02] hover:shadow-lg h-full">
+            <div routerLink="/customers" class="card mb-0 shadow-sm border-t-4 border-t-cyan-500 border-surface-100 dark:border-surface-800 rounded-2xl p-6 bg-gradient-to-br from-white to-cyan-50/30 dark:from-surface-900 dark:to-cyan-900/10 transition-all hover:scale-[1.02] hover:shadow-lg h-full cursor-pointer">
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-cyan-600 dark:text-cyan-400 font-black text-xs uppercase tracking-widest mb-1">{{ 'dashboard.stats.customers' | t }}</span>
@@ -72,7 +73,7 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
         <!-- Leads -->
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
-            <div class="card mb-0 shadow-sm border-t-4 border-t-violet-500 border-surface-100 dark:border-surface-800 rounded-2xl p-6 bg-gradient-to-br from-white to-violet-50/30 dark:from-surface-900 dark:to-violet-900/10 transition-all hover:scale-[1.02] hover:shadow-lg h-full">
+            <div routerLink="/leads" class="card mb-0 shadow-sm border-t-4 border-t-violet-500 border-surface-100 dark:border-surface-800 rounded-2xl p-6 bg-gradient-to-br from-white to-violet-50/30 dark:from-surface-900 dark:to-violet-900/10 transition-all hover:scale-[1.02] hover:shadow-lg h-full cursor-pointer">
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-violet-600 dark:text-violet-400 font-black text-xs uppercase tracking-widest mb-1">{{ 'dashboard.stats.leads' | t }}</span>

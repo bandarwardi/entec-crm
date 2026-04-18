@@ -1,10 +1,11 @@
 import { signalStore, withState, withMethods, withComputed, patchState } from '@ngrx/signals';
-import { withEntities, setAllEntities, updateEntity, addEntity } from '@ngrx/signals/entities';
+import { withEntities, setAllEntities, updateEntity, addEntity, removeEntity } from '@ngrx/signals/entities';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject, computed } from '@angular/core';
 import { pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { SalesService, Customer } from '../services/sales.service';
+import { OrdersStore } from './orders.store';
 
 import { I18nService } from '../i18n/i18n.service';
 
@@ -37,6 +38,7 @@ export const CustomersStore = signalStore(
   withMethods((store) => {
     const salesService = inject(SalesService);
     const i18n = inject(I18nService);
+    const ordersStore = inject(OrdersStore);
 
     return {
       loadCustomers: rxMethod<{ page: number; limit: number; search?: string }>(
@@ -70,7 +72,10 @@ export const CustomersStore = signalStore(
           switchMap(({ id, changes }) =>
             salesService.updateCustomer(id, changes).pipe(
               tapResponse({
-                next: (updated) => patchState(store, updateEntity({ id, changes: updated })),
+                next: (updated) => {
+                  patchState(store, updateEntity({ id, changes: updated }));
+                  ordersStore.syncCustomerUpdate(updated);
+                },
                 error: (err: any) => patchState(store, { 
                   error: err.error?.message || i18n.t('errors.update_customer') 
                 }),
@@ -99,7 +104,22 @@ export const CustomersStore = signalStore(
 
       clearError: () => {
         patchState(store, { error: null });
-      }
+      },
+      
+      deleteCustomer: rxMethod<string>(
+        pipe(
+          switchMap((id) =>
+            salesService.deleteCustomer(id).pipe(
+              tapResponse({
+                next: () => patchState(store, removeEntity(id), { total: store.total() - 1 }),
+                error: (err: any) => patchState(store, { 
+                  error: err.error?.message || i18n.t('errors.delete_customer') 
+                }),
+              })
+            )
+          )
+        )
+      )
     };
   })
 );

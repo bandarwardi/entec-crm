@@ -46,7 +46,7 @@ export interface Client {
                     <td>{{client.name}}</td>
                     <td>{{client.company}}</td>
                     <td>{{client.email}}</td>
-                    <td>{{client.phone}}</td>
+                    <td dir="ltr" class="text-right">{{client.phone}}</td>
                     <td>
                         <p-tag [value]="client.status" [severity]="getStatusSeverity(client.status)"></p-tag>
                     </td>

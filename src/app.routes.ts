@@ -13,7 +13,12 @@ export const appRoutes: Routes = [
         component: AppLayout,
         canActivate: [authGuard],
         children: [
-            { path: '', component: Dashboard },
+            { 
+                path: '', 
+                component: Dashboard,
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] }
+            },
             { path: 'profile', loadComponent: () => import('./app/pages/profile/profile.component').then(m => m.ProfileComponent) },
             { 
                 path: 'super-admin/users', 
@@ -59,17 +64,57 @@ export const appRoutes: Routes = [
             },
 
             // Sales & Customers
-            { path: 'customers', loadComponent: () => import('./app/pages/customers/customers-list').then(m => m.CustomersListComponent) },
-            { path: 'customers/:id', loadComponent: () => import('./app/pages/customers/customer-detail').then(m => m.CustomerDetailComponent) },
-            { path: 'orders', loadComponent: () => import('./app/pages/orders/orders-list').then(m => m.OrdersListComponent) },
-            { path: 'orders/new', loadComponent: () => import('./app/pages/orders/order-form').then(m => m.OrderFormComponent) },
-            { path: 'orders/:id', loadComponent: () => import('./app/pages/orders/order-detail').then(m => m.OrderDetailComponent) },
-            { path: 'orders/:id/edit', loadComponent: () => import('./app/pages/orders/order-form').then(m => m.OrderFormComponent) },
+            { 
+                path: 'customers', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('./app/pages/customers/customers-list').then(m => m.CustomersListComponent) 
+            },
+            { 
+                path: 'customers/:id', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('./app/pages/customers/customer-detail').then(m => m.CustomerDetailComponent) 
+            },
+            { 
+                path: 'orders', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('./app/pages/orders/orders-list').then(m => m.OrdersListComponent) 
+            },
+            { 
+                path: 'orders/new', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('./app/pages/orders/order-form').then(m => m.OrderFormComponent) 
+            },
+            { 
+                path: 'orders/:id', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('./app/pages/orders/order-detail').then(m => m.OrderDetailComponent) 
+            },
+            { 
+                path: 'orders/:id/edit', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('./app/pages/orders/order-form').then(m => m.OrderFormComponent) 
+            },
 
             { path: 'leads', loadComponent: () => import('./app/pages/leads/leads.component').then(m => m.LeadsComponent) },
-            { path: 'buying-areas', loadComponent: () => import('./app/pages/buying-areas/buying-areas.component').then(m => m.BuyingAreasComponent) },
+            { 
+                path: 'buying-areas', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin', 'agent'] },
+                loadComponent: () => import('./app/pages/buying-areas/buying-areas.component').then(m => m.BuyingAreasComponent) 
+            },
             { path: 'chat', loadComponent: () => import('./app/pages/chat/chat.component').then(m => m.ChatComponent) },
-            { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
+            { 
+                path: 'uikit', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadChildren: () => import('./app/pages/uikit/uikit.routes') 
+            },
             { path: 'documentation', component: Documentation },
             { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
         ]

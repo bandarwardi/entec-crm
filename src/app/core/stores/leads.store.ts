@@ -18,6 +18,7 @@ interface LeadsState {
   filterStatus: string | null;
   filterState: string | null;
   filterHasReminder: string | null;
+  filterCreatedBy: string | null;
   error: string | null;
 }
 
@@ -31,6 +32,7 @@ const initialState: LeadsState = {
   filterStatus: null,
   filterState: null,
   filterHasReminder: null,
+  filterCreatedBy: null,
   error: null,
 };
 
@@ -47,11 +49,11 @@ export const LeadsStore = signalStore(
     const leadService = inject(UserLeadService);
     const i18n = inject(I18nService);
 
-    const loadLeadsAction = rxMethod<{ page: number; limit: number; search?: string; status?: string; state?: string; hasReminder?: string }>(
+    const loadLeadsAction = rxMethod<{ page: number; limit: number; search?: string; status?: string; state?: string; hasReminder?: string; createdBy?: string }>(
       pipe(
         tap(() => patchState(store, { loading: true })),
-        switchMap(({ page, limit, search, status, state, hasReminder }) =>
-          leadService.getLeads({ page, limit, search, status, state, hasReminder }).pipe(
+        switchMap(({ page, limit, search, status, state, hasReminder, createdBy }) =>
+          leadService.getLeads({ page, limit, search, status, state, hasReminder, createdBy }).pipe(
             tapResponse({
               next: (res) => patchState(store,
                 setAllEntities(res.data),
@@ -63,7 +65,8 @@ export const LeadsStore = signalStore(
                   searchTerm: search || '',
                   filterStatus: status || null,
                   filterState: state || null,
-                  filterHasReminder: hasReminder || null
+                  filterHasReminder: hasReminder || null,
+                  filterCreatedBy: createdBy || null
                 }
               ),
               error: (err: any) => patchState(store, { 
@@ -94,7 +97,8 @@ export const LeadsStore = signalStore(
                     search: store.searchTerm(),
                     status: store.filterStatus() || undefined,
                     state: store.filterState() || undefined,
-                    hasReminder: store.filterHasReminder() || undefined
+                    hasReminder: store.filterHasReminder() || undefined,
+                    createdBy: store.filterCreatedBy() || undefined
                   });
                 },
                 error: (err: any) => patchState(store, { 
@@ -114,8 +118,7 @@ export const LeadsStore = signalStore(
             leadService.createLead(data).pipe(
               tapResponse({
                 next: (lead) => {
-                  patchState(store, addEntity(lead), { adding: false });
-                  // Re-load current page if needed for proper sorting/pagination from DB
+                  patchState(store, addEntity(lead), { adding: false, total: store.total() + 1 });
                 },
                 error: (err: any) => patchState(store, { 
                   adding: false, 

@@ -1,8 +1,9 @@
-import { signalStore, withState, withMethods, withComputed, patchState, withHooks } from '@ngrx/signals';
-import { computed, inject } from '@angular/core';
+import { signalStore, withState, withMethods, patchState, withHooks } from '@ngrx/signals';
+import { inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap, tap, filter, fromEvent } from 'rxjs';
+import { pipe, switchMap, tap, Subscription } from 'rxjs';
+import { Router } from '@angular/router';
 import { tapResponse } from '@ngrx/operators';
 import { ChatService } from '../services/chat.service';
 import { AuthStore } from './auth.store';
@@ -13,16 +14,13 @@ export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
+  senderName?: string;
   content: string | null;
   mediaUrl: string | null;
   mediaType: 'image' | 'file' | null;
   originalFileName: string | null;
   isRead: boolean;
-  createdAt: string | Date; // Backend sends string
-  sender?: {
-    id: string;
-    name: string;
-  };
+  createdAt: string | Date;
 }
 
 export interface Conversation {
@@ -50,6 +48,7 @@ interface ChatState {
   sending: boolean;
   hasMore: boolean;
   error: string | null;
+  initialized: boolean;
 }
 
 const initialState: ChatState = {
@@ -59,9 +58,13 @@ const initialState: ChatState = {
   loading: false,
   messagesLoading: false,
   sending: false,
-  hasMore: true,
+  hasMore: false,
   error: null,
+  initialized: false,
 };
+
+let messagesSub: Subscription | null = null;
+const metaSubs: Map<string, Subscription> = new Map();
 
 export const ChatStore = signalStore(
   { providedIn: 'root' },
@@ -71,6 +74,7 @@ export const ChatStore = signalStore(
     const chatService = inject(ChatService);
     const authStore = inject(AuthStore);
     const i18n = inject(I18nService);
+    const router = inject(Router);
     const apiUrl = `${API_BASE_URL}/chat`;
 
     const loadConversations = rxMethod<void>(
@@ -79,10 +83,16 @@ export const ChatStore = signalStore(
         switchMap(() =>
           http.get<Conversation[]>(`${apiUrl}/conversations`).pipe(
             tapResponse({
-              next: (conversations) => patchState(store, { conversations, loading: false }),
-              error: (err: any) => patchState(store, { 
-                error: err.error?.message || i18n.t('errors.load_conversations'), 
-                loading: false 
+              next: (conversations) => {
+                patchState(store, { conversations, loading: false });
+                // Subscribe to each conversation's metadata for live updates
+                conversations.forEach(conv => subscribeToMeta(conv.id));
+                // Set initialized to true after small delay to avoid notifications on load
+                setTimeout(() => patchState(store, { initialized: true }), 2000);
+              },
+              error: (err: any) => patchState(store, {
+                error: err.error?.message || i18n.t('errors.load_conversations'),
+                loading: false
               }),
             })
           )
@@ -90,45 +100,99 @@ export const ChatStore = signalStore(
       )
     );
 
-    const loadMessages = rxMethod<{ conversationId: string; before?: string }>(
-      pipe(
-        tap(() => patchState(store, { messagesLoading: true })),
-        switchMap(({ conversationId, before }) =>
-          http.get<Message[]>(`${apiUrl}/conversations/${conversationId}/messages`, {
-            params: { before: before || '', limit: 15 }
-          }).pipe(
-            tapResponse({
-              next: (newMessages) => {
-                patchState(store, (state) => ({
-                  messages: before ? [...newMessages, ...state.messages] : newMessages,
-                  messagesLoading: false,
-                  hasMore: newMessages.length === 15
-                }));
-              },
-              error: (err: any) => patchState(store, { 
-                error: err.error?.message || i18n.t('errors.load_messages'), 
-                messagesLoading: false 
-              }),
-            })
-          )
-        )
-      )
-    );
+    const subscribeToMeta = (conversationId: string) => {
+      if (metaSubs.has(conversationId)) return;
+      
+      const sub = chatService.getConversationMeta(conversationId).subscribe(meta => {
+        patchState(store, (state) => ({
+          conversations: state.conversations.map(c => {
+            if (c.id === conversationId) {
+              const user = authStore.user();
+              const myId = user?.id || (user as any)?._id;
+              const unreadCount = meta.unreadCounts?.[myId] || 0;
+              
+              // Notification logic: if unreadCount increased and it's not my message
+              if (state.initialized && unreadCount > c.unreadCount && meta.lastMessageSenderId !== myId) {
+                // Only show notification if this is not the active conversation
+                if (state.activeConversation?.id !== conversationId) {
+                  showNotification({
+                    senderName: c.otherUser.name,
+                    content: meta.lastMessageContent,
+                    mediaType: meta.lastMessageMediaType
+                  });
+                }
+              }
+
+              return {
+                ...c,
+                unreadCount,
+                lastMessageAt: meta.lastMessageAt?.toDate() || c.lastMessageAt,
+                lastMessage: {
+                  ...c.lastMessage,
+                  content: meta.lastMessageContent,
+                  mediaType: meta.lastMessageMediaType,
+                  senderId: meta.lastMessageSenderId
+                } as Message
+              };
+            }
+            return c;
+          }).sort((a, b) => {
+             const dateA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+             const dateB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+             return dateB - dateA;
+          })
+        }));
+      });
+      metaSubs.set(conversationId, sub);
+    };
 
     const selectConversation = (conversation: Conversation) => {
-      patchState(store, { 
-        activeConversation: conversation, 
-        messages: [], 
-        hasMore: true 
+      patchState(store, {
+        activeConversation: conversation,
+        messages: [],
+        hasMore: false
       });
-      loadMessages({ conversationId: conversation.id });
-      chatService.markAsRead(conversation.id, conversation.otherUser.id);
-      
-      patchState(store, (state) => ({
-          conversations: state.conversations.map(c => 
-              c.id === conversation.id ? { ...c, unreadCount: 0 } : c
-          )
-      }));
+
+      // Cleanup old messages sub
+      if (messagesSub) messagesSub.unsubscribe();
+
+      // Subscribe to new messages
+      patchState(store, { messagesLoading: true });
+      messagesSub = chatService.getMessages(conversation.id).subscribe(messages => {
+        patchState(store, { 
+          messages: messages as Message[], 
+          messagesLoading: false 
+        });
+        
+        // Mark as read when messages arrive and conversation is active
+        const user = authStore.user();
+        const myId = user?.id || (user as any)?._id;
+        if (myId) {
+          chatService.markAsRead(conversation.id, myId);
+        }
+      });
+    };
+
+    const showNotification = (data: { senderName: string, content: string | null, mediaType: string | null }) => {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+      const body = data.content || (data.mediaType === 'image' ? i18n.t('chat.image') : i18n.t('chat.file'));
+      const notification = new Notification(`رسالة جديدة من ${data.senderName}`, {
+        body: body,
+        icon: '/favicon.ico'
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        router.navigate(['/chat']);
+        notification.close();
+      };
+    };
+
+    const requestNotificationPermission = () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
     };
 
     const startConversation = rxMethod<{ userId: string }>(
@@ -147,9 +211,9 @@ export const ChatStore = signalStore(
                   loadConversations();
                 }
               },
-              error: (err: any) => patchState(store, { 
-                error: err.error?.message || i18n.t('errors.start_conversation'), 
-                loading: false 
+              error: (err: any) => patchState(store, {
+                error: err.error?.message || i18n.t('errors.start_conversation'),
+                loading: false
               }),
             })
           )
@@ -159,143 +223,79 @@ export const ChatStore = signalStore(
 
     const sendMessage = (content: string) => {
       const active = store.activeConversation();
-      if (!active || !content.trim()) return;
+      const user = authStore.user();
+      if (!active || !user || !content.trim()) return;
 
-      chatService.sendMessage({
-          conversationId: active.id,
-          content: content.trim()
-      });
+      const myId = user.id || (user as any)._id;
+      chatService.sendMessage(active.id, myId, user.name, content.trim(), active.otherUser.id)
+        .catch(err => patchState(store, { error: i18n.t('errors.send_message') }));
     };
 
     const sendMedia = (file: File) => {
       const active = store.activeConversation();
-      if (!active) return;
+      const user = authStore.user();
+      if (!active || !user) return;
 
+      const myId = user.id || (user as any)._id;
       const formData = new FormData();
       formData.append('file', file);
 
       patchState(store, { sending: true });
-      http.post<Message>(`${apiUrl}/conversations/${active.id}/upload`, formData).pipe(
-          tapResponse({
-              next: (message) => {
-                  patchState(store, { sending: false });
-                  addMessage(message);
-              },
-              error: (err: any) => patchState(store, { 
-                  error: err.error?.message || i18n.t('errors.send_file'), 
-                  sending: false 
-              }),
-          })
+      http.post<any>(`${apiUrl}/conversations/${active.id}/upload`, formData).pipe(
+        tapResponse({
+          next: (mediaData) => {
+            chatService.sendMediaMessage(active.id, myId, user.name, mediaData, active.otherUser.id)
+              .then(() => patchState(store, { sending: false }))
+              .catch(err => patchState(store, { 
+                error: i18n.t('errors.send_file'),
+                sending: false 
+              }));
+          },
+          error: (err: any) => patchState(store, {
+            error: err.error?.message || i18n.t('errors.send_file'),
+            sending: false
+          }),
+        })
       ).subscribe();
     };
 
-    const addMessage = (message: Message) => {
-      console.log('ChatStore: addMessage called with', message);
-      patchState(store, (state) => {
-          const activeConv = state.activeConversation;
-          const msgConvId = message.conversationId || (message as any).conversation;
-          console.log('ChatStore: msgConvId', msgConvId, 'activeConvId', activeConv?.id);
-          const isForActive = activeConv?.id === msgConvId;
-          const updatedMessages = isForActive ? [...state.messages, message] : state.messages;
-          
-          const updatedConversations = state.conversations.map(c => {
-              if (c.id === msgConvId) {
-                  return { 
-                      ...c, 
-                      lastMessage: message, 
-                      lastMessageAt: message.createdAt,
-                      unreadCount: isForActive ? 0 : c.unreadCount + 1
-                  };
-              }
-              return c;
-          });
-
-          updatedConversations.sort((a, b) => {
-              const dateA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-              const dateB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-              return dateB - dateA;
-          });
-
-          if (isForActive && activeConv) {
-              chatService.markAsRead(message.conversationId, activeConv.otherUser.id);
-          }
-
-          return {
-              messages: updatedMessages,
-              conversations: updatedConversations
-          };
-      });
-    };
-
-    const updateTyping = (data: { conversationId: string; isTyping: boolean }) => {
-      patchState(store, (state) => ({
-          conversations: state.conversations.map(c => 
-              c.id === data.conversationId ? { ...c, isTyping: data.isTyping } : c
-          )
-      }));
-    };
-
-    const updateMessagesRead = (data: { conversationId: string; readerId: string }) => {
-      patchState(store, (state) => {
-          // If the reader is NOT the current user, it means the other person read OUR messages
-          const isOtherPersonReading = data.readerId !== authStore.user()?.id;
-          
-          if (isOtherPersonReading && state.activeConversation?.id === data.conversationId) {
-              return {
-                  messages: state.messages.map(m => ({ ...m, isRead: true }))
-              };
-          }
-          return state;
-      });
-    };
-
     const loadMore = () => {
-      const active = store.activeConversation();
-      const messages = store.messages();
-      if (active && messages.length > 0 && store.hasMore() && !store.messagesLoading()) {
-        const firstMessage = messages[0];
-        loadMessages({ 
-          conversationId: active.id, 
-          before: firstMessage.createdAt.toString() 
-        });
-      }
+      // Pagination not implemented for Firestore for now
     };
 
     const init = () => {
-        chatService.connect();
-        loadConversations();
-        chatService.newMessage$.subscribe(msg => {
-            console.log('ChatStore: Subscription received newMessage', msg);
-            addMessage(msg);
-        });
-        chatService.userTyping$.subscribe(data => updateTyping(data));
-        chatService.messagesRead$.subscribe(data => updateMessagesRead(data));
+      loadConversations();
+      requestNotificationPermission();
     };
 
     const clearError = () => {
-        patchState(store, { error: null });
+      patchState(store, { error: null });
+    };
+
+    const cleanup = () => {
+      if (messagesSub) messagesSub.unsubscribe();
+      metaSubs.forEach(sub => sub.unsubscribe());
+      metaSubs.clear();
     };
 
     return {
       loadConversations,
       selectConversation,
       startConversation,
-      loadMessages,
       loadMore,
       sendMessage,
       sendMedia,
-      addMessage,
-      updateTyping,
       clearError,
-      init
+      init,
+      cleanup
     };
   }),
   withHooks({
-      onInit(store) {
-          store.init();
-      },
-      onDestroy(store) {
-          inject(ChatService).disconnect();
-      }
+    onInit(store) {
+      store.init();
+    },
+    onDestroy(store) {
+      store.cleanup();
+    }
   })
 );

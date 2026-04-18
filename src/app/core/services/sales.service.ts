@@ -22,6 +22,7 @@ export interface Customer {
   phone: string;
   address: string | null;
   state: string | null;
+  country: string | null;
   latitude: number | null;
   longitude: number | null;
   orders?: Order[];
@@ -49,12 +50,12 @@ export interface Order {
   serverExpiryDate: string | null;
   appType: string | null;
   appYears: number | null;
-  appExpiryDate: string | null;
-  notes: string | null;
+  appExpiryDate?: string;
+  notes?: string;
   status: OrderStatus;
   devices: OrderDevice[];
-  deviceCount?: number;
   attachments?: string[];
+  invoiceFile?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -91,6 +92,15 @@ export interface PaginatedResponse<T> {
 export class SalesService {
   private http = inject(HttpClient);
   private apiUrl = `${API_BASE_URL}/sales`;
+
+  // Invoice Settings
+  getInvoiceSettings(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/invoice-settings`);
+  }
+
+  updateInvoiceSettings(data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/invoice-settings`, data);
+  }
 
   // Customers
   getCustomers(params: any): Observable<PaginatedResponse<Customer>> {
@@ -146,9 +156,9 @@ export class SalesService {
     return this.http.post(`${this.apiUrl}/orders/${orderId}/send-invoice`, {});
   }
 
-  geocode(address: string, state: string): Observable<{ latitude: number, longitude: number }> {
+  geocode(address: string, state: string, country?: string): Observable<{ latitude: number, longitude: number }> {
     return this.http.get<{ latitude: number, longitude: number }>(`${this.apiUrl}/geocode`, {
-      params: { address, state }
+      params: { address, state, country: country || '' }
     });
   }
 
@@ -156,5 +166,9 @@ export class SalesService {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<{ url: string }>(`${this.apiUrl}/upload-attachment`, formData);
+  }
+
+  deleteCustomer(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/customers/${id}`);
   }
 }

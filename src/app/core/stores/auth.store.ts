@@ -177,17 +177,16 @@ export const AuthStore = signalStore(
                 },
                 error: (err: any) => {
                   console.error('Failed to refresh token', err);
-                  // If refresh fails, we might want to logout
-                  // patchState(store, { user: null, token: null });
-                  // localStorage.removeItem('token');
-                  // localStorage.removeItem('user');
-                  // router.navigate(['/auth/login']);
                 },
               })
             );
           })
         )
-      )
+      ),
+
+      verifyPassword(password: string) {
+        return http.post<{ isValid: boolean }>(`${apiUrl}/verify-password`, { password });
+      }
     };
   })
 );

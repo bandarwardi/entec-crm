@@ -13,7 +13,11 @@ export const roleGuard: CanActivateFn = (route, state) => {
     return true;
   }
 
-  // Redirect to dashboard or notfound if not authorized
-  router.navigate(['/']);
+  // Redirect to leads for agents, or root/notfound for others
+  if (userRole === 'agent') {
+    router.navigate(['/leads']);
+  } else {
+    router.navigate(['/']);
+  }
   return false;
 };

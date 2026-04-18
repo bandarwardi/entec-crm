@@ -1,10 +1,10 @@
 import { signalStore, withState, withMethods, withComputed, patchState } from '@ngrx/signals';
-import { withEntities, setAllEntities, updateEntity, addEntity, removeEntity } from '@ngrx/signals/entities';
+import { withEntities, setAllEntities, updateEntity, addEntity, removeEntity, updateAllEntities } from '@ngrx/signals/entities';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject, computed } from '@angular/core';
 import { pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
-import { SalesService, Order, OrderStatus, OrderType } from '../services/sales.service';
+import { SalesService, Order, OrderStatus, OrderType, Customer } from '../services/sales.service';
 import { Router } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
@@ -65,6 +65,23 @@ export const OrdersStore = signalStore(
                     filterType: type || null
                   }
                 ),
+                error: (err: any) => patchState(store, { 
+                  loading: false, 
+                  error: err.error?.message || i18n.t('errors.load_orders') 
+                }),
+              })
+            )
+          )
+        )
+      ),
+
+      loadOrder: rxMethod<string>(
+        pipe(
+          tap(() => patchState(store, { loading: true })),
+          switchMap((id) =>
+            salesService.getOrder(id).pipe(
+              tapResponse({
+                next: (order) => patchState(store, addEntity(order), { loading: false }),
                 error: (err: any) => patchState(store, { 
                   loading: false, 
                   error: err.error?.message || i18n.t('errors.load_orders') 
@@ -151,6 +168,15 @@ export const OrdersStore = signalStore(
 
       clearError: () => {
         patchState(store, { error: null });
+      },
+
+      syncCustomerUpdate: (updatedCustomer: Customer) => {
+        patchState(store, updateAllEntities((order) => {
+          if (order.customer.id === updatedCustomer.id) {
+            return { ...order, customer: updatedCustomer };
+          }
+          return order;
+        }));
       }
     };
   })

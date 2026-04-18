@@ -52,38 +52,38 @@ import { I18nService } from '@/app/core/i18n/i18n.service';
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-surface-50 dark:bg-surface-800/40 rounded-3xl border border-surface-100 dark:border-surface-700/50">
             <div class="flex flex-col gap-2">
               <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest">{{ 'work_settings.shift_start_hour' | t }}</label>
-              <p-inputnumber [(ngModel)]="settings().shiftStartHour" [min]="0" [max]="23" [showButtons]="true" styleClass="w-full custom-input-number"></p-inputnumber>
+              <p-inputnumber [(ngModel)]="settings().shiftStartHour" [min]="0" [max]="23" [showButtons]="true" styleClass="w-full custom-input-number" dir="ltr"></p-inputnumber>
               <small class="text-surface-400 italic text-[10px]">{{ 'work_settings.24h_format_start' | t }}</small>
             </div>
             <div class="flex flex-col gap-2">
               <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest">{{ 'work_settings.shift_start_minute' | t }}</label>
-              <p-inputnumber [(ngModel)]="settings().shiftStartMinute" [min]="0" [max]="59" [showButtons]="true" styleClass="w-full custom-input-number"></p-inputnumber>
+              <p-inputnumber [(ngModel)]="settings().shiftStartMinute" [min]="0" [max]="59" [showButtons]="true" styleClass="w-full custom-input-number" dir="ltr"></p-inputnumber>
             </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-surface-50 dark:bg-surface-800/40 rounded-3xl border border-surface-100 dark:border-surface-700/50">
             <div class="flex flex-col gap-2">
               <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest">{{ 'work_settings.shift_end_hour' | t }}</label>
-              <p-inputnumber [(ngModel)]="settings().shiftEndHour" [min]="0" [max]="23" [showButtons]="true" styleClass="w-full custom-input-number"></p-inputnumber>
+              <p-inputnumber [(ngModel)]="settings().shiftEndHour" [min]="0" [max]="23" [showButtons]="true" styleClass="w-full custom-input-number" dir="ltr"></p-inputnumber>
               <small class="text-surface-400 italic text-[10px]">{{ 'work_settings.24h_format_end' | t }}</small>
             </div>
             <div class="flex flex-col gap-2">
               <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest">{{ 'work_settings.shift_end_minute' | t }}</label>
-              <p-inputnumber [(ngModel)]="settings().shiftEndMinute" [min]="0" [max]="59" [showButtons]="true" styleClass="w-full custom-input-number"></p-inputnumber>
+              <p-inputnumber [(ngModel)]="settings().shiftEndMinute" [min]="0" [max]="59" [showButtons]="true" styleClass="w-full custom-input-number" dir="ltr"></p-inputnumber>
             </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
             <div class="flex flex-col gap-2">
               <label class="text-sm font-black text-surface-700 dark:text-surface-200">{{ 'work_settings.break_duration' | t }}</label>
-              <p-inputnumber [(ngModel)]="settings().breakDurationMinutes" [min]="0" [showButtons]="true" styleClass="w-full custom-input-number"
+              <p-inputnumber [(ngModel)]="settings().breakDurationMinutes" [min]="0" [showButtons]="true" styleClass="w-full custom-input-number" dir="ltr"
                 suffix=" {{ 'performance.minutes_unit' | t }}"></p-inputnumber>
               <small class="text-surface-400">{{ 'work_settings.break_hint' | t }}</small>
             </div>
 
             <div class="flex flex-col gap-2">
               <label class="text-sm font-black text-surface-700 dark:text-surface-200">{{ 'work_settings.deduction_rate' | t }}</label>
-              <p-inputnumber [(ngModel)]="settings().deductionRatePerMinute" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [showButtons]="true" styleClass="w-full custom-input-number"
+              <p-inputnumber [(ngModel)]="settings().deductionRatePerMinute" mode="decimal" [minFractionDigits]="2" [maxFractionDigits]="2" [showButtons]="true" styleClass="w-full custom-input-number" dir="ltr"
                 suffix=" {{ 'performance.egp_unit' | t }}"></p-inputnumber>
               <small class="text-surface-400">{{ 'work_settings.deduction_hint' | t }}</small>
             </div>

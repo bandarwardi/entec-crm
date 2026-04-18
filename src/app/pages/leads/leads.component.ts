@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, ViewChild, effect, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, ViewChild, effect, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -13,6 +13,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService, MessageService, LazyLoadEvent } from 'primeng/api';
 import { UserLeadService, Lead, LeadStatus } from '../../core/services/user-lead.service';
 import { UserService, User } from '../../core/services/user.service';
+import { SalesService, Order } from '../../core/services/sales.service';
 import { US_CA_STATES } from '../../core/services/us-ca-states';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
@@ -53,9 +54,9 @@ import { AuthStore } from '../../core/stores/auth.store';
     TranslatePipe
   ],
   template: `
-    <div class="card p-0 overflow-hidden shadow-xl border-0 rounded-[2rem] dark:bg-surface-900 transition-all hover:shadow-2xl">
+    <div class="card p-0 overflow-visible shadow-xl border-0 rounded-[2rem] dark:bg-surface-900 transition-all hover:shadow-2xl">
       <!-- Gradient Header -->
-      <div class="bg-gradient-to-br from-emerald-600 to-teal-500 p-8">
+      <div class="bg-gradient-to-br from-emerald-600 to-teal-500 p-8 rounded-t-[2rem]">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div class="flex items-center gap-4">
             <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shadow-inner">
@@ -73,10 +74,11 @@ import { AuthStore } from '../../core/stores/auth.store';
               <input pInputText type="text" (input)="onSearch($event)" 
                      [placeholder]="'leads.list.search_placeholder' | t" 
                      autocomplete="off" dir="ltr"
-                     class="w-full md:w-96 rounded-2xl border-white/20 bg-white/10 backdrop-blur-md text-white placeholder:text-white/50 focus:ring-white/20 text-left" />
+                     class="w-full md:w-96 rounded-2xl header-search-input" />
             </p-iconField>
             <p-button [label]="'leads.import' | t" icon="pi pi-file-import" (onClick)="fileInput.click()" [loading]="store.loading()" styleClass="rounded-2xl bg-white/20 border-white/30 text-white hover:bg-white/30 px-6 font-bold"></p-button>
             <p-button [label]="'leads.export' | t" icon="pi pi-file-export" (onClick)="exportExcel()" [loading]="store.loading()" styleClass="rounded-2xl bg-white/20 border-white/30 text-white hover:bg-white/30 px-6 font-bold"></p-button>
+            <p-button [label]="'leads.check_subscription' | t" icon="pi pi-search-plus" (onClick)="displayCheckSub = true" styleClass="rounded-2xl bg-amber-500 border-none text-white hover:bg-amber-600 px-6 font-bold shadow-lg shadow-amber-500/20"></p-button>
             <input #fileInput type="file" (change)="onFileChange($event)" accept=".xlsx, .xls" style="display: none" />
           </div>
         </div>
@@ -93,40 +95,40 @@ import { AuthStore } from '../../core/stores/auth.store';
           </div>
           
           @if (isSuperAdmin() || isAdmin()) {
-            <p-select [options]="filterAgentOptions()" [(ngModel)]="selectedCreatedBy" (onChange)="applyFilters()" [filter]="true" [placeholder]="'الكل (موظفين)'" class="w-full md:w-48" styleClass="rounded-xl"></p-select>
+            <p-select [options]="filterAgentOptions()" [(ngModel)]="selectedCreatedBy" (onChange)="applyFilters()" [filter]="true" [placeholder]="'leads.filter.all_agents' | t" class="w-full md:w-48" styleClass="rounded-xl bg-white dark:bg-surface-900 border-surface-200 dark:border-surface-700" appendTo="body"></p-select>
           }
-          <p-select [options]="filterStatusOptions()" [(ngModel)]="selectedStatus" (onChange)="applyFilters()" [placeholder]="'leads.filter.all_statuses' | t" class="w-full md:w-48" styleClass="rounded-xl"></p-select>
-          <p-select [options]="reminderOptions()" [(ngModel)]="selectedReminder" (onChange)="applyFilters()" [placeholder]="'leads.filter.all_reminders' | t" class="w-full md:w-48" styleClass="rounded-xl"></p-select>
-          <p-select [options]="filterStateOptions()" [(ngModel)]="selectedState" (onChange)="applyFilters()" [filter]="true" [placeholder]="'leads.filter.all_states' | t" class="w-full md:w-48" styleClass="rounded-xl"></p-select>
+          <p-select [options]="filterStatusOptions()" [(ngModel)]="selectedStatus" (onChange)="applyFilters()" [placeholder]="'leads.filter.all_statuses' | t" class="w-full md:w-48" styleClass="rounded-xl bg-white dark:bg-surface-900 border-surface-200 dark:border-surface-700" appendTo="body"></p-select>
+          <p-select [options]="reminderOptions()" [(ngModel)]="selectedReminder" (onChange)="applyFilters()" [placeholder]="'leads.filter.all_reminders' | t" class="w-full md:w-48" styleClass="rounded-xl bg-white dark:bg-surface-900 border-surface-200 dark:border-surface-700" appendTo="body"></p-select>
+          <p-select [options]="filterStateOptions()" [(ngModel)]="selectedState" (onChange)="applyFilters()" [filter]="true" [filterBy]="stateFilterBy()" (onFilter)="handleStateFilter($event)" [placeholder]="'leads.filter.all_states' | t" class="w-full md:w-48" styleClass="rounded-xl bg-white dark:bg-surface-900 border-surface-200 dark:border-surface-700" appendTo="body"></p-select>
           <p-button [label]="'leads.filter.clear' | t" icon="pi pi-filter-slash" [text]="true" (onClick)="clearFilters()" severity="secondary" styleClass="text-emerald-600 dark:text-emerald-400 font-bold ml-auto"></p-button>
         </div>
 
         <!-- Inline Add Form -->
         <form [formGroup]="leadForm" (ngSubmit)="onAddLead()" class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8 p-6 bg-gradient-to-br from-surface-100 to-white dark:from-surface-800 dark:to-surface-900 rounded-[2rem] border border-surface-200 dark:border-surface-700 shadow-xl">
           <div class="flex flex-col">
-            <label class="text-[10px] font-black text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.name' | t }}</label>
-            <input pInputText formControlName="name" [placeholder]="'leads.table.name' | t" class="w-full dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 rounded-xl" />
+            <label class="text-[10px] font-black text-surface-600 dark:text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.name' | t }}</label>
+            <input pInputText formControlName="name" [placeholder]="'leads.table.name' | t" class="w-full bg-white border-surface-200 dark:bg-surface-950 dark:border-surface-800 text-surface-900 dark:text-surface-0 rounded-xl" />
             @if (leadForm.get('name')?.invalid && leadForm.get('name')?.touched) {
               <small class="text-red-500 font-bold mt-1 ml-1 text-[10px]">{{ 'leads.validation.name_required' | t }}</small>
             }
           </div>
           <div class="flex flex-col">
-            <label class="text-[10px] font-black text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.phone' | t }}</label>
-            <input pInputText formControlName="phone" dir="ltr" [placeholder]="'leads.table.phone' | t" class="w-full dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 rounded-xl text-left" />
+            <label class="text-[10px] font-black text-surface-600 dark:text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.phone' | t }}</label>
+            <input pInputText formControlName="phone" dir="ltr" [placeholder]="'leads.table.phone' | t" class="w-full bg-white border-surface-200 dark:bg-surface-950 dark:border-surface-800 text-surface-900 dark:text-surface-0 rounded-xl" style="text-align: right;" />
             @if (leadForm.get('phone')?.invalid && leadForm.get('phone')?.touched) {
               <small class="text-red-500 font-bold mt-1 ml-1 text-[10px]">{{ 'leads.validation.phone_required' | t }}</small>
             }
           </div>
           <div class="flex flex-col">
-            <label class="text-[10px] font-black text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.state' | t }}</label>
-            <p-select [options]="states" formControlName="state" optionLabel="label" optionValue="value" [filter]="true" [filterPlaceholder]="'ui.search' | t" [placeholder]="'leads.table.state' | t" [fluid]="true" appendTo="body" styleClass="dark:bg-surface-950 dark:border-surface-800 rounded-xl"></p-select>
+            <label class="text-[10px] font-black text-surface-600 dark:text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.state' | t }}</label>
+            <p-select [options]="states" formControlName="state" optionLabel="label" optionValue="value" [filter]="true" [filterBy]="stateFilterBy()" (onFilter)="handleStateFilter($event)" [filterPlaceholder]="'ui.search' | t" [placeholder]="'leads.table.state' | t" [fluid]="true" appendTo="body" styleClass="bg-white border-surface-200 dark:bg-surface-950 dark:border-surface-800 rounded-xl text-surface-900 dark:text-surface-0"></p-select>
             @if (leadForm.get('state')?.invalid && leadForm.get('state')?.touched) {
               <small class="text-red-500 font-bold mt-1 ml-1 text-[10px]">{{ 'leads.validation.state_required' | t }}</small>
             }
           </div>
           <div class="flex flex-col">
-            <label class="text-[10px] font-black text-surface-400 uppercase mb-1 ml-2">{{ 'leads.notes' | t }}</label>
-            <input pInputText formControlName="notes" [placeholder]="'leads.notes' | t" class="w-full dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 rounded-xl" />
+            <label class="text-[10px] font-black text-surface-600 dark:text-surface-400 uppercase mb-1 ml-2">{{ 'leads.notes' | t }}</label>
+            <input pInputText formControlName="notes" [placeholder]="'leads.notes' | t" class="w-full bg-white border-surface-200 dark:bg-surface-950 dark:border-surface-800 text-surface-900 dark:text-surface-0 rounded-xl" />
           </div>
           <div class="flex items-end">
             <p-button [label]="'ui.add' | t" icon="pi pi-plus" [loading]="store.adding()" type="submit" styleClass="w-full rounded-xl font-black shadow-lg shadow-emerald-500/20 py-3 uppercase tracking-widest text-xs"></p-button>
@@ -143,6 +145,7 @@ import { AuthStore } from '../../core/stores/auth.store';
         [totalRecords]="store.total()" 
         [loading]="store.loading()" 
         [rowsPerPageOptions]="[10, 20, 50]"
+        [paginatorDropdownAppendTo]="'body'"
         dataKey="id"
         [tableStyle]="{ 'min-width': '75rem' }"
         styleClass="p-datatable-sm cell-selection-table"
@@ -179,10 +182,10 @@ import { AuthStore } from '../../core/stores/auth.store';
                 [pEditableColumn]="lead.phone" pEditableColumnField="phone" [pEditableColumnDisabled]="editingLeadId !== null">
               <p-cellEditor>
                 <ng-template pTemplate="input">
-                  <input pInputText type="text" [(ngModel)]="lead.phone" (blur)="onEditLead(lead)" dir="ltr" class="w-full text-left" />
+                  <input pInputText type="text" [(ngModel)]="lead.phone" (blur)="onEditLead(lead)" dir="ltr" class="w-full" style="text-align: right;" />
                 </ng-template>
                 <ng-template pTemplate="output">
-                  <span dir="ltr" class="inline-block">{{ lead.phone }}</span>
+                  <span dir="ltr">{{ lead.phone }}</span>
                 </ng-template>
               </p-cellEditor>
             </td>
@@ -191,7 +194,7 @@ import { AuthStore } from '../../core/stores/auth.store';
                 [pEditableColumn]="lead.state" pEditableColumnField="state" [pEditableColumnDisabled]="editingLeadId !== null">
               <p-cellEditor>
                 <ng-template pTemplate="input">
-                  <p-select [options]="states" [(ngModel)]="lead.state" (onChange)="onEditLead(lead)" [filter]="true" [fluid]="true" appendTo="body"></p-select>
+                  <p-select [options]="states" [(ngModel)]="lead.state" (onChange)="onEditLead(lead)" [filter]="true" [filterBy]="stateFilterBy()" (onFilter)="handleStateFilter($event)" [fluid]="true" appendTo="body"></p-select>
                 </ng-template>
                 <ng-template pTemplate="output">
                   {{ lead.state }}
@@ -273,20 +276,113 @@ import { AuthStore } from '../../core/stores/auth.store';
       </ng-template>
     </p-dialog>
 
-    <!-- Password Confirmation Dialog (REMOVED) -->
+    <!-- Subscription Check Dialog -->
+    <p-dialog [(visible)]="displayCheckSub" [header]="'leads.check_subscription' | t" [modal]="true" [style]="{ width: '500px' }" [draggable]="false" [resizable]="false">
+      <div class="flex flex-col gap-4 mt-2">
+        <div class="flex gap-2">
+          <p-iconField iconPosition="left" class="flex-1">
+            <p-inputIcon class="pi pi-phone" />
+            <input pInputText type="text" [(ngModel)]="checkPhone" [placeholder]="'leads.check_sub_placeholder' | t" dir="ltr" class="w-full" (keyup.enter)="onCheckSubscription()" />
+          </p-iconField>
+          <p-button [label]="'ui.search' | t" icon="pi pi-search" (onClick)="onCheckSubscription()" [loading]="checkingSub"></p-button>
+        </div>
 
+        @if (subResults.length > 0) {
+          <div class="mt-4 flex flex-col gap-4">
+            <h4 class="font-bold border-b pb-2 text-emerald-600 flex items-center gap-2">
+              <i class="pi pi-check-circle"></i>
+              {{ 'orders.list.title' | t }} ({{ subResults.length }})
+            </h4>
+            @for (order of subResults; track order.id) {
+              <div class="p-4 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm transition-all hover:shadow-md">
+                <div class="flex justify-between items-start mb-3">
+                  <span class="font-black text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full uppercase tracking-tighter">#{{ order.id.slice(-6).toUpperCase() }}</span>
+                  <p-tag [value]="getStatusLabel(order.status)" [severity]="getStatusSeverity(order.status)"></p-tag>
+                </div>
+                <div class="grid grid-cols-2 gap-y-2 text-sm">
+                  <div class="text-surface-500 font-bold text-xs uppercase">{{ 'order_form.customer_data' | t }}:</div>
+                  <div class="font-black text-right">{{ order.customer.name }}</div>
+                  
+                  <div class="text-surface-500 font-bold text-xs uppercase">{{ 'order_form.server_name' | t }}:</div>
+                  <div class="text-right">{{ order.serverName || '---' }}</div>
 
-    <style>
-      .cell-selection-table .selected-cell {
-        background-color: rgba(59, 130, 246, 0.2) !important;
-        outline: 1px solid #3b82f6 !important;
-        outline-offset: -1px;
-      }
-      .cell-selection-table td {
-        user-select: none;
-      }
-    </style>
+                  <div class="text-surface-500 font-bold text-xs uppercase">{{ 'order_form.app_expiry' | t }}:</div>
+                  <div class="text-right text-emerald-600 font-black" [class.text-red-500]="isExpired(order.appExpiryDate!)">
+                    {{ order.appExpiryDate | date:'mediumDate' }}
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (hasChecked && !checkingSub) {
+          <div class="mt-8 text-center p-8 bg-surface-50 dark:bg-surface-800 rounded-3xl border-2 border-dashed border-surface-200 dark:border-surface-700">
+            <i class="pi pi-info-circle text-4xl text-surface-400 mb-4 block"></i>
+            <p class="font-bold text-surface-500 m-0">{{ 'leads.no_subscriptions_found' | t }}</p>
+          </div>
+        }
+      </div>
+    </p-dialog>
   `,
+  styles: [`
+    :host ::ng-deep {
+      /* HEADER SEARCH BOX (EMERALD AREA) */
+      .header-search-input {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: #ffffff !important;
+        box-shadow: none !important;
+      }
+      .header-search-input::placeholder {
+        color: rgba(255, 255, 255, 0.7) !important;
+      }
+
+      /* FORM FIELDS (WHITE AREA) - LIGHT MODE */
+      .p-select:not(.header-search-input), 
+      .p-inputtext:not(.header-search-input), 
+      .p-datepicker-input:not(.header-search-input) {
+        background-color: #f1f5f9 !important; /* light gray for contrast */
+        border: 1px solid #cbd5e1 !important;
+        color: #020617 !important; /* Pure black text */
+      }
+
+      /* Force text color for selected values and labels */
+      .p-select:not(.header-search-input) .p-select-label,
+      .p-select:not(.header-search-input) .p-select-placeholder,
+      .p-inputtext:not(.header-search-input) {
+        color: #020617 !important;
+        font-weight: 700 !important;
+      }
+
+      /* Make Placeholders visible in light mode */
+      .p-select:not(.header-search-input) .p-select-placeholder,
+      .p-inputtext:not(.header-search-input)::placeholder {
+        color: #475569 !important; /* Slate 600 */
+        font-weight: 600 !important;
+      }
+
+      /* DARK MODE OVERRIDES */
+      .app-dark .p-select:not(.header-search-input), 
+      .app-dark .p-inputtext:not(.header-search-input), 
+      .app-dark .p-datepicker-input:not(.header-search-input) {
+        background-color: #0f172a !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+      }
+      .app-dark .p-select:not(.header-search-input) .p-select-label,
+      .app-dark .p-select:not(.header-search-input) .p-select-placeholder,
+      .app-dark .p-inputtext:not(.header-search-input) {
+        color: #f8fafc !important;
+      }
+    }
+    .cell-selection-table .selected-cell {
+      background-color: rgba(59, 130, 246, 0.2) !important;
+      outline: 1px solid #3b82f6 !important;
+      outline-offset: -1px;
+    }
+    .cell-selection-table td {
+      user-select: none;
+    }
+  `],
   providers: [MessageService, ConfirmationService, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -296,10 +392,20 @@ export class LeadsComponent implements OnInit, OnDestroy {
   private confirmationService = inject(ConfirmationService);
   private i18n = inject(I18nService);
   private datePipe = inject(DatePipe);
+  private cdr = inject(ChangeDetectorRef);
   private leadService = inject(UserLeadService);
+  private salesService = inject(SalesService);
   private authStore = inject(AuthStore);
   private userService = inject(UserService);
   readonly store = inject(LeadsStore);
+
+  displayCheckSub = false;
+  checkPhone = '';
+  checkingSub = false;
+  hasChecked = false;
+  subResults: Order[] = [];
+
+  stateFilterBy = signal('label,value');
 
   isAgent = computed(() => this.authStore.user()?.role === 'agent');
   isAdmin = computed(() => this.authStore.user()?.role === 'admin');
@@ -401,6 +507,15 @@ export class LeadsComponent implements OnInit, OnDestroy {
     this.searchSubject.complete();
   }
 
+  handleStateFilter(event: any) {
+    const query = event.filter || '';
+    if (query.length === 2) {
+      this.stateFilterBy.set('value');
+    } else {
+      this.stateFilterBy.set('label');
+    }
+  }
+
   initialLoad() {
     this.store.loadLeads({ page: 1, limit: this.store.pageSize() });
 
@@ -442,6 +557,29 @@ export class LeadsComponent implements OnInit, OnDestroy {
       hasReminder: this.selectedReminder || undefined,
       createdBy: this.selectedCreatedBy || undefined
     });
+  }
+
+  onCheckSubscription() {
+    if (!this.checkPhone.trim()) return;
+    
+    this.checkingSub = true;
+    this.hasChecked = true;
+    this.salesService.getOrders({ search: this.checkPhone.trim(), limit: 50 }).subscribe({
+      next: (res) => {
+        this.subResults = res.data;
+        this.checkingSub = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.checkingSub = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  isExpired(date: string | null): boolean {
+    if (!date) return false;
+    return new Date(date) < new Date();
   }
 
   onSearch(event: any) {

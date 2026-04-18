@@ -68,5 +68,26 @@ html[dir="rtl"] {
             margin-right: auto;
         }
     }
+
+    /* LTR for numbers and phones */
+    input[type="number"],
+    input[type="tel"],
+    .font-mono,
+    [dir="ltr"],
+    .p-inputnumber-input,
+    .currency-field,
+    .phone-field {
+        direction: ltr !important;
+        text-align: left !important;
+        display: inline-block;
+    }
+    .p-datatable {
+        .p-datatable-thead > tr > th {
+            text-align: right !important;
+        }
+        .p-datatable-tbody > tr > td {
+            text-align: right !important;
+        }
+    }
 }
 

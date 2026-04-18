@@ -27,7 +27,7 @@ import { HostListener } from '@angular/core';
                 </button>
             }
 
-            <div class="layout-topbar-logo-container flex items-center gap-4" [ngClass]="{'ml-12 lg:ml-0': i18n.currentLang() === 'en'}">
+            <div class="layout-topbar-logo-container flex items-center gap-4">
                 <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
                     <i class="pi pi-bars"></i>
                 </button>
@@ -146,7 +146,7 @@ import { HostListener } from '@angular/core';
                         @if (allNotifications.length === 0 && !loadingNotifications) {
                             <div class="text-xs text-center py-6 text-gray-400 dark:text-slate-500 italic">{{ 'notifications.empty' | t }}</div>
                         } @else {
-                            @for (lead of allNotifications; track lead.id) {
+                            @for (lead of allNotifications; track trackByNotification(lead)) {
                                 <div class="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl cursor-pointer border-b dark:border-slate-700 last:border-b-0 transition-colors group" [routerLink]="['/leads']">
                                     <div class="flex justify-between items-start mb-1">
                                         <div class="font-bold text-sm group-hover:text-primary transition-colors" [class.text-blue-600]="!lead.reminderRead">{{ lead.name }}</div>
@@ -268,6 +268,10 @@ export class AppTopbar {
                 this.cdr.detectChanges();
             }
         });
+    }
+
+    trackByNotification(lead: any) {
+        return lead.id || lead._id || lead;
     }
 
     onPopupScroll(event: any) {

@@ -59,12 +59,14 @@ export class AppMenu {
                 label: this.i18n.t('menu.sales'),
                 icon: 'pi pi-fw pi-shopping-cart',
                 routerLink: ['/orders'],
+                visible: !isAgent,
                 class: 'menu-sales'
             },
             {
                 label: this.i18n.t('menu.customers'),
                 icon: 'pi pi-fw pi-id-card',
                 routerLink: ['/customers'],
+                visible: !isAgent,
                 class: 'menu-customers'
             },
             {

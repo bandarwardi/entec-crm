@@ -79,6 +79,8 @@ export class Login {
 
                         if (user.role === 'super-admin') {
                             this.router.navigate(['/super-admin/users']);
+                        } else if (user.role === 'agent') {
+                            this.router.navigate(['/leads']);
                         } else {
                             this.router.navigate(['/']);
                         }

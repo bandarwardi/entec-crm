@@ -1,94 +1,138 @@
 import { Injectable, inject } from '@angular/core';
-import * as socketIo from 'socket.io-client';
+import { db } from '../firebase/firebase.config';
+import { 
+  collection, 
+  query, 
+  orderBy, 
+  onSnapshot, 
+  addDoc, 
+  serverTimestamp, 
+  setDoc, 
+  doc, 
+  updateDoc, 
+  increment,
+  limit,
+  Timestamp,
+  writeBatch
+} from 'firebase/firestore';
 import { AuthStore } from '../stores/auth.store';
-import { SOCKET_URL } from '../constants/api.constants';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
-  private socket: any = null;
   private authStore = inject(AuthStore);
-  private apiUrl = SOCKET_URL;
+  
+  // Real-time message listener
+  getMessages(conversationId: string): Observable<any[]> {
+    return new Observable(subscriber => {
+      const messagesRef = collection(db, 'chatConversations', conversationId, 'messages');
+      const q = query(messagesRef, orderBy('createdAt', 'asc'), limit(100));
+      
+      return onSnapshot(q, (snapshot) => {
+        const messages = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: (doc.data()['createdAt'] as Timestamp)?.toDate() || new Date()
+        }));
+        subscriber.next(messages);
+      }, (error) => {
+        subscriber.error(error);
+      });
+    });
+  }
 
-  private newMessageSubject = new Subject<any>();
-  newMessage$ = this.newMessageSubject.asObservable();
+  // Real-time metadata listener (last message, unread count)
+  getConversationMeta(conversationId: string): Observable<any> {
+    return new Observable(subscriber => {
+      const docRef = doc(db, 'chatConversations', conversationId);
+      return onSnapshot(docRef, (doc) => {
+        if (doc.exists()) {
+          subscriber.next({ id: doc.id, ...doc.data() });
+        }
+      });
+    });
+  }
 
-  private userTypingSubject = new Subject<any>();
-  userTyping$ = this.userTypingSubject.asObservable();
-
-  private messagesReadSubject = new Subject<any>();
-  messagesRead$ = this.messagesReadSubject.asObservable();
-
-  connect() {
-    const token = this.authStore.token();
-    console.log('Attempting to connect to Chat WebSocket...', { url: this.apiUrl, hasToken: !!token });
+  async sendMessage(conversationId: string, senderId: string, senderName: string, content: string, otherUserId: string) {
+    const batch = writeBatch(db);
     
-    if (!token) {
-      console.warn('No token found, skipping chat connection');
-      return;
-    }
-
-    if (this.socket && this.socket.connected) {
-      console.log('Socket already connected');
-      return;
-    }
-
-    const ioFunc = (socketIo as any).io || (socketIo as any).default || socketIo;
-    this.socket = ioFunc(this.apiUrl, {
-      auth: { token },
-      transports: ['websocket']
+    // 1. Add Message
+    const messagesRef = collection(db, 'chatConversations', conversationId, 'messages');
+    const newMessageRef = doc(messagesRef);
+    batch.set(newMessageRef, {
+      senderId,
+      senderName,
+      content,
+      mediaUrl: null,
+      mediaType: null,
+      originalFileName: null,
+      isRead: false,
+      createdAt: serverTimestamp()
     });
 
-    this.socket.on('newMessage', (message: any) => {
-      console.log('WS: Received newMessage', message);
-      this.newMessageSubject.next(message);
+    // 2. Update Conversation Meta
+    const convRef = doc(db, 'chatConversations', conversationId);
+    batch.set(convRef, {
+      lastMessageContent: content,
+      lastMessageSenderId: senderId,
+      lastMessageMediaType: null,
+      lastMessageAt: serverTimestamp(),
+      unreadCounts: {
+        [otherUserId]: increment(1)
+      }
+    }, { merge: true });
+
+    await batch.commit();
+  }
+
+  async sendMediaMessage(conversationId: string, senderId: string, senderName: string, mediaData: any, otherUserId: string) {
+    const batch = writeBatch(db);
+    
+    // 1. Add Message
+    const messagesRef = collection(db, 'chatConversations', conversationId, 'messages');
+    const newMessageRef = doc(messagesRef);
+    batch.set(newMessageRef, {
+      senderId,
+      senderName,
+      content: null,
+      mediaUrl: mediaData.mediaUrl,
+      mediaType: mediaData.mediaType,
+      originalFileName: mediaData.originalFileName,
+      isRead: false,
+      createdAt: serverTimestamp()
     });
 
-    this.socket.on('userTyping', (data: any) => {
-      this.userTypingSubject.next(data);
-    });
+    // 2. Update Conversation Meta
+    const convRef = doc(db, 'chatConversations', conversationId);
+    batch.set(convRef, {
+      lastMessageContent: mediaData.mediaType === 'image' ? 'صورة' : 'ملف',
+      lastMessageSenderId: senderId,
+      lastMessageMediaType: mediaData.mediaType,
+      lastMessageAt: serverTimestamp(),
+      unreadCounts: {
+        [otherUserId]: increment(1)
+      }
+    }, { merge: true });
 
-    this.socket.on('messagesRead', (data: any) => {
-      this.messagesReadSubject.next(data);
-    });
+    await batch.commit();
+  }
 
-    this.socket.on('connect', () => {
-      console.log('✅ Connected to Chat WebSocket successfully');
-    });
-
-    this.socket.on('connect_error', (error: any) => {
-      console.error('❌ WS Connection error:', error);
-    });
-
-    this.socket.on('disconnect', (reason: string) => {
-      console.log('🔌 Disconnected from Chat WebSocket:', reason);
+  async markAsRead(conversationId: string, currentUserId: string) {
+    const convRef = doc(db, 'chatConversations', conversationId);
+    await updateDoc(convRef, {
+      [`unreadCounts.${currentUserId}`]: 0
     });
   }
 
-  disconnect() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-  }
-
-  sendMessage(data: { conversationId: string; content?: string; mediaUrl?: string; mediaType?: string; originalFileName?: string }) {
-    if (this.socket) {
-      this.socket.emit('sendMessage', data);
-    }
-  }
-
-  emitTyping(conversationId: string, recipientId: string, isTyping: boolean) {
-    if (this.socket) {
-      this.socket.emit('typing', { conversationId, recipientId, isTyping });
-    }
-  }
-
-  markAsRead(conversationId: string, recipientId: string) {
-    if (this.socket) {
-      this.socket.emit('markAsRead', { conversationId, recipientId });
-    }
-  }
+  // Socket-related methods to be removed or made no-op if still referenced
+  connect() { /* No-op for Firestore */ }
+  disconnect() { /* No-op for Firestore */ }
+  emitTyping(conversationId: string, recipientId: string, isTyping: boolean) { /* No-op or implement via Firestore later */ }
+  
+  // Observables for Store compatibility (will be triggered manually or via snapshot)
+  newMessage$ = new Subject<any>().asObservable();
+  userTyping$ = new Subject<any>().asObservable();
+  messagesRead$ = new Subject<any>().asObservable();
 }

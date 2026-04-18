@@ -24,6 +24,7 @@ import { effect } from '@angular/core';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { API_BASE_URL } from '../../core/constants/api.constants';
+import { COUNTRIES } from '../../core/constants/countries.constants';
 
 @Component({
   selector: 'app-order-form',
@@ -70,7 +71,7 @@ import { API_BASE_URL } from '../../core/constants/api.constants';
                     </div>
                     <div>
                         <label class="text-[10px] font-black uppercase text-surface-400 dark:text-surface-500 mb-2 block tracking-widest">{{ 'order_form.phone' | t }}</label>
-                        <p class="text-xl font-mono font-black text-emerald-600 tracking-tighter">{{ orderForm.get('existingCustomer')?.value?.phone }}</p>
+                        <p class="text-xl font-mono font-black text-emerald-600 tracking-tighter" dir="ltr">{{ orderForm.get('existingCustomer')?.value?.phone }}</p>
                     </div>
                     <div>
                         <label class="text-[10px] font-black uppercase text-surface-400 dark:text-surface-500 mb-2 block tracking-widest">{{ 'order_form.email' | t }}</label>
@@ -107,7 +108,7 @@ import { API_BASE_URL } from '../../core/constants/api.constants';
                             </div>
                             <div>
                                 <label class="text-[10px] font-black uppercase text-surface-400 tracking-widest ml-2 mb-1 block">{{ 'order_form.phone' | t }} *</label>
-                                <input pInputText formControlName="phone" class="w-full h-12 rounded-xl font-mono dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 px-6 font-black text-emerald-600" placeholder="100-200-3000" />
+                                <input pInputText formControlName="phone" dir="ltr" class="w-full h-12 rounded-xl font-mono dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 px-6 font-black text-emerald-600 text-right" placeholder="100-200-3000" />
                             </div>
                             <div>
                                 <label class="text-[10px] font-black uppercase text-surface-400 tracking-widest ml-2 mb-1 block">{{ 'order_form.email' | t }}</label>
@@ -117,6 +118,13 @@ import { API_BASE_URL } from '../../core/constants/api.constants';
                                 <div class="md:col-span-2">
                                     <label class="text-[10px] font-black uppercase text-surface-400 tracking-widest ml-2 mb-1 block">{{ 'order_form.address' | t }}</label>
                                     <input pInputText formControlName="address" class="w-full h-12 rounded-xl dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 px-6" [placeholder]="'order_form.address_placeholder' | t" />
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-black uppercase text-surface-400 tracking-widest ml-2 mb-1 block">{{ 'order_form.country' | t }}</label>
+                                    <p-select [options]="countries" formControlName="country" 
+                                             [filter]="true" filterBy="label" optionLabel="label" optionValue="value"
+                                             [placeholder]="'Select Country'" appendTo="body"
+                                             styleClass="w-full h-12 rounded-xl dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 px-4 flex items-center"></p-select>
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-black uppercase text-surface-400 tracking-widest ml-2 mb-1 block">{{ 'order_form.state' | t }}</label>
@@ -149,12 +157,12 @@ import { API_BASE_URL } from '../../core/constants/api.constants';
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-2">{{ 'order_form.lead_agent' | t }}</label>
-                    <p-select [options]="users" formControlName="leadAgentId" optionLabel="name" optionValue="id" 
+                    <p-select [options]="users()" formControlName="leadAgentId" optionLabel="name" optionValue="id" 
                                [filter]="true" [placeholder]="'order_form.select_agent_placeholder' | t" styleClass="w-full rounded-xl dark:bg-surface-950 dark:border-surface-800"></p-select>
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-2">{{ 'order_form.closer_agent' | t }}</label>
-                    <p-select [options]="users" formControlName="closerAgentId" optionLabel="name" optionValue="id" 
+                    <p-select [options]="users()" formControlName="closerAgentId" optionLabel="name" optionValue="id" 
                                [filter]="true" [placeholder]="'order_form.select_agent_placeholder' | t" styleClass="w-full rounded-xl dark:bg-surface-950 dark:border-surface-800"></p-select>
                 </div>
                 <div class="flex flex-col gap-1">
@@ -225,6 +233,45 @@ import { API_BASE_URL } from '../../core/constants/api.constants';
                         <p-datepicker formControlName="appExpiryDate" styleClass="w-full" inputStyleClass="w-full rounded-xl dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 px-4 py-2" [fluid]="true" appendTo="body"></p-datepicker>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Section: Invoice File -->
+        <div class="mb-8 p-8 rounded-[2.5rem] bg-gradient-to-br from-surface-50 to-white dark:from-surface-800/20 dark:to-surface-900/20 border border-surface-200 dark:border-surface-800 shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 end-0 w-32 h-32 bg-purple-500/5 rounded-bl-[4rem]"></div>
+            <h4 class="text-md font-black mb-6 text-surface-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                <i class="pi pi-file-pdf text-purple-600"></i> الفاتورة المرفقة (ترسل للعميل)
+            </h4>
+            <div class="grid grid-cols-1 gap-4 z-10 relative">
+                <p-fileupload name="file" [url]="uploadUrl" [multiple]="false" accept="application/pdf,image/*" maxFileSize="10000000"
+                              (onUpload)="onInvoiceUploadComplete($event)" (onError)="onUploadError($event)"
+                              [chooseLabel]="'ui.choose_files' | t" [uploadLabel]="'ui.upload' | t" [cancelLabel]="'ui.cancel' | t"
+                              [auto]="true" [withCredentials]="true">
+                    <ng-template pTemplate="content">
+                        @if (!orderForm.value.invoiceFile) {
+                           <div class="p-8 flex items-center justify-center border-2 border-dashed border-surface-300 dark:border-surface-700 rounded-xl text-surface-400">
+                               <i class="pi pi-cloud-upload text-4xl mr-4"></i>
+                               <span>اسحب ملف الفاتورة هنا أو اضغط لاختيار ملف (PDF او صورة)</span>
+                           </div>
+                        }
+                        @if (orderForm.value.invoiceFile) {
+                           <div class="mt-4 flex items-center p-4 bg-surface-100 dark:bg-surface-800 rounded-xl justify-between border border-purple-200 dark:border-purple-900">
+                               <div class="flex items-center gap-3">
+                                  <i class="pi pi-file-pdf text-3xl text-red-500"></i>
+                                  <span class="font-bold text-surface-700 dark:text-surface-200 truncate max-w-xs">فاتورة مرفقة</span>
+                               </div>
+                               <div class="flex items-center gap-2">
+                                  <a [href]="orderForm.value.invoiceFile" target="_blank" class="p-button p-button-outlined p-button-sm p-button-secondary rounded-full">
+                                    <i class="pi pi-external-link"></i>
+                                  </a>
+                                  <button type="button" class="p-button p-button-danger p-button-sm rounded-full" (click)="removeInvoiceFile()">
+                                      <i class="pi pi-times"></i>
+                                  </button>
+                               </div>
+                           </div>
+                        }
+                    </ng-template>
+                </p-fileupload>
             </div>
         </div>
 
@@ -372,9 +419,10 @@ export class OrderFormComponent implements OnInit {
   orderForm!: FormGroup;
   isEdit = false;
   orderId: string | null = null;
-  users: User[] = [];
+  users = signal<User[]>([]);
   filteredCustomers = signal<any[]>([]);
   isGeocoding = false;
+  countries = COUNTRIES;
   uploadUrl = `${API_BASE_URL}/sales/upload-attachment`;
 
   customerTypeOptions = computed(() => [
@@ -451,6 +499,7 @@ export class OrderFormComponent implements OnInit {
         phone: ['', Validators.required],
         email: [''],
         address: [''],
+        country: [''],
         state: [''],
         latitude: [null],
         longitude: [null]
@@ -458,7 +507,7 @@ export class OrderFormComponent implements OnInit {
       leadAgentId: [null, Validators.required],
       closerAgentId: [null, Validators.required],
       type: ['new', Validators.required],
-      status: ['pending'],
+      status: ['completed'],
       referrerName: [''],
       amount: [0, [Validators.required, Validators.min(0)]],
       paymentMethod: ['Zelle', Validators.required],
@@ -469,7 +518,8 @@ export class OrderFormComponent implements OnInit {
       appExpiryDate: [null],
       notes: [''],
       devices: this.fb.array([]),
-      attachments: [[]]
+      attachments: [[]],
+      invoiceFile: [null]
     });
 
     this.onCustomerTypeChange();
@@ -490,14 +540,26 @@ export class OrderFormComponent implements OnInit {
     }
 
     if (response && response.url) {
-      let finalUrl = response.url;
-      if (finalUrl.startsWith('/uploads')) {
-        finalUrl = 'https://entec-crm-nestjs-production.up.railway.app' + finalUrl;
-      }
       const current = this.attachmentsArray?.value || [];
-      this.attachmentsArray?.setValue([...current, finalUrl]);
+      this.attachmentsArray?.setValue([...current, response.url]);
       this.messageService.add({ severity: 'success', summary: this.i18n.t('ui.success'), detail: 'تم رفع الملف بنجاح' });
     }
+  }
+
+  onInvoiceUploadComplete(event: any) {
+    let response = event.originalEvent?.body;
+    if (!response && event.xhr?.response) {
+      response = JSON.parse(event.xhr.response);
+    }
+
+    if (response && response.url) {
+      this.orderForm.patchValue({ invoiceFile: response.url });
+      this.messageService.add({ severity: 'success', summary: this.i18n.t('ui.success'), detail: 'تم رفع الفاتورة بنجاح' });
+    }
+  }
+
+  removeInvoiceFile() {
+    this.orderForm.patchValue({ invoiceFile: null });
   }
 
   onUploadError(event: any) {
@@ -536,7 +598,7 @@ export class OrderFormComponent implements OnInit {
   }
 
   loadUsers() {
-    this.userService.getUsers().subscribe(u => this.users = u);
+    this.userService.getUsers().subscribe(u => this.users.set(u));
   }
 
   loadOrderData(id: string) {
@@ -557,7 +619,8 @@ export class OrderFormComponent implements OnInit {
         appYears: o.appYears,
         appExpiryDate: o.appExpiryDate ? new Date(o.appExpiryDate) : null,
         notes: o.notes,
-        attachments: o.attachments || []
+        attachments: o.attachments || [],
+        invoiceFile: o.invoiceFile || null
       });
 
       this.devices.clear();
@@ -576,12 +639,13 @@ export class OrderFormComponent implements OnInit {
   fetchGeocoding() {
     const addr = this.orderForm.get('newCustomer.address')?.value;
     const state = this.orderForm.get('newCustomer.state')?.value;
-    if (!addr || !state) {
+    const country = this.orderForm.get('newCustomer.country')?.value;
+    if (!addr) {
       this.messageService.add({ severity: 'warn', summary: this.i18n.t('ui.warning'), detail: this.i18n.t('order_form.geocoding_warning') });
       return;
     }
     this.isGeocoding = true;
-    this.salesService.geocode(addr, state).subscribe({
+    this.salesService.geocode(addr, state, country).subscribe({
       next: (coords) => {
         if (coords) {
           this.orderForm.patchValue({

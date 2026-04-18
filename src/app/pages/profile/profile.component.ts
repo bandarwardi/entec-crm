@@ -26,7 +26,7 @@ import { API_BASE_URL, UPLOADS_URL } from '../../core/constants/api.constants';
           <div class="flex flex-col items-center gap-4">
             <div class="w-32 h-32 rounded-full border-4 border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
               @if (user()?.avatar) {
-                <img [src]="uploadsUrl + '/' + user()?.avatar" alt="Avatar" class="w-full h-full object-cover">
+                <img [src]="user()?.avatar.startsWith('http') ? user()?.avatar : (uploadsUrl + '/' + user()?.avatar)" alt="Avatar" class="w-full h-full object-cover">
               } @else {
                 <i class="pi pi-user text-6xl text-slate-400"></i>
               }

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ViewChild, ElementRef, effect, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, ViewChild, ElementRef, effect, signal, computed, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatStore, Conversation, Message } from '../../core/stores/chat.store';
@@ -19,12 +19,13 @@ import { InputIconModule } from 'primeng/inputicon';
 import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { PopoverModule } from 'primeng/popover';
+import 'emoji-picker-element';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { map, Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
-import { SOCKET_URL } from '../../core/constants/api.constants';
 
 @Component({
   selector: 'app-chat',
@@ -44,8 +45,10 @@ import { SOCKET_URL } from '../../core/constants/api.constants';
     InputIconModule,
     DialogModule,
     ToastModule,
+    PopoverModule,
     TranslatePipe
   ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   providers: [MessageService],
   template: `
     <p-toast></p-toast>
@@ -188,15 +191,15 @@ import { SOCKET_URL } from '../../core/constants/api.constants';
                         @if (msg.mediaType === 'image') {
                         <div class="image-container rounded-lg overflow-hidden min-h-[100px] flex items-center justify-center">
                           <img 
-                            [src]="socketUrl + msg.mediaUrl" 
+                            [src]="msg.mediaUrl" 
                             class="max-w-full max-h-[450px] object-contain rounded-lg cursor-pointer hover:opacity-95 transition-opacity block mx-auto chat-image"
                             alt="Image message"
-                            (click)="openMedia(socketUrl + msg.mediaUrl)"
+                            (click)="openMedia(msg.mediaUrl)"
                           >
                         </div>
                       } @else {
                           <a 
-                            [href]="socketUrl + msg.mediaUrl" 
+                            [href]="msg.mediaUrl" 
                             target="_blank"
                             class="flex items-center gap-2 p-2 bg-black/5 dark:bg-white/5 rounded border border-black/10 dark:border-white/10 no-underline text-inherit"
                           >
@@ -261,6 +264,23 @@ import { SOCKET_URL } from '../../core/constants/api.constants';
                 (click)="fileInput.click()"
                 [pTooltip]="'chat.attach_file_tooltip' | t"
               ></button>
+              
+              <button 
+                type="button"
+                pButton 
+                icon="pi pi-face-smile" 
+                class="p-button-rounded p-button-text p-button-secondary p-0 w-10 h-10 shrink-0 dark:text-[#aebac1]"
+                (click)="op.toggle($event)"
+              ></button>
+
+              <p-popover #op styleClass="emoji-popover p-0 overflow-hidden border-none shadow-xl">
+                 <emoji-picker 
+                    (emoji-click)="onEmojiClick($event)" 
+                    [class.light]="!isDarkMode()" 
+                    [class.dark]="isDarkMode()"
+                    class="whatsapp-emoji-picker"
+                 ></emoji-picker>
+              </p-popover>
               <input 
                 #fileInput 
                 type="file" 
@@ -277,7 +297,6 @@ import { SOCKET_URL } from '../../core/constants/api.constants';
                   rows="1" 
                   [(ngModel)]="messageText" 
                   (keydown.enter)="$event.preventDefault(); sendMsg()"
-                  (input)="onTyping()"
                   [placeholder]="'chat.type_message_placeholder' | t"
                   class="flex-1 border-none bg-transparent shadow-none focus:shadow-none py-2 px-1 text-slate-800 dark:text-[#d1d7db] resize-none min-h-[30px] max-h-32 text-sm md:text-base leading-5"
                 ></textarea>
@@ -487,6 +506,40 @@ import { SOCKET_URL } from '../../core/constants/api.constants';
     .image-container img:hover {
       transform: scale(1.01);
     }
+
+    .whatsapp-emoji-picker {
+      --num-columns: 8;
+      --emoji-size: 1.5rem;
+      --outline-color: transparent;
+      width: 320px;
+      height: 400px;
+      border: none;
+    }
+
+    .whatsapp-emoji-picker.light {
+      --background: #ffffff;
+      --border-color: #f0f2f5;
+    }
+
+    .whatsapp-emoji-picker.dark {
+      --background: #202c33;
+      --border-color: #2a3942;
+      --input-border-color: #2a3942;
+      --input-placeholder-color: #8696a0;
+      --indicator-color: #00a884;
+    }
+
+    :host ::ng-deep .emoji-popover {
+      padding: 0 !important;
+      border: none !important;
+      border-radius: 8px !important;
+      overflow: hidden !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    }
+
+    :host-context(.app-dark) ::ng-deep .emoji-popover {
+       background-color: #202c33 !important;
+    }
   `]
 })
 export class ChatComponent implements OnInit {
@@ -498,8 +551,7 @@ export class ChatComponent implements OnInit {
   messageService = inject(MessageService);
   breakpointObserver = inject(BreakpointObserver);
   i18n = inject(I18nService);
-  socketUrl = SOCKET_URL;
-
+  
   isDarkMode = computed(() => this.layoutService.isDarkTheme());
   
   private userSearchSubject = new Subject<string>();
@@ -518,8 +570,7 @@ export class ChatComponent implements OnInit {
 
   @ViewChild('scrollContainer') scrollContainer!: ElementRef;
   @ViewChild('messageInput') messageInput!: ElementRef;
-
-  private typingTimeout: any;
+  @ViewChild('op') emojiPopover!: any;
 
   constructor() {
     // Backend search logic
@@ -597,7 +648,6 @@ export class ChatComponent implements OnInit {
       this.chatStore.sendMessage(this.messageText);
       this.messageText = '';
       this.scrollToBottom();
-      this.stopTyping();
     }
   }
 
@@ -609,28 +659,6 @@ export class ChatComponent implements OnInit {
     }
   }
 
-  onTyping() {
-    const active = this.chatStore.activeConversation();
-    if (!active) return;
-
-    if (!this.typingTimeout) {
-      this.chatService.emitTyping(active.id, active.otherUser.id, true);
-    }
-
-    clearTimeout(this.typingTimeout);
-    this.typingTimeout = setTimeout(() => {
-      this.stopTyping();
-    }, 2000);
-  }
-
-  stopTyping() {
-    const active = this.chatStore.activeConversation();
-    if (!active || !this.typingTimeout) return;
-
-    this.chatService.emitTyping(active.id, active.otherUser.id, false);
-    this.typingTimeout = null;
-  }
-
   scrollToBottom() {
     if (this.scrollContainer) {
       const el = this.scrollContainer.nativeElement;
@@ -640,5 +668,11 @@ export class ChatComponent implements OnInit {
 
   openMedia(url: string) {
     window.open(url, '_blank');
+  }
+
+  onEmojiClick(event: any) {
+    const emoji = event.detail.unicode;
+    this.messageText += emoji;
+    this.messageInput.nativeElement.focus();
   }
 }

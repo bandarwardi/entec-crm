@@ -1,15 +1,19 @@
-import { Component, OnInit, AfterViewInit, PLATFORM_ID, inject, effect } from '@angular/core';
+import { Component, OnInit, AfterViewInit, PLATFORM_ID, inject, effect, signal, computed } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { SelectModule } from 'primeng/select';
 import * as L from 'leaflet';
 import { OrdersStore } from '../../core/stores/orders.store';
+import { AuthStore } from '../../core/stores/auth.store';
 import { OrderStatus } from '../../core/services/sales.service';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { US_CA_STATES } from '../../core/services/us-ca-states';
 
 @Component({
   selector: 'app-buying-areas',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, SelectModule, TranslatePipe],
   template: `
     <div class="card font-tajawal shadow-md border-t-4 border-t-primary rounded-[2rem] dark:bg-surface-900 overflow-hidden transition-all hover:shadow-lg">
       <div class="p-8 bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-900 dark:to-teal-800 relative overflow-hidden">
@@ -25,19 +29,34 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
             </h1>
             <p class="text-emerald-50/80 font-bold text-xs uppercase tracking-widest">{{ 'buying_areas.subtitle' | t }}</p>
           </div>
-          
-          <div class="flex flex-wrap items-center gap-6 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
-            <div class="flex items-center gap-3">
-              <span class="w-3.5 h-3.5 rounded-full bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]"></span>
-              <span class="text-xs font-black text-white uppercase tracking-wider">{{ 'buying_areas.status.completed' | t }}</span>
+
+          <div class="flex flex-wrap items-center gap-4">
+            <!-- State Filter -->
+            <div class="p-2 px-4 rounded-2xl border border-white/20">
+              <p-select 
+                [options]="filterStateOptions()" 
+                [(ngModel)]="selectedState" 
+                (onChange)="onStateChange()"
+                [filter]="true" 
+                [placeholder]="'leads.filter.all_states' | t" 
+                class="w-48 buying-area-select" 
+                appendTo="body">
+              </p-select>
             </div>
-            <div class="flex items-center gap-3">
-              <span class="w-3.5 h-3.5 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"></span>
-              <span class="text-xs font-black text-white uppercase tracking-wider">{{ 'buying_areas.status.pending' | t }}</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="w-3.5 h-3.5 rounded-full bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.5)]"></span>
-              <span class="text-xs font-black text-white uppercase tracking-wider">{{ 'buying_areas.status.cancelled' | t }}</span>
+            
+            <div class="flex flex-wrap items-center gap-6 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+              <div class="flex items-center gap-3">
+                <span class="w-3.5 h-3.5 rounded-full bg-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]"></span>
+                <span class="text-xs font-black text-white uppercase tracking-wider">{{ 'buying_areas.status.completed' | t }}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-3.5 h-3.5 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]"></span>
+                <span class="text-xs font-black text-white uppercase tracking-wider">{{ 'buying_areas.status.pending' | t }}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="w-3.5 h-3.5 rounded-full bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.5)]"></span>
+                <span class="text-xs font-black text-white uppercase tracking-wider">{{ 'buying_areas.status.cancelled' | t }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -58,10 +77,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
       }
       .app-dark .order-popup {
         color: #f1f5f9;
-        /* To cancel the effect of invert on popups if needed, but since popups are children of map, they get inverted too.
-           We might need to double-invert them or keep it simple. */
       }
-      /* Double inversion to keep popups and markers original colors while map is dark */
       .app-dark .leaflet-popup-content-wrapper,
       .app-dark .leaflet-popup-tip,
       .app-dark .leaflet-marker-icon,
@@ -78,6 +94,23 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
       .app-dark .order-popup .text-slate-500 {
         color: #94a3b8;
       }
+      .buying-area-select .p-select {
+        background: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        box-shadow: none !important;
+      }
+      .buying-area-select .p-select-label,
+      .buying-area-select .p-select-placeholder {
+        // color: white !important;
+        font-weight: 800 !important; 
+      }
+      .buying-area-select .p-select-dropdown {
+        // color: white !important;
+      }
+      /* Ensure placeholder is white too */
+      .buying-area-select .p-placeholder {
+        // color: rgba(255, 255, 255, 0.8) !important;
+      }
     }
   `]
 })
@@ -85,9 +118,19 @@ export class BuyingAreasComponent implements OnInit, AfterViewInit {
   private map!: L.Map;
   private platformId = inject(PLATFORM_ID);
   private i18n = inject(I18nService);
+  private authStore = inject(AuthStore);
   readonly ordersStore = inject(OrdersStore);
   private markers: L.Marker[] = [];
   private circles: L.Circle[] = [];
+
+  selectedState: string | null = null;
+  states = US_CA_STATES;
+  filterStateOptions = computed(() => [
+    { label: this.i18n.t('leads.filter.all_states'), value: null },
+    ...this.states
+  ]);
+
+  isAgent = computed(() => this.authStore.user()?.role === 'agent');
 
   constructor() {
     // React to orders changes
@@ -102,6 +145,10 @@ export class BuyingAreasComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     // Load orders - using a large limit for map visualization
     this.ordersStore.loadOrders({ page: 1, limit: 1000 });
+  }
+
+  onStateChange() {
+    this.updateMarkers();
   }
 
   ngAfterViewInit(): void {
@@ -148,9 +195,14 @@ export class BuyingAreasComponent implements OnInit, AfterViewInit {
     this.markers = [];
     this.circles = [];
 
-    const ordersWithCoords = this.ordersStore.entities().filter(o => 
+    let ordersWithCoords = this.ordersStore.entities().filter(o => 
       o.customer?.latitude && o.customer?.longitude
     );
+
+    // Apply state filter if selected
+    if (this.selectedState) {
+      ordersWithCoords = ordersWithCoords.filter(o => o.customer.state === this.selectedState);
+    }
 
     if (ordersWithCoords.length === 0) return;
 
@@ -172,11 +224,14 @@ export class BuyingAreasComponent implements OnInit, AfterViewInit {
       const marker = L.marker([lat, lng]).addTo(this.map);
       this.markers.push(marker);
 
+      const shortId = order.id.slice(-6).toUpperCase();
+      const phoneHtml = this.isAgent() ? '' : `<div class="mb-1"><strong>${this.i18n.t('buying_areas.popup.phone')}:</strong> ${order.customer.phone}</div>`;
+
       const popupContent = `
         <div class="order-popup">
-          <div class="font-bold text-teal-700 mb-1 border-b pb-1">${this.i18n.t('buying_areas.popup.order')} #${order.id}</div>
+          <div class="font-bold text-teal-700 mb-1 border-b pb-1">${this.i18n.t('buying_areas.popup.order')} #${shortId}</div>
           <div class="mb-1"><strong>${this.i18n.t('buying_areas.popup.customer')}:</strong> ${order.customer.name}</div>
-          <div class="mb-1"><strong>${this.i18n.t('buying_areas.popup.phone')}:</strong> ${order.customer.phone}</div>
+          ${phoneHtml}
           <div class="mb-1"><strong>${this.i18n.t('buying_areas.popup.amount')}:</strong> ${order.amount} $</div>
           <div class="mb-1"><strong>${this.i18n.t('buying_areas.popup.status')}:</strong> ${this.getStatusText(order.status)}</div>
           <div class="text-xs text-slate-500 mt-2">${new Date(order.createdAt).toLocaleDateString(this.i18n.currentLang() === 'ar' ? 'ar-SA' : 'en-US')}</div>
@@ -188,8 +243,10 @@ export class BuyingAreasComponent implements OnInit, AfterViewInit {
     });
 
     // Fit map to markers
-    const group = L.featureGroup(this.markers);
-    this.map.fitBounds(group.getBounds().pad(0.1));
+    if (this.markers.length > 0) {
+      const group = L.featureGroup(this.markers);
+      this.map.fitBounds(group.getBounds().pad(0.1));
+    }
   }
 
   private getStatusColor(status: OrderStatus): string {

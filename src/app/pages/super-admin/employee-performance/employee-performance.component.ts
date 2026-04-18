@@ -21,34 +21,38 @@ import { TooltipModule } from 'primeng/tooltip';
   template: `
     <div class="card font-tajawal shadow-md border-t-4 border-t-primary rounded-[2rem] dark:bg-surface-900 overflow-hidden transition-all hover:shadow-lg">
       <!-- Header -->
-      <div class="p-8 bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-900 dark:to-teal-800 relative overflow-hidden">
+      <div class="p-5 md:p-8 bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-900 dark:to-teal-800 relative overflow-hidden">
         <!-- Decorative background elements -->
         <div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
         <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl"></div>
 
-        <div class="flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
-          <div class="flex items-center gap-4">
-            <p-button 
-              icon="pi pi-arrow-right" 
-              styleClass="rounded-xl w-10 h-10 bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20"
-              (onClick)="backToList()"
-            ></p-button>
-            <div>
-              <h1 class="text-4xl font-black text-white mb-1 flex items-center gap-3">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 md:gap-8 relative z-10">
+          <div class="flex flex-row items-center gap-3 md:gap-4 max-w-full w-full">
+            <div class="shrink-0">
+              <p-button 
+                icon="pi pi-arrow-right" 
+                styleClass="rounded-xl w-10 md:w-12 h-10 md:h-12 bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20 transition-all shadow-sm"
+                (onClick)="backToList()"
+              ></p-button>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h1 class="text-lg sm:text-2xl lg:text-3xl font-black text-white m-0 tracking-tight leading-tight break-words">
                 {{ 'performance.title' | t }}: {{ performance()?.user?.name }}
               </h1>
-              <p class="text-emerald-50/80 font-bold text-xs uppercase tracking-widest">{{ 'performance.subtitle' | t }}</p>
+              <p class="text-emerald-50/80 font-bold text-[9px] sm:text-xs uppercase tracking-widest mt-1 block leading-snug break-words">
+                {{ 'performance.subtitle' | t }}
+              </p>
             </div>
           </div>
 
-          <div class="flex items-center gap-3 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20">
-            <span class="text-xs font-black text-white uppercase tracking-widest">{{ 'performance.month' | t }}:</span>
+          <div class="flex flex-row items-center gap-3 w-full lg:w-auto bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 shadow-sm">
+            <span class="text-[10px] md:text-xs font-black text-emerald-50 uppercase tracking-[0.1em] whitespace-nowrap">{{ 'performance.month' | t }}:</span>
             <p-datepicker 
               [(ngModel)]="selectedMonth" 
               view="month" 
               dateFormat="mm/yy" 
               [readonlyInput]="true"
-              styleClass="w-44"
+              styleClass="w-full sm:w-44"
               [showIcon]="true"
               (onSelect)="onMonthChange()"
             ></p-datepicker>

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TableModule } from 'primeng/table';
@@ -13,17 +13,21 @@ import { SelectModule } from 'primeng/select';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { ToastModule } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { effect } from '@angular/core';
+import { AuthStore } from '../../core/stores/auth.store';
 import { TooltipModule } from 'primeng/tooltip';
+import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { DialogModule } from 'primeng/dialog';
 
 @Component({
   selector: 'app-orders-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, TableModule, ButtonModule, InputTextModule, FormsModule, TagModule, SelectButtonModule, SelectModule, IconFieldModule, InputIconModule, ToastModule, TranslatePipe, TooltipModule],
-  providers: [MessageService],
+  imports: [CommonModule, RouterModule, TableModule, ButtonModule, InputTextModule, FormsModule, TagModule, SelectButtonModule, SelectModule, IconFieldModule, InputIconModule, ToastModule, TranslatePipe, TooltipModule, DialogModule, ConfirmDialogModule],
+  providers: [MessageService, ConfirmationService],
   template: `
     <p-toast></p-toast>
     <div class="card font-tajawal shadow-2xl overflow-hidden border-0 rounded-[2.5rem] dark:bg-surface-900 transition-all hover:shadow-2xl">
@@ -50,7 +54,8 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
               <p-inputIcon class="pi pi-search text-white/70" />
               <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange()" 
                      [placeholder]="'ui.search' | t" 
-                     class="w-full md:w-80 h-12 rounded-2xl border-white/30 bg-white/10 backdrop-blur-md text-white placeholder:text-white/60 focus:ring-white/30 px-6 font-medium" />
+                     autocomplete="off" dir="ltr"
+                     class="w-full md:w-80 h-12 rounded-2xl border-white/30 bg-white/10 backdrop-blur-md text-white placeholder:text-white/60 focus:ring-white/30 px-6 font-medium text-left" />
             </p-iconField>
             <p-button [label]="'ui.add' | t" icon="pi pi-plus" routerLink="/orders/new" 
                       styleClass="rounded-2xl px-8 h-12 font-black bg-white text-emerald-600 border-none shadow-xl transform hover:scale-105 transition-all text-md uppercase tracking-widest"></p-button>
@@ -79,32 +84,32 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                styleClass="p-datatable-sm shadow-sm rounded-lg overflow-hidden">
         <ng-template pTemplate="header">
           <tr>
-            <th>{{ 'orders.list.table.order_no' | t }}</th>
-            <th>{{ 'orders.list.table.customer' | t }}</th>
-            <th>{{ 'orders.list.table.type' | t }}</th>
-            <th>{{ 'orders.list.table.amount' | t }}</th>
-            <th>{{ 'orders.list.table.payment_method' | t }}</th>
-            <th>{{ 'orders.list.table.devices' | t }}</th>
-            <th>{{ 'orders.list.table.status' | t }}</th>
-            <th>{{ 'orders.list.table.date' | t }}</th>
-            <th>{{ 'ui.actions' | t }}</th>
+            <th style="width: 8%">{{ 'orders.list.table.order_no' | t }}</th>
+            <th style="width: 25%">{{ 'orders.list.table.customer' | t }}</th>
+            <th style="width: 8%">{{ 'orders.list.table.type' | t }}</th>
+            <th style="width: 10%">{{ 'orders.list.table.amount' | t }}</th>
+            <th style="width: 10%">{{ 'orders.list.table.payment_method' | t }}</th>
+            <th style="width: 10%">{{ 'orders.list.table.devices' | t }}</th>
+            <th style="width: 10%">{{ 'orders.list.table.status' | t }}</th>
+            <th style="width: 10%">{{ 'orders.list.table.date' | t }}</th>
+            <th style="width: 9%">{{ 'ui.actions' | t }}</th>
           </tr>
         </ng-template>
-        <ng-template pTemplate="body" let-order>
+        <ng-template pTemplate="body" let-order let-i="rowIndex">
           <tr>
-            <td class="font-mono text-xs" [pTooltip]="order.id" tooltipPosition="top">#{{ order.id.slice(0, 5) }}</td>
+            <td class="font-mono text-xs" [pTooltip]="order.id" tooltipPosition="top">#{{ first + i + 1 }}</td>
             <td>
                 <div class="font-bold cursor-pointer hover:text-primary" [routerLink]="['/customers', order.customer?.id]">
                     {{ order.customer?.name }}
                 </div>
-                <div class="text-xs text-gray-500">{{ order.customer?.phone }}</div>
+                <div class="text-xs text-gray-500"><span dir="ltr">{{ order.customer?.phone }}</span></div>
             </td>
             <td>
-                <p-tag [value]="order.type" [severity]="getTypeSeverity(order.type)"></p-tag>
+                <p-tag [value]="('dashboard.types.' + order.type) | t" [severity]="getTypeSeverity(order.type)"></p-tag>
             </td>
             <td class="font-bold text-green-600 font-mono">{{ order.amount | currency }}</td>
             <td>
-                <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{{ order.paymentMethod }}</span>
+                <span class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">{{ getPaymentMethodLabel(order.paymentMethod) }}</span>
             </td>
             <td>
                 <span class="badge bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full text-xs font-bold">
@@ -112,13 +117,16 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                 </span>
             </td>
             <td>
-                <p-tag [value]="order.status" [severity]="getStatusSeverity(order.status)"></p-tag>
+                <p-tag [value]="('orders.status.' + order.status) | t" [severity]="getStatusSeverity(order.status)"></p-tag>
             </td>
             <td>{{ order.createdAt | date:'shortDate' }}</td>
             <td>
               <div class="flex gap-2">
-                <p-button icon="pi pi-eye" severity="info" [routerLink]="['/orders', order.id]" size="small"></p-button>
-                <p-button icon="pi pi-pencil" severity="secondary" [routerLink]="['/orders', order.id, 'edit']" size="small"></p-button>
+                <p-button type="button" icon="pi pi-eye" severity="info" [routerLink]="['/orders', order.id]" size="small"></p-button>
+                <p-button type="button" icon="pi pi-pencil" severity="secondary" [routerLink]="['/orders', order.id, 'edit']" size="small"></p-button>
+                @if (isSuperAdmin()) {
+                  <p-button type="button" icon="pi pi-trash" severity="danger" (click)="$event.stopPropagation(); onDeleteOrder(order)" size="small"></p-button>
+                }
               </div>
             </td>
           </tr>
@@ -131,6 +139,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
       </p-table>
       </div>
     </div>
+    <p-confirmdialog></p-confirmdialog>
   `,
   styles: [`
     .font-tajawal { font-family: 'Tajawal', sans-serif; }
@@ -138,7 +147,11 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
 })
 export class OrdersListComponent implements OnInit {
   readonly store = inject(OrdersStore);
+  private authStore = inject(AuthStore);
   private messageService = inject(MessageService);
+  private confirmationService = inject(ConfirmationService);
+  private i18n = inject(I18nService);
+  isSuperAdmin = computed(() => this.authStore.user()?.role === 'super-admin');
   searchTerm = '';
   filterStatus: OrderStatus | undefined = undefined;
   filterType: OrderType | undefined = undefined;
@@ -146,15 +159,15 @@ export class OrdersListComponent implements OnInit {
   private searchSubject = new Subject<string>();
 
   statusOptions = [
-    { label: 'قيد الانتظار', value: 'pending' },
-    { label: 'مكتمل', value: 'completed' },
-    { label: 'ملغي', value: 'cancelled' }
+    { label: this.i18n.t('orders.status.pending'), value: 'pending' },
+    { label: this.i18n.t('orders.status.completed'), value: 'completed' },
+    { label: this.i18n.t('orders.status.cancelled'), value: 'cancelled' }
   ];
 
   typeOptions = [
-    { label: 'جديد', value: 'new' },
-    { label: 'تجديد', value: 'renewal' },
-    { label: 'إحالة', value: 'referral' }
+    { label: this.i18n.t('dashboard.types.new'), value: 'new' },
+    { label: this.i18n.t('dashboard.types.renewal'), value: 'renewal' },
+    { label: this.i18n.t('dashboard.types.referral'), value: 'referral' }
   ];
 
   constructor() {
@@ -189,6 +202,7 @@ export class OrdersListComponent implements OnInit {
   }
 
   loadData(event: any) {
+    this.first = event.first;
     const page = (event.first / event.rows) + 1;
     this.store.loadOrders({
       page,
@@ -230,5 +244,43 @@ export class OrdersListComponent implements OnInit {
       case 'cancelled': return 'danger';
       default: return 'secondary';
     }
+  }
+
+  getPaymentMethodLabel(method: string): string {
+    if (!method) return '';
+    const normalizedMethod = method.trim();
+    const map: { [key: string]: string } = {
+      'credit card': 'order_form.pm_credit',
+      'zelle': 'order_form.pm_zelle',
+      'cash app': 'order_form.pm_cashapp',
+      'venmo': 'order_form.pm_venmo',
+      'paypal': 'order_form.pm_paypal',
+      'apple pay': 'order_form.pm_apple',
+      'google pay': 'order_form.pm_google',
+      'ach transfer': 'order_form.pm_ach',
+      'cash': 'order_form.pm_cash',
+      'check': 'order_form.pm_check',
+      'other': 'order_form.pm_other'
+    };
+    const key = map[normalizedMethod.toLowerCase()] || 'order_form.pm_other';
+    return this.i18n.t(key);
+  }
+
+  onDeleteOrder(order: any) {
+    this.confirmationService.confirm({
+      message: this.i18n.t('orders.list.delete.confirm_msg'),
+      header: this.i18n.t('orders.list.delete.confirm_title'),
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.i18n.t('ui.yes'),
+      rejectLabel: this.i18n.t('ui.no'),
+      accept: () => {
+        this.store.deleteOrder(order.id);
+        this.messageService.add({
+          severity: 'success',
+          summary: this.i18n.t('ui.success'),
+          detail: this.i18n.t('orders.list.delete.success')
+        });
+      }
+    });
   }
 }

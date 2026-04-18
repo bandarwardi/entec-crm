@@ -33,12 +33,12 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
                 </ng-template>
                 <ng-template pTemplate="body" let-order>
                     <tr class="border-b border-surface-50 dark:border-surface-800 last:border-none">
-                        <td class="py-4 font-black text-primary text-xs">#{{order.id}}</td>
+                        <td class="py-4 font-black text-primary text-xs">#{{order.id.slice(0, 5)}}</td>
                         <td class="py-4 font-bold text-surface-700 dark:text-surface-300 text-xs">{{order.customerName}}</td>
-                        <td class="py-4 text-center font-black text-surface-900 dark:text-surface-0 text-xs">{{order.amount | currency}}</td>
+                        <td class="py-4 text-center font-black text-surface-900 dark:text-surface-0 text-xs font-mono">{{order.amount | currency}}</td>
                         <td class="py-4 text-left">
-                            <span [class]="'font-black text-[9px] px-2 py-0.5 rounded-full uppercase ' + (order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500')">
-                                {{order.status}}
+                            <span [class]="'font-black text-[9px] px-3 py-1 rounded-full uppercase shadow-sm ' + (order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-orange-500/10 text-orange-500 border border-orange-500/20')">
+                                {{ ('orders.status.' + order.status) | t }}
                             </span>
                         </td>
                     </tr>

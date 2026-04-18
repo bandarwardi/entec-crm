@@ -31,25 +31,24 @@ import { TranslatePipe } from '@/app/core/i18n/translate.pipe';
             <div class="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
             <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl"></div>
 
-            <div class="flex flex-col md:flex-row justify-between items-center gap-8 relative z-10">
-                <div class="flex items-center gap-6">
-                    <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shadow-inner border border-white/20">
-                        <i class="pi pi-users text-3xl font-bold"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-3xl font-black text-white m-0 tracking-tight">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 md:gap-8 relative z-10">
+                <div class="flex items-center w-full lg:w-auto">
+                    <div class="flex-1">
+                        <h1 class="text-xl sm:text-2xl lg:text-3xl font-black text-white m-0 tracking-tight leading-tight break-words">
                             {{ 'users.title' | t }}
                         </h1>
-                        <p class="text-emerald-50/80 font-bold text-xs uppercase tracking-widest mt-1">{{ 'users.subtitle' | t }}</p>
+                        <p class="text-emerald-50/80 font-bold text-[10px] sm:text-xs uppercase tracking-widest mt-1 block leading-snug break-words">
+                            {{ 'users.subtitle' | t }}
+                        </p>
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
                     <p-button [label]="'users.login_requests' | t" icon="pi pi-shield" 
                               [routerLink]="['/super-admin/login-requests']" 
-                              styleClass="rounded-2xl px-6 h-12 font-bold bg-white/20 backdrop-blur-md text-white border border-white/40 hover:bg-white/30 transition-all text-sm uppercase tracking-widest shadow-lg" />
+                              styleClass="w-full sm:w-auto rounded-2xl px-5 py-3 md:h-12 font-bold bg-white/20 backdrop-blur-md text-white border border-white/40 hover:bg-white/30 transition-all text-xs md:text-sm uppercase tracking-widest shadow-sm" />
                     
                     <p-button [label]="'users.add_button' | t" icon="pi pi-plus" (onClick)="openNew()" 
-                              styleClass="rounded-2xl px-8 h-12 font-black bg-white text-emerald-600 border-none shadow-xl transform hover:scale-105 transition-all text-md uppercase tracking-widest" />
+                              styleClass="w-full sm:w-auto rounded-2xl px-6 py-3 md:h-12 font-black bg-white text-emerald-600 border-transparent shadow-xl transform hover:-translate-y-0.5 transition-all text-xs md:text-sm uppercase tracking-widest" />
                 </div>
             </div>
         </div>

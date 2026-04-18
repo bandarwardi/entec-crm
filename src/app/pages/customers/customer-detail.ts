@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -8,6 +8,7 @@ import { SalesService, Customer } from '../../core/services/sales.service';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { AuthStore } from '../../core/stores/auth.store';
 
 @Component({
   selector: 'app-customer-detail',
@@ -26,8 +27,10 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                 </h1>
             </div>
             <div class="flex gap-2">
-                <p-button [label]="'customers.table.new_order' | t" icon="pi pi-plus" [routerLink]="['/orders/new']" 
-                          [queryParams]="{customerId: customer()?.id}" styleClass="rounded-xl font-bold shadow-lg"></p-button>
+                @if (!isAgent()) {
+                    <p-button [label]="'customers.table.new_order' | t" icon="pi pi-plus" [routerLink]="['/orders/new']" 
+                              [queryParams]="{customerId: customer()?.id}" styleClass="rounded-xl font-bold shadow-lg"></p-button>
+                }
             </div>
         </div>
 
@@ -43,7 +46,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                     </div>
                     <div class="flex flex-col">
                         <span class="text-[10px] font-black text-surface-400 uppercase mb-1">{{ 'customers.detail.phone' | t }}</span>
-                        <span class="text-lg font-bold font-mono text-primary">{{ customer()?.phone }}</span>
+                        <span class="text-lg font-bold font-mono text-primary" dir="ltr">{{ customer()?.phone }}</span>
                     </div>
                     <div class="flex flex-col">
                         <span class="text-[10px] font-black text-surface-400 uppercase mb-1">{{ 'customers.detail.email' | t }}</span>
@@ -109,7 +112,7 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                 </ng-template>
                 <ng-template pTemplate="body" let-order>
                     <tr class="dark:border-surface-700">
-                        <td class="p-6 font-mono text-surface-900 dark:text-surface-0 font-bold dark:bg-surface-900">#{{ order.id }}</td>
+                        <td class="p-6 font-mono text-surface-900 dark:text-surface-0 font-bold dark:bg-surface-900" [pTooltip]="order.id" tooltipPosition="top">#{{ order.id.slice(0, 5) }}</td>
                         <td class="p-6 dark:bg-surface-900">
                             <p-tag [value]="order.type" [severity]="getTypeSeverity(order.type)" styleClass="text-[10px] font-black uppercase px-3"></p-tag>
                         </td>
@@ -144,8 +147,10 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
 export class CustomerDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private salesService = inject(SalesService);
+  private authStore = inject(AuthStore);
   
   customer = signal<Customer | null>(null);
+  isAgent = computed(() => this.authStore.user()?.role === 'agent');
 
   ngOnInit() {
     this.route.params.subscribe(params => {

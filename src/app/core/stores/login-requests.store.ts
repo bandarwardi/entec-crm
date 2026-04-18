@@ -69,11 +69,11 @@ export const LoginRequestsStore = signalStore(
         )
       ),
 
-      updateStatus: rxMethod<{ id: number; status: string }>(
+      updateStatus: rxMethod<{ id: number; status: string; trustDevice?: boolean }>(
         pipe(
           tap(() => patchState(store, { loading: true })),
-          switchMap(({ id, status }) =>
-            http.put(`${apiUrl}/request/${id}/${status}`, {}).pipe(
+          switchMap(({ id, status, trustDevice }) =>
+            http.put(`${apiUrl}/request/${id}/${status}`, { trustDevice }).pipe(
               tapResponse({
                 next: () => {
                   patchState(store, {

@@ -105,6 +105,9 @@ export const en = {
     'dashboard.status.converted': 'Converted',
     'dashboard.status.not_interested': 'Not Interested',
     'dashboard.status.pending_callback': 'Follow-up',
+    'dashboard.status.ready_to_subscribe': 'Ready to Subscribe',
+    'dashboard.status.subscribed_elsewhere': 'Subscribed Elsewhere',
+    'dashboard.status.lost': 'Lost Lead',
 
     // Auth
     'auth.welcome': 'Welcome back!',
@@ -136,6 +139,10 @@ export const en = {
     'chat.search_users_placeholder': 'Search users by name or email...',
     'chat.no_users_found': 'No users found with this name',
     'chat.attach_file_tooltip': 'Attach image or file',
+    'leads.check_subscription': 'Check Subscription',
+    'leads.filter.all_agents': 'All Agents',
+    'leads.no_subscriptions_found': 'No subscriptions found for this number',
+    'leads.check_sub_placeholder': 'Enter phone number to search...',
 
     // AI Assistant
     'ai_chat.header_title': 'EN TEC AI Assistant',
@@ -227,6 +234,7 @@ export const en = {
     'order_form.full_name_placeholder': 'Customer full name',
     'order_form.phone': 'Phone Number',
     'order_form.email': 'Email Address',
+    'order_form.country': 'Country',
     'order_form.address': 'Address',
     'order_form.state': 'State',
     'order_form.search_customer_placeholder': 'Search for registered customer',
@@ -307,6 +315,8 @@ export const en = {
     'customers.dialog.phone': 'Phone Number',
     'customers.dialog.address': 'Address',
     'customers.dialog.state': 'State',
+    'customers.dialog.latitude': 'Latitude',
+    'customers.dialog.longitude': 'Longitude',
 
     // Customer Detail
     'customers.detail.title': 'Customer Details',
@@ -324,7 +334,9 @@ export const en = {
 
     // Leads
     'leads.title': 'Leads Management',
+    'leads.subtitle': 'Manage lead database and follow-ups',
     'leads.search_placeholder': 'Search by name or phone...',
+    'leads.list.search_placeholder': 'Search lead list...',
     'leads.validation.name_required': 'Name is required',
     'leads.validation.phone_required': 'Phone is required',
     'leads.validation.email_required': 'Email is required',
@@ -404,6 +416,11 @@ export const en = {
     'login_requests.status.approved': 'Approved',
     'login_requests.status.rejected': 'Rejected',
     'login_requests.status.pending': 'Pending',
+    'login_requests.trust_dialog.header': 'Device Trust Options',
+    'login_requests.trust_dialog.question': 'Do you want to add this device to trusted devices?',
+    'login_requests.trust_dialog.description': 'If you choose to approve as a trusted device, the employee will not be asked for login permission again when using this specific device to increase workflow smoothness.',
+    'login_requests.trust_dialog.button_trust': 'Approve as Trusted Device',
+    'login_requests.trust_dialog.button_once': 'Approve for this time only',
 
     // Profile
     'profile.title': 'Profile',
@@ -543,6 +560,7 @@ export const en = {
     'errors.delete_order': 'Failed to delete order',
     'errors.load_customers': 'Failed to load customers',
     'errors.update_customer': 'Failed to update customer data',
+    'errors.update_customer_success': 'Customer data updated successfully',
     'errors.create_customer': 'Failed to add customer',
     'errors.load_leads': 'Failed to load leads',
     'errors.create_lead': 'Failed to add lead',

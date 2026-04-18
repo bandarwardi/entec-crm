@@ -123,7 +123,10 @@ export class NotificationsWidget {
             'interested': this.i18n.t('dashboard.status.interested'), 
             'converted': this.i18n.t('dashboard.status.converted'),
             'not_interested': this.i18n.t('dashboard.status.not_interested'),
-            'pending_callback': this.i18n.t('dashboard.status.pending_callback')
+            'pending_callback': this.i18n.t('dashboard.status.pending_callback'),
+            'ready_to_subscribe': this.i18n.t('dashboard.status.ready_to_subscribe'),
+            'subscribed_elsewhere': this.i18n.t('dashboard.status.subscribed_elsewhere'),
+            'lost': this.i18n.t('dashboard.status.lost')
         };
         return map[status] || status;
     }
