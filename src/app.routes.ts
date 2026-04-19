@@ -62,6 +62,12 @@ export const appRoutes: Routes = [
                 data: { roles: ['super-admin', 'admin'] },
                 loadComponent: () => import('@/app/pages/super-admin/login-requests/login-requests.component').then(m => m.LoginRequestsComponent) 
             },
+            { 
+                path: 'super-admin/whatsapp', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('@/app/pages/super-admin/whatsapp/whatsapp-settings.component').then(m => m.WhatsappSettingsComponent) 
+            },
 
             // Sales & Customers
             { 
@@ -102,6 +108,10 @@ export const appRoutes: Routes = [
             },
 
             { path: 'leads', loadComponent: () => import('./app/pages/leads/leads.component').then(m => m.LeadsComponent) },
+            { 
+                path: 'whatsapp/inbox', 
+                loadComponent: () => import('./app/pages/whatsapp/whatsapp-inbox.component').then(m => m.WhatsappInboxComponent) 
+            },
             { 
                 path: 'buying-areas', 
                 canActivate: [roleGuard],

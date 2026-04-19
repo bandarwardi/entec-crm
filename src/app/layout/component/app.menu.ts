@@ -50,6 +50,12 @@ export class AppMenu {
                 class: 'menu-leads'
             },
             { 
+                label: this.i18n.t('whatsapp.inbox.title'), 
+                icon: 'pi pi-fw pi-whatsapp', 
+                routerLink: ['/whatsapp/inbox'],
+                class: 'menu-whatsapp-inbox'
+            },
+            { 
                 label: this.i18n.t('menu.chat'), 
                 icon: 'pi pi-fw pi-comments', 
                 routerLink: ['/chat'],
@@ -81,6 +87,13 @@ export class AppMenu {
                 routerLink: ['/super-admin/settings'],
                 visible: !isAgent,
                 class: 'menu-settings'
+            },
+            { 
+                label: 'واتساب', 
+                icon: 'pi pi-fw pi-whatsapp', 
+                routerLink: ['/super-admin/whatsapp'],
+                visible: !isAgent,
+                class: 'menu-whatsapp'
             },
             { label: this.i18n.t('menu.logout'), icon: 'pi pi-fw pi-sign-out', command: () => this.authStore.logout(), class: 'menu-logout' }
         ];

@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, ViewChild, effect, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -232,6 +233,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
             </td>
             <td>
               <div class="flex gap-2">
+                <p-button type="button" icon="pi pi-whatsapp" [rounded]="true" [outlined]="true" severity="success" (click)="$event.stopPropagation(); openWhatsapp(lead)"></p-button>
                 <p-button type="button" icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="primary" (click)="$event.stopPropagation(); openEditLeadDialog(lead)"></p-button>
                 @if (isSuperAdmin() || isAdmin() || isAgent()) {
                   <p-button type="button" icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger" (click)="$event.stopPropagation(); onDeleteLead(lead)"></p-button>
@@ -502,6 +504,7 @@ export class LeadsComponent implements OnInit, OnDestroy {
   private salesService = inject(SalesService);
   private authStore = inject(AuthStore);
   private userService = inject(UserService);
+  private router = inject(Router);
   readonly store = inject(LeadsStore);
 
   displayCheckSub = false;
@@ -809,16 +812,27 @@ export class LeadsComponent implements OnInit, OnDestroy {
     this.confirmationService.confirm({
       message: this.i18n.t('leads.delete.confirm_msg'),
       header: this.i18n.t('leads.delete.confirm_title'),
-      icon: 'pi pi-exclamation-triangle',
+      icon: 'pi pi-info-circle',
+      rejectLabel: this.i18n.t('ui.cancel'),
+      acceptLabel: this.i18n.t('ui.delete'),
+      rejectButtonProps: {
+        label: this.i18n.t('ui.cancel'),
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptButtonProps: {
+        label: this.i18n.t('ui.delete'),
+        severity: 'danger',
+      },
       accept: () => {
         this.store.deleteLead(lead.id);
-        this.messageService.add({ 
-          severity: 'success', 
-          summary: this.i18n.t('ui.success'), 
-          detail: this.i18n.t('leads.delete.success') 
-        });
-      }
+      },
     });
+  }
+
+  openWhatsapp(lead: Lead) {
+    const cleanPhone = lead.phone.replace(/\D/g, '');
+    this.router.navigate(['/whatsapp/inbox'], { queryParams: { phone: cleanPhone, leadId: lead.id } });
   }
 
   openReminderDialog(lead: Lead) {
