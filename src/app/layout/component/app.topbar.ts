@@ -1,11 +1,12 @@
 import { Component, inject, ChangeDetectorRef, OnInit } from '@angular/core';
 import { MenuItem } from 'primeng/api';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { LayoutService } from '@/app/layout/service/layout.service';
 import { BadgeModule } from 'primeng/badge';
 import { PopoverModule } from 'primeng/popover';
 import { ButtonModule } from 'primeng/button';
 import { NotificationsStore } from '../../core/stores/notifications.store';
+import { LeadsStore } from '../../core/stores/leads.store';
 import { AuthStore, UserStatus, BreakReason } from '../../core/stores/auth.store';
 import { DatePipe, CommonModule } from '@angular/common';
 import { SelectModule } from 'primeng/select';
@@ -147,7 +148,7 @@ import { HostListener } from '@angular/core';
                             <div class="text-xs text-center py-6 text-gray-400 dark:text-slate-500 italic">{{ 'notifications.empty' | t }}</div>
                         } @else {
                             @for (lead of allNotifications; track trackByNotification(lead)) {
-                                <div class="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl cursor-pointer border-b dark:border-slate-700 last:border-b-0 transition-colors group" [routerLink]="['/leads']">
+                                <div class="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl cursor-pointer border-b dark:border-slate-700 last:border-b-0 transition-colors group" (click)="goToLead(lead, op)">
                                     <div class="flex justify-between items-start mb-1">
                                         <div class="font-bold text-sm group-hover:text-primary transition-colors" [class.text-blue-600]="!lead.reminderRead">{{ lead.name }}</div>
                                         <div class="text-[10px] text-slate-400">{{ lead.reminderAt | date:'shortTime' }}</div>
@@ -174,6 +175,8 @@ export class AppTopbar {
     readonly authStore = inject(AuthStore);
     readonly leadService = inject(UserLeadService);
     readonly cdr = inject(ChangeDetectorRef);
+    readonly leadsStore = inject(LeadsStore);
+    readonly router = inject(Router); // Use inject(Router)
 
     allNotifications: Lead[] = [];
     loadingNotifications = false;
@@ -282,5 +285,11 @@ export class AppTopbar {
                 this.loadNotifications();
             }
         }
+    }
+
+    goToLead(lead: Lead, op: any) {
+        op.hide();
+        this.leadsStore.setSelectedLeadId(lead.id);
+        this.router.navigate(['/leads']);
     }
 }

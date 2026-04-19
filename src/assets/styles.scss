@@ -1,7 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
 @use 'primeicons/primeicons.css';
 @use '@/assets/layout/layout.scss';
-@use '@/assets/demo/demo.scss';
+// @use '@/assets/demo/demo.scss';
 @import 'leaflet/dist/leaflet.css';
 
 html[dir="rtl"] {
@@ -17,7 +17,7 @@ html[dir="rtl"] {
 
     .layout-main-container {
         margin-left: 0 !important;
-        margin-right: 24rem !important; 
+        margin-right: 24rem !important;
         transition: margin-right var(--layout-section-transition-duration);
     }
 
@@ -25,6 +25,7 @@ html[dir="rtl"] {
         .layout-sidebar {
             transform: translateX(calc(100% + 4rem)) !important;
         }
+
         .layout-main-container {
             margin-right: 0 !important;
             padding-right: 2rem;
@@ -38,7 +39,7 @@ html[dir="rtl"] {
             padding-right: 2rem;
             padding-left: 2rem;
         }
-        
+
         .layout-sidebar {
             right: 0 !important;
             left: auto !important;
@@ -52,17 +53,17 @@ html[dir="rtl"] {
             transform: translateX(0) !important;
         }
     }
-    
+
     // Topbar fixes for RTL
     .layout-topbar {
         left: 0;
         right: 0;
-        
+
         .layout-topbar-logo {
             margin-right: 0;
             margin-left: auto;
         }
-        
+
         .layout-topbar-menu {
             margin-left: 0;
             margin-right: auto;
@@ -81,13 +82,14 @@ html[dir="rtl"] {
         text-align: left !important;
         display: inline-block;
     }
+
     .p-datatable {
-        .p-datatable-thead > tr > th {
+        .p-datatable-thead>tr>th {
             text-align: right !important;
         }
-        .p-datatable-tbody > tr > td {
+
+        .p-datatable-tbody>tr>td {
             text-align: right !important;
         }
     }
 }
-

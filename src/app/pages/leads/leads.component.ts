@@ -29,6 +29,10 @@ import { HostListener } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { AuthStore } from '../../core/stores/auth.store';
 
+import { PLATFORMS } from '../../core/constants/platforms.constants';
+import { SCREENS } from '../../core/constants/screens.constants';
+import { InputNumberModule } from 'primeng/inputnumber';
+
 @Component({
   selector: 'app-leads',
   standalone: true,
@@ -51,7 +55,8 @@ import { AuthStore } from '../../core/stores/auth.store';
     TooltipModule,
     PopoverModule,
     TextareaModule,
-    TranslatePipe
+    TranslatePipe,
+    InputNumberModule
   ],
   template: `
     <div class="card p-0 overflow-visible shadow-xl border-0 rounded-[2rem] dark:bg-surface-900 transition-all hover:shadow-2xl">
@@ -59,9 +64,9 @@ import { AuthStore } from '../../core/stores/auth.store';
       <div class="bg-gradient-to-br from-emerald-600 to-teal-500 p-8 rounded-t-[2rem]">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div class="flex items-center gap-4">
-            <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shadow-inner">
+            <!-- <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shadow-inner">
               <i class="pi pi-phone text-2xl font-bold"></i>
-            </div>
+            </div> -->
             <div>
               <h3 class="text-3xl font-black m-0 text-white tracking-tight">{{ 'leads.title' | t }}</h3>
               <p class="text-emerald-50/80 font-bold text-xs uppercase tracking-widest mt-1">{{ 'leads.subtitle' | t }}</p>
@@ -78,7 +83,6 @@ import { AuthStore } from '../../core/stores/auth.store';
             </p-iconField>
             <p-button [label]="'leads.import' | t" icon="pi pi-file-import" (onClick)="fileInput.click()" [loading]="store.loading()" styleClass="rounded-2xl bg-white/20 border-white/30 text-white hover:bg-white/30 px-6 font-bold"></p-button>
             <p-button [label]="'leads.export' | t" icon="pi pi-file-export" (onClick)="exportExcel()" [loading]="store.loading()" styleClass="rounded-2xl bg-white/20 border-white/30 text-white hover:bg-white/30 px-6 font-bold"></p-button>
-            <p-button [label]="'leads.check_subscription' | t" icon="pi pi-search-plus" (onClick)="displayCheckSub = true" styleClass="rounded-2xl bg-amber-500 border-none text-white hover:bg-amber-600 px-6 font-bold shadow-lg shadow-amber-500/20"></p-button>
             <input #fileInput type="file" (change)="onFileChange($event)" accept=".xlsx, .xls" style="display: none" />
           </div>
         </div>
@@ -103,39 +107,13 @@ import { AuthStore } from '../../core/stores/auth.store';
           <p-button [label]="'leads.filter.clear' | t" icon="pi pi-filter-slash" [text]="true" (onClick)="clearFilters()" severity="secondary" styleClass="text-emerald-600 dark:text-emerald-400 font-bold ml-auto"></p-button>
         </div>
 
-        <!-- Inline Add Form -->
-        <form [formGroup]="leadForm" (ngSubmit)="onAddLead()" class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8 p-6 bg-gradient-to-br from-surface-100 to-white dark:from-surface-800 dark:to-surface-900 rounded-[2rem] border border-surface-200 dark:border-surface-700 shadow-xl">
-          <div class="flex flex-col">
-            <label class="text-[10px] font-black text-surface-600 dark:text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.name' | t }}</label>
-            <input pInputText formControlName="name" [placeholder]="'leads.table.name' | t" class="w-full bg-white border-surface-200 dark:bg-surface-950 dark:border-surface-800 text-surface-900 dark:text-surface-0 rounded-xl" />
-            @if (leadForm.get('name')?.invalid && leadForm.get('name')?.touched) {
-              <small class="text-red-500 font-bold mt-1 ml-1 text-[10px]">{{ 'leads.validation.name_required' | t }}</small>
-            }
-          </div>
-          <div class="flex flex-col">
-            <label class="text-[10px] font-black text-surface-600 dark:text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.phone' | t }}</label>
-            <input pInputText formControlName="phone" dir="ltr" [placeholder]="'leads.table.phone' | t" class="w-full bg-white border-surface-200 dark:bg-surface-950 dark:border-surface-800 text-surface-900 dark:text-surface-0 rounded-xl" style="text-align: right;" />
-            @if (leadForm.get('phone')?.invalid && leadForm.get('phone')?.touched) {
-              <small class="text-red-500 font-bold mt-1 ml-1 text-[10px]">{{ 'leads.validation.phone_required' | t }}</small>
-            }
-          </div>
-          <div class="flex flex-col">
-            <label class="text-[10px] font-black text-surface-600 dark:text-surface-400 uppercase mb-1 ml-2">{{ 'leads.table.state' | t }}</label>
-            <p-select [options]="states" formControlName="state" optionLabel="label" optionValue="value" [filter]="true" [filterBy]="stateFilterBy()" (onFilter)="handleStateFilter($event)" [filterPlaceholder]="'ui.search' | t" [placeholder]="'leads.table.state' | t" [fluid]="true" appendTo="body" styleClass="bg-white border-surface-200 dark:bg-surface-950 dark:border-surface-800 rounded-xl text-surface-900 dark:text-surface-0"></p-select>
-            @if (leadForm.get('state')?.invalid && leadForm.get('state')?.touched) {
-              <small class="text-red-500 font-bold mt-1 ml-1 text-[10px]">{{ 'leads.validation.state_required' | t }}</small>
-            }
-          </div>
-          <div class="flex flex-col">
-            <label class="text-[10px] font-black text-surface-600 dark:text-surface-400 uppercase mb-1 ml-2">{{ 'leads.notes' | t }}</label>
-            <input pInputText formControlName="notes" [placeholder]="'leads.notes' | t" class="w-full bg-white border-surface-200 dark:bg-surface-950 dark:border-surface-800 text-surface-900 dark:text-surface-0 rounded-xl" />
-          </div>
-          <div class="flex items-end">
-            <p-button [label]="'ui.add' | t" icon="pi pi-plus" [loading]="store.adding()" type="submit" styleClass="w-full rounded-xl font-black shadow-lg shadow-emerald-500/20 py-3 uppercase tracking-widest text-xs"></p-button>
-          </div>
-        </form>
+        <!-- Add Button Bar -->
+        <div class="flex justify-between items-center mb-4">
+          <p-button [label]="'ui.add' | t" icon="pi pi-plus" (onClick)="displayAddLead = true" severity="success" styleClass="rounded-2xl px-8 font-black shadow-lg shadow-emerald-500/20"></p-button>
+          <p-button [label]="'leads.check_subscription' | t" icon="pi pi-search-plus" (onClick)="displayCheckSub = true" styleClass="rounded-2xl bg-amber-500 border-none text-white hover:bg-amber-600 px-6 font-bold"></p-button>
+        </div>
 
-      <!-- Leads Table -->
+        <!-- Leads Table -->
       <p-table 
         [value]="store.allLeads()" 
         [lazy]="true" 
@@ -147,7 +125,7 @@ import { AuthStore } from '../../core/stores/auth.store';
         [rowsPerPageOptions]="[10, 20, 50]"
         [paginatorDropdownAppendTo]="'body'"
         dataKey="id"
-        [tableStyle]="{ 'min-width': '75rem' }"
+        [tableStyle]="{ 'min-width': '70rem' }"
         styleClass="p-datatable-sm cell-selection-table"
         [rowHover]="true"
       >
@@ -164,8 +142,9 @@ import { AuthStore } from '../../core/stores/auth.store';
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-lead let-ri="rowIndex">
-          <tr>
-            <td (mousedown)="onMouseDown($event, ri, 0)" (mousemove)="onMouseMove($event, ri, 0)" 
+          <tr [attr.data-index]="getGlobalIndex(ri)">
+            <td (mousedown)="onMouseDown($event, ri, 0)" 
+                (mouseenter)="onMouseEnter(ri, 0)" 
                 [class.selected-cell]="isCellSelected(ri, 0)"
                 [pEditableColumn]="lead.name" pEditableColumnField="name" [pEditableColumnDisabled]="editingLeadId !== null">
               <p-cellEditor>
@@ -177,7 +156,8 @@ import { AuthStore } from '../../core/stores/auth.store';
                 </ng-template>
               </p-cellEditor>
             </td>
-            <td (mousedown)="onMouseDown($event, ri, 1)" (mousemove)="onMouseMove($event, ri, 1)" 
+            <td (mousedown)="onMouseDown($event, ri, 1)" 
+                (mouseenter)="onMouseEnter(ri, 1)" 
                 [class.selected-cell]="isCellSelected(ri, 1)"
                 [pEditableColumn]="lead.phone" pEditableColumnField="phone" [pEditableColumnDisabled]="editingLeadId !== null">
               <p-cellEditor>
@@ -189,7 +169,8 @@ import { AuthStore } from '../../core/stores/auth.store';
                 </ng-template>
               </p-cellEditor>
             </td>
-            <td (mousedown)="onMouseDown($event, ri, 2)" (mousemove)="onMouseMove($event, ri, 2)" 
+            <td (mousedown)="onMouseDown($event, ri, 2)" 
+                (mouseenter)="onMouseEnter(ri, 2)" 
                 [class.selected-cell]="isCellSelected(ri, 2)"
                 [pEditableColumn]="lead.state" pEditableColumnField="state" [pEditableColumnDisabled]="editingLeadId !== null">
               <p-cellEditor>
@@ -201,7 +182,8 @@ import { AuthStore } from '../../core/stores/auth.store';
                 </ng-template>
               </p-cellEditor>
             </td>
-            <td (mousedown)="onMouseDown($event, ri, 3)" (mousemove)="onMouseMove($event, ri, 3)" 
+            <td (mousedown)="onMouseDown($event, ri, 3)" 
+                (mouseenter)="onMouseEnter(ri, 3)" 
                 [class.selected-cell]="isCellSelected(ri, 3)"
                 [pEditableColumn]="lead.status" pEditableColumnField="status" [pEditableColumnDisabled]="editingLeadId !== null">
               <p-cellEditor>
@@ -213,7 +195,8 @@ import { AuthStore } from '../../core/stores/auth.store';
                 </ng-template>
               </p-cellEditor>
             </td>
-            <td (mousedown)="onMouseDown($event, ri, 4)" (mousemove)="onMouseMove($event, ri, 4)" 
+            <td (mousedown)="onMouseDown($event, ri, 4)" 
+                (mouseenter)="onMouseEnter(ri, 4)" 
                 [class.selected-cell]="isCellSelected(ri, 4)"
                 (dblclick)="startEditingNotes(lead, notesOp)">
                @if (editingLeadId === lead.id) {
@@ -231,9 +214,11 @@ import { AuthStore } from '../../core/stores/auth.store';
                  </div>
                </p-popover>
             </td>
-            <td (mousedown)="onMouseDown($event, ri, 5)" (mousemove)="onMouseMove($event, ri, 5)" 
+            <td (mousedown)="onMouseDown($event, ri, 5)" 
+                (mouseenter)="onMouseEnter(ri, 5)" 
                 [class.selected-cell]="isCellSelected(ri, 5)">{{ lead.createdBy?.name }}</td>
-            <td (mousedown)="onMouseDown($event, ri, 6)" (mousemove)="onMouseMove($event, ri, 6)" 
+            <td (mousedown)="onMouseDown($event, ri, 6)" 
+                (mouseenter)="onMouseEnter(ri, 6)" 
                 [class.selected-cell]="isCellSelected(ri, 6)"
                 (click)="openReminderDialog(lead)" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-surface-800 p-2 rounded transition-colors">
               <i class="pi pi-bell ml-2" [class.text-blue-500]="lead.reminderAt"></i>
@@ -246,9 +231,12 @@ import { AuthStore } from '../../core/stores/auth.store';
               </span>
             </td>
             <td>
-              @if (isSuperAdmin() || isAdmin() || isAgent()) {
-                <p-button type="button" icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger" (click)="$event.stopPropagation(); onDeleteLead(lead)"></p-button>
-              }
+              <div class="flex gap-2">
+                <p-button type="button" icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="primary" (click)="$event.stopPropagation(); openEditLeadDialog(lead)"></p-button>
+                @if (isSuperAdmin() || isAdmin() || isAgent()) {
+                  <p-button type="button" icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger" (click)="$event.stopPropagation(); onDeleteLead(lead)"></p-button>
+                }
+              </div>
             </td>
           </tr>
         </ng-template>
@@ -274,6 +262,123 @@ import { AuthStore } from '../../core/stores/auth.store';
         <p-button [label]="'ui.cancel' | t" icon="pi pi-times" [text]="true" (onClick)="displayReminder = false"></p-button>
         <p-button [label]="'ui.save' | t" icon="pi pi-check" (onClick)="saveReminder()"></p-button>
       </ng-template>
+    </p-dialog>
+
+    <!-- Full Edit Dialog -->
+    <p-dialog [(visible)]="displayEditLead" [header]="'ui.edit' | t" [modal]="true" [style]="{ width: '600px' }" [draggable]="false" [resizable]="false">
+      <form [formGroup]="editForm" (ngSubmit)="saveEditLead()" class="flex flex-col gap-4 mt-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.table.name' | t }}</label>
+            <input pInputText formControlName="name" />
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.table.phone' | t }}</label>
+            <input pInputText formControlName="phone" dir="ltr" style="text-align: right;" />
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.table.state' | t }}</label>
+            <p-select [options]="states" formControlName="state" optionLabel="label" optionValue="value" [filter]="true" [fluid]="true" appendTo="body"></p-select>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.table.status' | t }}</label>
+            <p-select [options]="statuses()" formControlName="status" optionLabel="label" optionValue="value" [fluid]="true" appendTo="body"></p-select>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.current_platform' | t }}</label>
+            <p-select [options]="platforms()" formControlName="currentPlatform" optionLabel="label" optionValue="value" [filter]="true" [fluid]="true" appendTo="body"></p-select>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.current_device' | t }}</label>
+            <p-select [options]="screens()" formControlName="currentDevice" optionLabel="label" optionValue="value" [filter]="true" [fluid]="true" appendTo="body"></p-select>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.subscription_amount' | t }}</label>
+            <p-inputNumber formControlName="subscriptionAmount" mode="currency" currency="USD" [fluid]="true"></p-inputNumber>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.subscription_duration' | t }}</label>
+            <p-inputNumber formControlName="subscriptionDuration" [showButtons]="true" [min]="0" [fluid]="true"></p-inputNumber>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.reminder_at' | t }}</label>
+            <p-datepicker formControlName="reminderAt" [showTime]="true" [showIcon]="true" [fluid]="true" appendTo="body"></p-datepicker>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.reminder_note' | t }}</label>
+            <input pInputText formControlName="reminderNote" />
+          </div>
+        </div>
+        <div class="flex flex-col">
+          <label class="font-bold mb-1">{{ 'leads.notes' | t }}</label>
+          <textarea pTextarea formControlName="notes" [rows]="3" [autoResize]="true"></textarea>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <p-button [label]="'ui.cancel' | t" icon="pi pi-times" [text]="true" (onClick)="displayEditLead = false" type="button"></p-button>
+          <p-button [label]="'ui.save' | t" icon="pi pi-check" type="submit" [loading]="store.updating()"></p-button>
+        </div>
+      </form>
+    </p-dialog>
+
+    <!-- Add Lead Dialog -->
+    <p-dialog [(visible)]="displayAddLead" [header]="'ui.add' | t" [modal]="true" [style]="{ width: '600px' }" [draggable]="false" [resizable]="false">
+      <form [formGroup]="leadForm" (ngSubmit)="onAddLead()" class="flex flex-col gap-4 mt-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.table.name' | t }}</label>
+            <input pInputText formControlName="name" [placeholder]="'leads.table.name' | t" />
+            @if (leadForm.get('name')?.invalid && leadForm.get('name')?.touched) {
+              <small class="text-red-500 font-bold mt-1 text-[10px]">{{ 'leads.validation.name_required' | t }}</small>
+            }
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.table.phone' | t }}</label>
+            <input pInputText formControlName="phone" dir="ltr" [placeholder]="'leads.table.phone' | t" style="text-align: right;" />
+            @if (leadForm.get('phone')?.invalid && leadForm.get('phone')?.touched) {
+              <small class="text-red-500 font-bold mt-1 text-[10px]">{{ 'leads.validation.phone_required' | t }}</small>
+            }
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.table.state' | t }}</label>
+            <p-select [options]="states" formControlName="state" optionLabel="label" optionValue="value" [filter]="true" [filterBy]="stateFilterBy()" (onFilter)="handleStateFilter($event)" [filterPlaceholder]="'ui.search' | t" [placeholder]="'leads.table.state' | t" [fluid]="true" appendTo="body"></p-select>
+            @if (leadForm.get('state')?.invalid && leadForm.get('state')?.touched) {
+              <small class="text-red-500 font-bold mt-1 text-[10px]">{{ 'leads.validation.state_required' | t }}</small>
+            }
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.current_platform' | t }}</label>
+            <p-select [options]="platforms()" formControlName="currentPlatform" optionLabel="label" optionValue="value" [filter]="true" [fluid]="true" appendTo="body"></p-select>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.current_device' | t }}</label>
+            <p-select [options]="screens()" formControlName="currentDevice" optionLabel="label" optionValue="value" [filter]="true" [fluid]="true" appendTo="body"></p-select>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.subscription_amount' | t }}</label>
+            <p-inputNumber formControlName="subscriptionAmount" mode="currency" currency="USD" [fluid]="true"></p-inputNumber>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.subscription_duration' | t }}</label>
+            <p-inputNumber formControlName="subscriptionDuration" [showButtons]="true" [min]="0" [fluid]="true"></p-inputNumber>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.reminder_at' | t }}</label>
+            <p-datepicker formControlName="reminderAt" [showTime]="true" [showIcon]="true" [fluid]="true" appendTo="body"></p-datepicker>
+          </div>
+          <div class="flex flex-col">
+            <label class="font-bold mb-1">{{ 'leads.form.reminder_note' | t }}</label>
+            <input pInputText formControlName="reminderNote" [placeholder]="'leads.reminder.note_placeholder' | t" />
+          </div>
+        </div>
+        <div class="flex flex-col">
+          <label class="font-bold mb-1">{{ 'leads.notes' | t }}</label>
+          <textarea pTextarea formControlName="notes" [rows]="3" [autoResize]="true" [placeholder]="'leads.notes' | t"></textarea>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <p-button [label]="'ui.cancel' | t" icon="pi pi-times" [text]="true" (onClick)="displayAddLead = false" type="button"></p-button>
+          <p-button [label]="'ui.add' | t" icon="pi pi-check" type="submit" [loading]="store.adding()"></p-button>
+        </div>
+      </form>
     </p-dialog>
 
     <!-- Subscription Check Dialog -->
@@ -413,6 +518,9 @@ export class LeadsComponent implements OnInit, OnDestroy {
 
   private searchSubject = new Subject<string>();
 
+  platforms = signal([{ label: this.i18n.t('leads.form.no_subscription'), value: 'none' }, ...PLATFORMS]);
+  screens = signal(SCREENS);
+
   states = US_CA_STATES;
   statuses = computed(() => [
     { label: this.i18n.t('dashboard.types.new'), value: LeadStatus.NEW },
@@ -452,23 +560,56 @@ export class LeadsComponent implements OnInit, OnDestroy {
 
   // Selection Logic
   isSelecting = false;
-  startCell = { r: -1, c: -1 };
-  endCell = { r: -1, c: -1 };
+  startCell = { r: -1, c: -1 }; // Global Index
+  endCell = { r: -1, c: -1 };   // Global Index
+  private scrollInterval: any;
 
   leadForm = this.fb.group({
     name: ['', Validators.required],
     phone: ['', Validators.required],
     state: ['', Validators.required],
-    notes: ['']
+    notes: [''],
+    currentPlatform: ['none'],
+    currentDevice: [null],
+    subscriptionAmount: [{ value: null, disabled: true }],
+    subscriptionDuration: [{ value: null, disabled: true }],
+    reminderAt: [null],
+    reminderNote: ['']
   });
 
   displayReminder = false;
+  displayEditLead = false;
+  displayAddLead = false;
   selectedLead: any = {};
   editingLeadId: number | null = null;
   
   leadToDelete: Lead | null = null;
+
+  editForm = this.fb.group({
+    id: [''],
+    name: ['', Validators.required],
+    phone: ['', Validators.required],
+    state: ['', Validators.required],
+    notes: [''],
+    currentPlatform: ['none'],
+    currentDevice: [null],
+    subscriptionAmount: [{ value: null, disabled: true }],
+    subscriptionDuration: [{ value: null, disabled: true }],
+    reminderAt: [null],
+    reminderNote: [''],
+    status: ['']
+  });
   
   constructor() {
+    // Watch currentPlatform for disabling/enabling amount & duration
+    this.leadForm.get('currentPlatform')?.valueChanges.subscribe(val => {
+      this.handlePlatformChange(val, this.leadForm);
+    });
+
+    this.editForm.get('currentPlatform')?.valueChanges.subscribe(val => {
+      this.handlePlatformChange(val, this.editForm);
+    });
+
     this.searchSubject.pipe(
       debounceTime(400),
       distinctUntilChanged()
@@ -486,7 +627,10 @@ export class LeadsComponent implements OnInit, OnDestroy {
 
     effect(() => {
       const error = this.store.error();
+      const adding = this.store.adding();
+      const updating = this.store.updating();
       const lang = this.i18n.currentLang(); // Trigger on lang change
+
       if (error) {
         this.messageService.add({
           severity: 'error',
@@ -495,6 +639,51 @@ export class LeadsComponent implements OnInit, OnDestroy {
           life: 3000
         });
         setTimeout(() => this.store.clearError(), 3100);
+      }
+    });
+
+    // Separate effect for success handling to avoid infinite loops or missing state transitions
+    effect(() => {
+      const adding = this.store.adding();
+      const updating = this.store.updating();
+      const error = this.store.error();
+      
+      // If was adding and now finished without error
+      if (!adding && !error && this.displayAddLead) {
+        this.displayAddLead = false;
+        this.leadForm.reset({
+          currentPlatform: 'none'
+        });
+        this.messageService.add({ 
+          severity: 'success', 
+          summary: this.i18n.t('ui.success'), 
+          detail: this.i18n.t('leads.save.success') 
+        });
+      }
+
+      // If was updating and now finished without error
+      if (!updating && !error && this.displayEditLead) {
+        this.displayEditLead = false;
+        this.messageService.add({ 
+          severity: 'success', 
+          summary: this.i18n.t('ui.success'), 
+          detail: this.i18n.t('leads.save.success') 
+        });
+      }
+    });
+
+    // Effect to handle selected lead from notifications
+    effect(() => {
+      const selectedId = this.store.selectedLeadId();
+      if (selectedId) {
+        const lead = this.store.allLeads().find(l => l.id === selectedId);
+        if (lead) {
+          this.openEditLeadDialog(lead);
+          this.store.setSelectedLeadId(null); // Clear after opening
+        } else if (!this.store.loading()) {
+          // If lead not found in current page and not loading, we might need to search for it
+          // For now, let's just wait for next load if it's currently loading
+        }
       }
     });
   }
@@ -586,10 +775,27 @@ export class LeadsComponent implements OnInit, OnDestroy {
     this.searchSubject.next(event.target.value);
   }
 
+  private handlePlatformChange(val: any, form: any) {
+    const amountCtrl = form.get('subscriptionAmount');
+    const durationCtrl = form.get('subscriptionDuration');
+    if (val === 'none') {
+      amountCtrl?.disable();
+      durationCtrl?.disable();
+      amountCtrl?.setValue(null);
+      durationCtrl?.setValue(null);
+    } else {
+      amountCtrl?.enable();
+      durationCtrl?.enable();
+    }
+  }
+
   onAddLead() {
     if (this.leadForm.valid) {
-      this.store.createLead(this.leadForm.value as any);
-      this.leadForm.reset();
+      const payload = this.leadForm.getRawValue();
+      this.store.createLead(payload as any);
+      
+      // We'll use an effect to close the modal and show success
+      // But for now, let's keep it simple and just reset if successful
     } else {
       this.leadForm.markAllAsTouched();
     }
@@ -618,6 +824,37 @@ export class LeadsComponent implements OnInit, OnDestroy {
   openReminderDialog(lead: Lead) {
     this.selectedLead = { ...lead, reminderAt: lead.reminderAt ? new Date(lead.reminderAt) : null };
     this.displayReminder = true;
+  }
+
+  openEditLeadDialog(lead: Lead) {
+    this.editForm.patchValue({
+      id: lead.id,
+      name: lead.name,
+      phone: lead.phone,
+      state: lead.state,
+      notes: lead.notes,
+      currentPlatform: lead.currentPlatform || 'none',
+      currentDevice: lead.currentDevice as any,
+      subscriptionAmount: lead.subscriptionAmount as any,
+      subscriptionDuration: lead.subscriptionDuration as any,
+      reminderAt: lead.reminderAt ? new Date(lead.reminderAt) as any : null,
+      reminderNote: lead.reminderNote,
+      status: lead.status
+    });
+    this.displayEditLead = true;
+  }
+
+  saveEditLead() {
+    if (this.editForm.valid) {
+      const formValue = this.editForm.getRawValue();
+      const id = formValue.id!;
+      const changes = { ...formValue };
+      delete (changes as any).id;
+      
+      this.store.updateLead({ id, changes: changes as any });
+    } else {
+      this.editForm.markAllAsTouched();
+    }
   }
 
   saveReminder() {
@@ -729,31 +966,59 @@ export class LeadsComponent implements OnInit, OnDestroy {
   }
 
   // Selection Logic
-  onMouseDown(event: MouseEvent, r: number, c: number) {
-    this.isSelecting = true;
-    this.startCell = { r, c };
-    this.endCell = { r, c };
+  getGlobalIndex(ri: number): number {
+    return ((this.store.currentPage() - 1) * this.store.pageSize()) + ri;
   }
 
-  onMouseMove(event: MouseEvent, r: number, c: number) {
+  onMouseDown(event: MouseEvent, r: number, c: number) {
+    this.isSelecting = true;
+    const globalR = this.getGlobalIndex(r);
+    this.startCell = { r: globalR, c };
+    this.endCell = { r: globalR, c };
+  }
+
+  onMouseEnter(r: number, c: number) {
     if (this.isSelecting) {
-      this.endCell = { r, c };
+      this.endCell = { r: this.getGlobalIndex(r), c };
+    }
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onGlobalMouseMove(event: MouseEvent) {
+    if (!this.isSelecting) return;
+
+    // Auto-scroll logic
+    const scrollThreshold = 100;
+    const scrollSpeed = 15;
+    const viewportHeight = window.innerHeight;
+
+    if (this.scrollInterval) clearInterval(this.scrollInterval);
+
+    if (event.clientY < scrollThreshold) {
+      this.scrollInterval = setInterval(() => window.scrollBy(0, -scrollSpeed), 20);
+    } else if (event.clientY > viewportHeight - scrollThreshold) {
+      this.scrollInterval = setInterval(() => window.scrollBy(0, scrollSpeed), 20);
     }
   }
 
   @HostListener('document:mouseup')
   onMouseUp() {
     this.isSelecting = false;
+    if (this.scrollInterval) {
+      clearInterval(this.scrollInterval);
+      this.scrollInterval = null;
+    }
   }
 
   isCellSelected(r: number, c: number): boolean {
     if (this.startCell.r === -1) return false;
+    const globalR = this.getGlobalIndex(r);
     const minR = Math.min(this.startCell.r, this.endCell.r);
     const maxR = Math.max(this.startCell.r, this.endCell.r);
     const minC = Math.min(this.startCell.c, this.endCell.c);
     const maxC = Math.max(this.startCell.c, this.endCell.c);
 
-    return r >= minR && r <= maxR && c >= minC && c <= maxC;
+    return globalR >= minR && globalR <= maxR && c >= minC && c <= maxC;
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -772,11 +1037,16 @@ export class LeadsComponent implements OnInit, OnDestroy {
     const maxC = Math.max(this.startCell.c, this.endCell.c);
 
     let clipboardRows = [];
+    // We can only copy what's loaded in memory, but now indexing is global.
     const allLeads = this.store.allLeads();
 
     for (let r = minR; r <= maxR; r++) {
       let rowData = [];
-      const lead = allLeads[r];
+      // Find row index in the current loaded leads array
+      // Note: This logic assumes the range matches the currently displayed leads.
+      // If we want a global selection that works across virtual scroll it's harder,
+      // but for lazy landing pages we usually only select visible ones.
+      const lead = allLeads.find((_, idx) => this.getGlobalIndex(idx) === r);
       if (!lead) continue;
 
       for (let c = minC; c <= maxC; c++) {

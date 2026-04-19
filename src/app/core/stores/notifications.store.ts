@@ -55,11 +55,9 @@ export const NotificationsStore = signalStore(
             return [];
           }),
           tap((data: Lead[]) => {
-             const currentIds = new Set(store.reminders().map(r => r.id));
-             const hasNew = data.some((r: Lead) => !currentIds.has(r.id));
              patchState(store, { 
                reminders: data, 
-               badgeVisible: hasNew ? true : store.badgeVisible() 
+               badgeVisible: data.length > 0
              });
           })
         )

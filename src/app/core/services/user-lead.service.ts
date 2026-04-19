@@ -22,6 +22,10 @@ export interface Lead {
   reminderAt: string | null;
   reminderNote: string | null;
   reminderRead?: boolean;
+  currentPlatform?: string;
+  currentDevice?: string;
+  subscriptionAmount?: number;
+  subscriptionDuration?: number;
   createdBy?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;

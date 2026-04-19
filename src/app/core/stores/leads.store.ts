@@ -11,6 +11,7 @@ import { I18nService } from '../i18n/i18n.service';
 interface LeadsState {
   loading: boolean;
   adding: boolean;
+  updating: boolean;
   total: number;
   currentPage: number;
   pageSize: number;
@@ -20,11 +21,13 @@ interface LeadsState {
   filterHasReminder: string | null;
   filterCreatedBy: string | null;
   error: string | null;
+  selectedLeadId: string | null;
 }
 
 const initialState: LeadsState = {
   loading: false,
   adding: false,
+  updating: false,
   total: 0,
   currentPage: 1,
   pageSize: 20,
@@ -34,6 +37,7 @@ const initialState: LeadsState = {
   filterHasReminder: null,
   filterCreatedBy: null,
   error: null,
+  selectedLeadId: null
 };
 
 export const LeadsStore = signalStore(
@@ -119,6 +123,16 @@ export const LeadsStore = signalStore(
               tapResponse({
                 next: (lead) => {
                   patchState(store, addEntity(lead), { adding: false, total: store.total() + 1 });
+                  // Reload the first page to show the new lead and ensure list consistency
+                  loadLeadsAction({ 
+                    page: 1, 
+                    limit: store.pageSize(),
+                    search: store.searchTerm(),
+                    status: store.filterStatus() || undefined,
+                    state: store.filterState() || undefined,
+                    hasReminder: store.filterHasReminder() || undefined,
+                    createdBy: store.filterCreatedBy() || undefined
+                  });
                 },
                 error: (err: any) => patchState(store, { 
                   adding: false, 
@@ -132,11 +146,13 @@ export const LeadsStore = signalStore(
 
       updateLead: rxMethod<{ id: string; changes: Partial<Lead> }>(
         pipe(
+          tap(() => patchState(store, { updating: true })),
           switchMap(({ id, changes }) =>
             leadService.updateLead(id, changes).pipe(
               tapResponse({
-                next: (updated) => patchState(store, updateEntity({ id, changes: updated })),
+                next: (updated) => patchState(store, updateEntity({ id, changes: updated }), { updating: false }),
                 error: (err: any) => patchState(store, { 
+                  updating: false,
                   error: err.error?.message || i18n.t('errors.update_lead') 
                 }),
               })
@@ -166,6 +182,10 @@ export const LeadsStore = signalStore(
 
       setPage(page: number) {
         patchState(store, { currentPage: page });
+      },
+
+      setSelectedLeadId(id: string | null) {
+        patchState(store, { selectedLeadId: id });
       },
 
       clearError() {
