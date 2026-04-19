@@ -3,7 +3,7 @@ import { computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap, tap } from 'rxjs';
+import { pipe, switchMap, tap, of } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { API_BASE_URL } from '../constants/api.constants';
 import { auth } from '../firebase/firebase.config';
@@ -72,13 +72,44 @@ export const AuthStore = signalStore(
       }
     };
 
+    const refreshToken = rxMethod<void>(
+      pipe(
+        switchMap(() => {
+          const user = store.user();
+          if (!user || !store.token()) return of(null);
+          return http.post<any>(`${apiUrl}/refresh`, user).pipe(
+            tapResponse({
+              next: (res) => {
+                if (res.access_token) {
+                  patchState(store, {
+                    user: res.user,
+                    token: res.access_token,
+                    firebaseToken: res.firebaseToken
+                  });
+                  localStorage.setItem('token', res.access_token);
+                  localStorage.setItem('user', JSON.stringify(res.user));
+                  if (res.firebaseToken) {
+                    localStorage.setItem('firebaseToken', res.firebaseToken);
+                    loginToFirebase(res.firebaseToken);
+                  }
+                }
+              },
+              error: (err: any) => {
+                console.error('Failed to refresh token', err);
+              },
+            })
+          );
+        })
+      )
+    );
+
     const startRefreshTimer = () => {
       stopRefreshTimer();
       // Refresh every 10 minutes (JWTs are usually short-lived)
       refreshInterval = setInterval(() => {
         if (store.isLoggedIn()) {
           // Trigger the rxMethod
-          (store as any).refreshToken();
+          refreshToken();
         }
       }, 10 * 60 * 1000);
     };
@@ -182,36 +213,7 @@ export const AuthStore = signalStore(
         }
       },
 
-      refreshToken: rxMethod<void>(
-        pipe(
-          switchMap(() => {
-            const user = store.user();
-            if (!user || !store.token()) return [];
-            return http.post<any>(`${apiUrl}/refresh`, user).pipe(
-              tapResponse({
-                next: (res) => {
-                  if (res.access_token) {
-                    patchState(store, {
-                      user: res.user,
-                      token: res.access_token,
-                      firebaseToken: res.firebaseToken
-                    });
-                    localStorage.setItem('token', res.access_token);
-                    localStorage.setItem('user', JSON.stringify(res.user));
-                    if (res.firebaseToken) {
-                      localStorage.setItem('firebaseToken', res.firebaseToken);
-                      loginToFirebase(res.firebaseToken);
-                    }
-                  }
-                },
-                error: (err: any) => {
-                  console.error('Failed to refresh token', err);
-                },
-              })
-            );
-          })
-        )
-      ),
+      refreshToken,
 
       verifyPassword(password: string) {
         return http.post<{ isValid: boolean }>(`${apiUrl}/verify-password`, { password });
