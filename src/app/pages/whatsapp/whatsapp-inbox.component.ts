@@ -90,9 +90,17 @@ import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 
               </div>
               <div class="flex flex-col">
                 <span class="font-black text-lg">{{ currentLeadName() || targetPhone() }}</span>
-                <span class="text-xs text-green-500 font-bold" *ngIf="selectedChannel()?.status === 'connected'">
-                  <i class="pi pi-circle-fill text-[8px] mr-1"></i> Online
-                </span>
+                @if (selectedChannel()?.status === 'connected') {
+                  <span class="text-xs text-green-500 font-bold flex items-center gap-1">
+                    <i class="pi pi-circle-fill text-[8px]"></i> 
+                    {{ 'whatsapp.status.connected' | t }}
+                  </span>
+                } @else {
+                  <span class="text-xs text-red-500 font-bold flex items-center gap-1">
+                    <i class="pi pi-circle-fill text-[8px]"></i> 
+                    {{ 'whatsapp.status.disconnected' | t }}
+                  </span>
+                }
               </div>
             </div>
           </div>
@@ -134,7 +142,9 @@ import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 
               <p-button 
                 type="submit" 
                 icon="pi pi-send" 
-                [disabled]="!newMessageText.trim() || sending()"
+                [disabled]="!newMessageText.trim() || sending() || selectedChannel()?.status !== 'connected'"
+                [pTooltip]="selectedChannel()?.status !== 'connected' ? ('whatsapp.inbox.not_connected_warning' | t) : ''"
+                tooltipPosition="top"
                 styleClass="rounded-2xl px-6 h-full shadow-lg shadow-primary/20">
               </p-button>
             </form>
