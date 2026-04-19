@@ -1,77 +1,126 @@
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
-import { UserLeadService, Lead } from './user-lead.service';
-import { interval, switchMap, startWith, Subscription, tap } from 'rxjs';
-import { AuthService } from './auth.service';
+import { db } from '../firebase/firebase.config';
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  onSnapshot, 
+  limit, 
+  doc, 
+  updateDoc, 
+  writeBatch,
+  Timestamp 
+} from 'firebase/firestore';
+import { AuthStore } from '../stores/auth.store';
 import { MessageService } from 'primeng/api';
 import { I18nService } from '../i18n/i18n.service';
+import { Observable } from 'rxjs';
+
+export interface AppNotification {
+  id: string;
+  recipientId: string;
+  type: 'lead_reminder' | 'whatsapp_message' | 'whatsapp_qr' | 'whatsapp_status';
+  title: string;
+  body: string;
+  payload: any;
+  read: boolean;
+  createdAt: Date;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class NotificationsService {
-  private leadService = inject(UserLeadService);
-  private authService = inject(AuthService);
+  private authStore = inject(AuthStore);
   private messageService = inject(MessageService);
   private i18n = inject(I18nService);
-  private pollingSubscription?: Subscription;
-  private notifiedIds = new Set<string>();
+  private unsubscribe?: () => void;
 
-  reminders = signal<Lead[]>([]);
-  unreadCount = computed(() => this.reminders().filter(r => !r.reminderRead).length);
+  notifications = signal<AppNotification[]>([]);
+  unreadCount = computed(() => this.notifications().filter(n => !n.read).length);
 
   constructor() {
     effect(() => {
-      if (this.authService.isLoggedIn()) {
-        this.startPolling();
+      const user = this.authStore.user();
+      if (user) {
+        const userId = user.id || (user as any)._id;
+        if (userId) {
+          this.startListening(userId);
+        } else {
+          console.warn('Firebase: User found but no ID available', user);
+        }
       } else {
-        this.stopPolling();
+        this.stopListening();
       }
     });
   }
 
-  startPolling() {
-    if (this.pollingSubscription) return;
+  private startListening(userId: string) {
+    if (this.unsubscribe) return;
 
-    console.log('Notifications: Starting polling every 60s...');
-    this.pollingSubscription = interval(60000)
-      .pipe(
-        startWith(0),
-        switchMap(() => this.leadService.getReminders()),
-        tap(data => {
-          console.log(`Notifications: Received ${data.length} reminders from server`);
-          this.notifyNewReminders(data);
-        })
-      )
-      .subscribe({
-        next: (data) => this.reminders.set(data),
-        error: (err) => console.error('Error polling reminders', err)
+    console.log(`Firebase: Starting listener for user: ${userId}`);
+    const notificationsRef = collection(db, 'notifications');
+    const q = query(
+      notificationsRef,
+      where('recipientId', '==', userId),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    );
+
+    this.unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log(`Firebase: Received ${snapshot.docs.length} notifications for user ${userId}`);
+      const newNotifications = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: (doc.data()['createdAt'] as Timestamp)?.toDate() || new Date()
+      })) as AppNotification[];
+
+      // Show toast for new unread notifications
+      const prevNotifications = this.notifications();
+      newNotifications.forEach(notif => {
+        if (!notif.read && !prevNotifications.find(p => p.id === notif.id)) {
+          this.showToast(notif);
+        }
       });
-  }
 
-  private notifyNewReminders(data: Lead[]) {
-    data.forEach(lead => {
-      const id = lead.id || (lead as any)._id || (lead as any).id;
-      if (id && !this.notifiedIds.has(id)) {
-        this.notifiedIds.add(id);
-        
-        console.log(`Notifications: Showing Toast for reminder ${id} (${lead.name})`);
-        // Show Toast
-        this.messageService.add({
-          severity: 'info',
-          summary: this.i18n.t('notifications.new_reminder'),
-          detail: `${lead.name}: ${lead.reminderNote}`,
-          life: 8000
-        });
-      }
+      this.notifications.set(newNotifications);
+    }, (error) => {
+      console.error('Firebase: Notifications listener failed', error);
     });
   }
 
-  stopPolling() {
-    if (this.pollingSubscription) {
-      this.pollingSubscription.unsubscribe();
-      this.pollingSubscription = undefined;
+  private showToast(notif: AppNotification) {
+    this.messageService.add({
+      severity: 'info',
+      summary: notif.title,
+      detail: notif.body,
+      life: 8000
+    });
+  }
+
+  private stopListening() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = undefined;
     }
-    this.reminders.set([]);
-    this.notifiedIds.clear();
+    this.notifications.set([]);
+  }
+
+  async markAsRead(id: string) {
+    const docRef = doc(db, 'notifications', id);
+    await updateDoc(docRef, { read: true });
+  }
+
+  async markAllAsRead() {
+    const unread = this.notifications().filter(n => !n.read);
+    if (unread.length === 0) return;
+
+    const batch = writeBatch(db);
+    unread.forEach(n => {
+      const docRef = doc(db, 'notifications', n.id);
+      batch.update(docRef, { read: true });
+    });
+    await batch.commit();
   }
 }

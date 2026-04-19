@@ -88,13 +88,7 @@ export class AppMenu {
                 visible: !isAgent,
                 class: 'menu-settings'
             },
-            { 
-                label: 'واتساب', 
-                icon: 'pi pi-fw pi-whatsapp', 
-                routerLink: ['/super-admin/whatsapp'],
-                visible: !isAgent,
-                class: 'menu-whatsapp'
-            },
+
             { label: this.i18n.t('menu.logout'), icon: 'pi pi-fw pi-sign-out', command: () => this.authStore.logout(), class: 'menu-logout' }
         ];
 

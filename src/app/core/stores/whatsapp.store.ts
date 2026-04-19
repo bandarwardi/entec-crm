@@ -1,9 +1,11 @@
 import { signalStore, withState, withMethods, patchState, withComputed } from '@ngrx/signals';
-import { inject, computed } from '@angular/core';
+import { inject, computed, effect } from '@angular/core';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap, catchError, of } from 'rxjs';
 import { WhatsappService, WhatsappChannel } from '../services/whatsapp.service';
 import { MessageService } from 'primeng/api';
+import { db } from '../firebase/firebase.config';
+import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
 
 interface WhatsappState {
   channels: WhatsappChannel[];
@@ -27,8 +29,29 @@ export const WhatsappStore = signalStore(
   withMethods((store) => {
     const whatsappService = inject(WhatsappService);
     const messageService = inject(MessageService);
+    let unsubscribe: (() => void) | undefined;
 
     return {
+      startListening() {
+        if (unsubscribe) return;
+        const q = query(collection(db, 'whatsappChannels'));
+        unsubscribe = onSnapshot(q, (snapshot) => {
+          const channels = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            lastConnectedAt: (doc.data()['lastConnectedAt'] as Timestamp)?.toDate()
+          })) as WhatsappChannel[];
+          patchState(store, { channels });
+        });
+      },
+
+      stopListening() {
+        if (unsubscribe) {
+          unsubscribe();
+          unsubscribe = undefined;
+        }
+      },
+
       loadChannels: rxMethod<void>(
         pipe(
           tap(() => patchState(store, { loading: true })),
@@ -96,6 +119,19 @@ export const WhatsappStore = signalStore(
             catchError((err) => {
               patchState(store, { error: err.message, loading: false });
               messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update agents' });
+              return of(null);
+            })
+          ))
+        )
+      ),
+
+      reconnectChannel: rxMethod<string>(
+        pipe(
+          tap(() => patchState(store, { loading: true })),
+          switchMap((id) => whatsappService.reconnectChannel(id).pipe(
+            tap(() => patchState(store, { loading: false })),
+            catchError((err) => {
+              patchState(store, { error: err.message, loading: false });
               return of(null);
             })
           ))

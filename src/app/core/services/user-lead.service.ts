@@ -75,19 +75,4 @@ export class UserLeadService {
   deleteLead(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
-
-  getReminders(): Observable<Lead[]> {
-    return this.http.get<Lead[]>(`${this.apiUrl}/reminders`);
-  }
-
-  getAllReminders(page: number = 1, limit: number = 10): Observable<PaginatedResponse<Lead>> {
-    let httpParams = new HttpParams()
-      .set('page', page.toString())
-      .set('limit', limit.toString());
-    return this.http.get<PaginatedResponse<Lead>>(`${this.apiUrl}/all-reminders`, { params: httpParams });
-  }
-
-  markRemindersAsRead(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/mark-as-read`, {});
-  }
 }

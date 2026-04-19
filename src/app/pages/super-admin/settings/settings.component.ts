@@ -4,12 +4,13 @@ import { TabsModule } from 'primeng/tabs';
 import { WorkSettingsComponent } from '../work-settings/work-settings.component';
 import { ScenariosComponent } from '../scenarios/scenarios.component';
 import { InvoiceSettingsComponent } from '../invoice-settings/invoice-settings.component';
+import { WhatsappSettingsComponent } from '../whatsapp/whatsapp-settings.component';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-super-admin-settings',
   standalone: true,
-  imports: [CommonModule, TabsModule, WorkSettingsComponent, ScenariosComponent, InvoiceSettingsComponent, TranslatePipe],
+  imports: [CommonModule, TabsModule, WorkSettingsComponent, ScenariosComponent, InvoiceSettingsComponent, WhatsappSettingsComponent, TranslatePipe],
   template: `
     <div class="card p-0 overflow-hidden shadow-xl border-0 rounded-[2rem] dark:bg-surface-900 transition-all hover:shadow-2xl">
       <!-- Gradient Header -->
@@ -39,6 +40,10 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
                     <i class="pi pi-file-edit"></i>
                     <span class="font-bold">{{ 'settings.tabs.advanced' | t }}</span>
                 </p-tab>
+                <p-tab value="3" class="flex items-center gap-2 py-4">
+                    <i class="pi pi-whatsapp"></i>
+                    <span class="font-bold">{{ 'whatsapp.admin.title' | t }}</span>
+                </p-tab>
             </p-tablist>
             <p-tabpanels class="p-6">
                 <p-tabpanel value="0">
@@ -49,6 +54,9 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
                 </p-tabpanel>
                 <p-tabpanel value="2">
                     <app-invoice-settings></app-invoice-settings>
+                </p-tabpanel>
+                <p-tabpanel value="3">
+                    <app-whatsapp-settings></app-whatsapp-settings>
                 </p-tabpanel>
             </p-tabpanels>
         </p-tabs>

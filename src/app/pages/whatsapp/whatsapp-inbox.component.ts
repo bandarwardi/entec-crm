@@ -5,7 +5,6 @@ import { ActivatedRoute } from '@angular/router';
 import { WhatsappStore } from '../../core/stores/whatsapp.store';
 import { LeadsStore } from '../../core/stores/leads.store';
 import { WhatsappService, WhatsappChannel } from '../../core/services/whatsapp.service';
-import { WhatsappSocketService } from '../../core/services/whatsapp-socket.service';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { IconFieldModule } from 'primeng/iconfield';
@@ -14,6 +13,8 @@ import { ListboxModule } from 'primeng/listbox';
 import { TagModule } from 'primeng/tag';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { db } from '../../core/firebase/firebase.config';
+import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
 
 @Component({
   selector: 'app-whatsapp-inbox',
@@ -173,7 +174,6 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   readonly store = inject(WhatsappStore);
   readonly leadsStore = inject(LeadsStore);
   readonly whatsappService = inject(WhatsappService);
-  readonly socketService = inject(WhatsappSocketService);
   readonly route = inject(ActivatedRoute);
   readonly i18n = inject(I18nService);
 
@@ -198,33 +198,23 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   messages = signal<any[]>([]);
   newMessageText = '';
   sending = signal(false);
+  private messagesUnsubscribe?: () => void;
 
   constructor() {
-    // Sync socket listeners when selected channel changes
+    // Sync listeners when channel or phone changes
     effect(() => {
       const channel = this.selectedChannel();
-      if (channel) {
-        this.socketService.listenToSession(channel.sessionId);
-        this.loadHistory();
-      }
-    });
-
-    // Listen for real-time messages from socket
-    this.socketService.onMessage$.subscribe((data: any) => {
-      if (this.selectedChannel()?.sessionId === data.sessionId && data.from === this.targetPhone()) {
-        this.messages.update(prev => [...prev, {
-          id: data.id,
-          direction: 'inbound',
-          content: data.content,
-          timestamp: data.timestamp
-        }]);
-        this.scrollToBottom();
+      const phone = this.targetPhone();
+      if (channel && phone) {
+        this.startMessagesListening(channel.id, phone);
+      } else {
+        this.stopMessagesListening();
       }
     });
   }
 
   ngOnInit() {
-    this.store.loadChannels();
+    this.store.startListening();
     this.leadsStore.loadLeads({ page: 1, limit: 100 });
     
     // Handle query params for direct chat from Leads
@@ -255,31 +245,44 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     this.targetPhone.set(lead.phone);
     this.currentLeadId.set(lead.id);
     this.currentLeadName.set(lead.name);
-    this.loadHistory();
     
     if (!this.selectedChannel() && this.store.channels().length > 0) {
       this.selectedChannel.set(this.store.channels()[0]);
     }
   }
 
-  ngOnDestroy() {
-    this.socketService.disconnect();
+  private startMessagesListening(channelId: string, phoneNumber: string) {
+    this.stopMessagesListening();
+
+    const messagesRef = collection(db, 'whatsappChannels', channelId, 'messages');
+    const q = query(
+      messagesRef,
+      where('externalNumber', '==', phoneNumber),
+      orderBy('timestamp', 'asc'),
+      limit(100)
+    );
+
+    this.messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: (doc.data()['timestamp'] as Timestamp)?.toDate() || new Date()
+      }));
+      this.messages.set(msgs);
+      this.scrollToBottom();
+    });
   }
 
-  loadHistory() {
-    const channel = this.selectedChannel();
-    const phone = this.targetPhone();
-    if (channel && phone) {
-      this.whatsappService.getMessages(channel.id, phone).subscribe(msgs => {
-        this.messages.set(msgs.map(m => ({
-          id: m._id || m.id,
-          direction: m.direction,
-          content: m.content,
-          timestamp: m.timestamp
-        })));
-        this.scrollToBottom();
-      });
+  private stopMessagesListening() {
+    if (this.messagesUnsubscribe) {
+      this.messagesUnsubscribe();
+      this.messagesUnsubscribe = undefined;
     }
+    this.messages.set([]);
+  }
+
+  ngOnDestroy() {
+    this.stopMessagesListening();
   }
 
   sendMessage() {
@@ -291,13 +294,7 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
 
     this.sending.set(true);
     this.whatsappService.sendMessage(channel.id, leadId, text).subscribe({
-      next: (msg) => {
-        this.messages.update(prev => [...prev, {
-          id: msg.id,
-          direction: 'outbound',
-          content: text,
-          timestamp: new Date()
-        }]);
+      next: () => {
         this.newMessageText = '';
         this.sending.set(false);
         this.scrollToBottom();

@@ -126,11 +126,6 @@ export class ChatService {
     });
   }
 
-  // Socket-related methods to be removed or made no-op if still referenced
-  connect() { /* No-op for Firestore */ }
-  disconnect() { /* No-op for Firestore */ }
-  emitTyping(conversationId: string, recipientId: string, isTyping: boolean) { /* No-op or implement via Firestore later */ }
-  
   // Observables for Store compatibility (will be triggered manually or via snapshot)
   newMessage$ = new Subject<any>().asObservable();
   userTyping$ = new Subject<any>().asObservable();

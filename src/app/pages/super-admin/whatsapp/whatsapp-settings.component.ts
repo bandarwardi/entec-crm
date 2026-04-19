@@ -13,8 +13,6 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { I18nService } from '../../../core/i18n/i18n.service';
-import { io, Socket } from 'socket.io-client';
-import { API_BASE_URL } from '../../../core/constants/api.constants';
 
 @Component({
   selector: 'app-whatsapp-settings',
@@ -79,6 +77,15 @@ import { API_BASE_URL } from '../../../core/constants/api.constants';
                     severity="info" 
                     [rounded]="true" 
                     (onClick)="showQr(channel)">
+                  </p-button>
+                }
+                @if (channel.status === 'disconnected') {
+                  <p-button 
+                    icon="pi pi-refresh" 
+                    [pTooltip]="i18n.t('whatsapp.admin.reconnect')"
+                    severity="warn" 
+                    [rounded]="true" 
+                    (onClick)="reconnect(channel)">
                   </p-button>
                 }
                 <p-button 
@@ -190,12 +197,32 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
 
   selectedChannel: any = null;
   
-  private socket: Socket | null = null;
+  constructor() {
+    // Monitor status changes via Firestore through the store
+    effect(() => {
+      const channels = this.store.channels();
+      if (this.selectedChannel) {
+        const current = channels.find(c => c.id === this.selectedChannel.id);
+        if (current) {
+          this.selectedChannel = current;
+          if (current.status === 'connected') {
+            this.showQrDialog = false;
+          }
+          if ((current.status as string) === 'wrong_number') {
+            this.showQrDialog = false;
+            const msg = this.i18n.currentLang() === 'ar' 
+              ? 'خطأ: الرقم الممسوح لا يتطابق مع الرقم المسجل لهذه القناة.' 
+              : 'Error: The scanned number does not match the registered number for this channel.';
+            alert(msg);
+          }
+        }
+      }
+    });
+  }
 
   ngOnInit() {
-    this.store.loadChannels();
+    this.store.startListening();
     this.usersStore.loadUsers();
-    this.setupSocket();
   }
 
   set showAddDialog(val: boolean) {
@@ -210,43 +237,7 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.socket) {
-      this.socket.disconnect();
-    }
-  }
-
-  private setupSocket() {
-    const socketUrl = API_BASE_URL.replace('/api', '');
-    this.socket = io(`${socketUrl}/whatsapp`, {
-      transports: ['websocket']
-    });
-
-    this.socket.on('connect', () => {
-      console.log('Connected to WhatsApp socket');
-    });
-
-    // We need to re-setup listeners whenever channels change
-    effect(() => {
-      const channels = this.store.channels();
-      channels.forEach(c => {
-        // Join session room
-        this.socket?.emit('join:session', c.sessionId);
-
-        this.socket?.off(`wa:qr:${c.sessionId}`);
-        this.socket?.off(`wa:status:${c.sessionId}`);
-        
-        this.socket?.on(`wa:qr:${c.sessionId}`, (data: any) => {
-          this.store.updateChannelQr(c.sessionId, data.qrCode);
-        });
-        
-        this.socket?.on(`wa:status:${c.sessionId}`, (data: any) => {
-          this.store.updateChannelStatus(c.sessionId, data.status);
-          if (data.status === 'connected' && this.selectedChannel?.sessionId === c.sessionId) {
-            this.showQrDialog = false;
-          }
-        });
-      });
-    });
+    this.store.stopListening();
   }
 
   getStatusSeverity(status: string) {
@@ -254,6 +245,7 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
       case 'connected': return 'success';
       case 'disconnected': return 'danger';
       case 'qr_pending': return 'warn';
+      case 'wrong_number': return 'danger';
       default: return 'secondary';
     }
   }
@@ -267,7 +259,6 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
         agents: this.editingAgents,
         allAgentsAccess: this.editingAllAccess
       });
-      // Optionally update label too (if backend supports)
     } else {
       this.store.createChannel(this.editingLabel);
     }
@@ -283,13 +274,18 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
     this.showEditDialog = true;
   }
 
+  reconnect(channel: any) {
+    this.selectedChannel = channel;
+    this.store.reconnectChannel(channel.id);
+    this.showQrDialog = true;
+  }
+
   showQr(channel: any) {
     this.selectedChannel = channel;
     this.showQrDialog = true;
   }
 
   confirmDelete(channel: any) {
-    // In a real app, use ConfirmationService
     if (confirm(this.i18n.t('whatsapp.admin.delete_confirm_msg'))) {
       this.store.deleteChannel(channel.id);
     }

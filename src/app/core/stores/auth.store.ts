@@ -6,6 +6,8 @@ import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { API_BASE_URL } from '../constants/api.constants';
+import { auth } from '../firebase/firebase.config';
+import { signInWithCustomToken, signOut } from 'firebase/auth';
 
 export enum UserStatus {
   ONLINE = 'online',
@@ -34,6 +36,7 @@ export interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  firebaseToken: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -41,6 +44,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: JSON.parse(localStorage.getItem('user') || 'null'),
   token: localStorage.getItem('token'),
+  firebaseToken: localStorage.getItem('firebaseToken'),
   loading: false,
   error: null,
 };
@@ -79,6 +83,15 @@ export const AuthStore = signalStore(
       }, 10 * 60 * 1000);
     };
 
+    const loginToFirebase = async (token: string) => {
+      try {
+        await signInWithCustomToken(auth, token);
+        console.log('Firebase: Logged in successfully with custom token');
+      } catch (error) {
+        console.error('Firebase: Failed to login with custom token', error);
+      }
+    };
+
     return {
       login: rxMethod<{ email: string; password: string; lat?: number; lng?: number; device?: string }>(
         pipe(
@@ -91,10 +104,15 @@ export const AuthStore = signalStore(
                     patchState(store, {
                       user: res.user,
                       token: res.access_token,
+                      firebaseToken: res.firebaseToken,
                       loading: false
                     });
                     localStorage.setItem('token', res.access_token);
                     localStorage.setItem('user', JSON.stringify(res.user));
+                    if (res.firebaseToken) {
+                      localStorage.setItem('firebaseToken', res.firebaseToken);
+                      loginToFirebase(res.firebaseToken);
+                    }
                     startRefreshTimer();
                   } else {
                     patchState(store, {
@@ -122,9 +140,11 @@ export const AuthStore = signalStore(
         if (currentToken) {
           http.post(`${apiUrl}/logout`, {}).subscribe();
         }
-        patchState(store, { user: null, token: null });
+        signOut(auth).catch(err => console.error('Firebase: Signout failed', err));
+        patchState(store, { user: null, token: null, firebaseToken: null });
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('firebaseToken');
         router.navigate(['/auth/login']);
       },
 
@@ -152,9 +172,13 @@ export const AuthStore = signalStore(
         patchState(store, { error });
       },
 
-      init() {
+      async init() {
         if (store.isLoggedIn()) {
           startRefreshTimer();
+          const fbToken = store.firebaseToken();
+          if (fbToken) {
+            await loginToFirebase(fbToken);
+          }
         }
       },
 
@@ -169,10 +193,15 @@ export const AuthStore = signalStore(
                   if (res.access_token) {
                     patchState(store, {
                       user: res.user,
-                      token: res.access_token
+                      token: res.access_token,
+                      firebaseToken: res.firebaseToken
                     });
                     localStorage.setItem('token', res.access_token);
                     localStorage.setItem('user', JSON.stringify(res.user));
+                    if (res.firebaseToken) {
+                      localStorage.setItem('firebaseToken', res.firebaseToken);
+                      loginToFirebase(res.firebaseToken);
+                    }
                   }
                 },
                 error: (err: any) => {

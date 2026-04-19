@@ -1,14 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { API_BASE_URL } from '../constants/api.constants';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 export interface WhatsappChannel {
   id: string;
   phoneNumber: string;
   label: string;
   sessionId: string;
-  status: 'connected' | 'disconnected' | 'qr_pending' | 'banned';
+  status: 'connected' | 'disconnected' | 'qr_pending' | 'banned' | 'wrong_number';
   qrCode?: string;
   lastConnectedAt?: Date;
   assignedAgents: any[];
@@ -25,13 +25,13 @@ export class WhatsappService {
 
   getChannels(): Observable<WhatsappChannel[]> {
     return this.http.get<any[]>(`${this.baseUrl}/channels`).pipe(
-      map(channels => channels.map(c => ({ ...c, id: c.id || c._id })))
+      map((channels: any[]) => channels.map((c: any) => ({ ...c, id: c.id || c._id })))
     );
   }
 
   createChannel(label: string): Observable<WhatsappChannel> {
     return this.http.post<any>(`${this.baseUrl}/channels`, { label }).pipe(
-      map(c => ({ ...c, id: c.id || c._id }))
+      map((c: any) => ({ ...c, id: c.id || c._id }))
     );
   }
 
@@ -39,9 +39,13 @@ export class WhatsappService {
     return this.http.delete(`${this.baseUrl}/channels/${id}`);
   }
 
+  reconnectChannel(id: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/channels/${id}/reconnect`, {});
+  }
+
   updateChannelAgents(id: string, agents: string[], allAgentsAccess: boolean): Observable<WhatsappChannel> {
     return this.http.patch<any>(`${this.baseUrl}/channels/${id}/agents`, { agents, allAgentsAccess }).pipe(
-      map(c => ({ ...c, id: c.id || c._id }))
+      map((c: any) => ({ ...c, id: c.id || c._id }))
     );
   }
 

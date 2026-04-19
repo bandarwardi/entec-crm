@@ -142,23 +142,18 @@ import { HostListener } from '@angular/core';
                 </p-popover>
 
                 <p-popover #op>
-                    <div class="flex flex-col gap-3 w-84 p-2 dark:bg-slate-800 dark:text-slate-100 max-h-[450px] overflow-y-auto" (scroll)="onPopupScroll($event)">
+                    <div class="flex flex-col gap-3 w-84 p-2 dark:bg-slate-800 dark:text-slate-100 max-h-[450px] overflow-y-auto">
                         <div class="font-bold border-b dark:border-slate-700 pb-2 px-1 text-primary">{{ 'notifications.title' | t }}</div>
-                        @if (allNotifications.length === 0 && !loadingNotifications) {
+                        @if (store.reminders().length === 0) {
                             <div class="text-xs text-center py-6 text-gray-400 dark:text-slate-500 italic">{{ 'notifications.empty' | t }}</div>
                         } @else {
-                            @for (lead of allNotifications; track trackByNotification(lead)) {
-                                <div class="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl cursor-pointer border-b dark:border-slate-700 last:border-b-0 transition-colors group" (click)="goToLead(lead, op)">
+                            @for (notif of store.reminders(); track trackByNotification(notif)) {
+                                <div class="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-xl cursor-pointer border-b dark:border-slate-700 last:border-b-0 transition-colors group" (click)="goToLead(notif, op)">
                                     <div class="flex justify-between items-start mb-1">
-                                        <div class="font-bold text-sm group-hover:text-primary transition-colors" [class.text-blue-600]="!lead.reminderRead">{{ lead.name }}</div>
-                                        <div class="text-[10px] text-slate-400">{{ lead.reminderAt | date:'shortTime' }}</div>
+                                        <div class="font-bold text-sm group-hover:text-primary transition-colors" [class.text-blue-600]="!notif.read">{{ notif.title }}</div>
+                                        <div class="text-[10px] text-slate-400">{{ notif.createdAt | date:'shortTime' }}</div>
                                     </div>
-                                    <div class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{{ lead.reminderNote }}</div>
-                                </div>
-                            }
-                            @if (loadingNotifications) {
-                                <div class="text-center py-3">
-                                    <i class="pi pi-spin pi-spinner text-primary"></i>
+                                    <div class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{{ notif.body }}</div>
                                 </div>
                             }
                         }
@@ -173,15 +168,9 @@ export class AppTopbar {
     i18n = inject(I18nService);
     readonly store = inject(NotificationsStore);
     readonly authStore = inject(AuthStore);
-    readonly leadService = inject(UserLeadService);
     readonly cdr = inject(ChangeDetectorRef);
     readonly leadsStore = inject(LeadsStore);
-    readonly router = inject(Router); // Use inject(Router)
-
-    allNotifications: Lead[] = [];
-    loadingNotifications = false;
-    notificationPage = 1;
-    hasMoreNotifications = true;
+    readonly router = inject(Router);
 
     isMobile() {
         return window.innerWidth < 992;
@@ -192,10 +181,7 @@ export class AppTopbar {
         this.cdr.detectChanges();
     }
 
-    constructor() {
-        // Start polling when component initializes
-        this.store.startPolling();
-    }
+    constructor() {}
 
     setStatus(status: string, breakReason?: string) {
         this.authStore.updateStatus({
@@ -239,57 +225,39 @@ export class AppTopbar {
     }
 
     onNotificationClick(event: Event, op: any) {
-        this.store.markAsRead();
+        this.store.markAllAsRead();
 
-        // Toggle popover first
+        // Toggle popover
         op.toggle(event);
-
-        // Only load if empty, otherwise we rely on scrolling
-        if (this.allNotifications.length === 0) {
-            this.notificationPage = 1;
-            this.loadNotifications();
-        }
-    }
-
-    loadNotifications() {
-        if (this.loadingNotifications || !this.hasMoreNotifications) return;
-
-        this.loadingNotifications = true;
-        this.leadService.getAllReminders(this.notificationPage, 20).subscribe({
-            next: (res: any) => {
-                if (this.notificationPage === 1) {
-                    this.allNotifications = res.data;
-                } else {
-                    this.allNotifications = [...this.allNotifications, ...res.data];
-                }
-                this.hasMoreNotifications = res.data.length === 20;
-                this.loadingNotifications = false;
-                this.cdr.detectChanges();
-            },
-            error: () => {
-                this.loadingNotifications = false;
-                this.cdr.detectChanges();
-            }
-        });
-    }
-
-    trackByNotification(lead: any) {
-        return lead.id || lead._id || lead;
     }
 
     onPopupScroll(event: any) {
-        const el = event.target;
-        if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
-            if (!this.loadingNotifications && this.hasMoreNotifications) {
-                this.notificationPage++;
-                this.loadNotifications();
-            }
-        }
+        // Handle scroll if needed
     }
 
-    goToLead(lead: Lead, op: any) {
-        op.hide();
-        this.leadsStore.setSelectedLeadId(lead.id);
-        this.router.navigate(['/leads']);
+    trackByNotification(notif: any) {
+        return notif.id;
+    }
+
+    goToLead(notif: any, op: any) {
+        if (notif.payload?.leadId) {
+            op.hide();
+            this.router.navigate(['/leads'], { queryParams: { id: notif.payload.leadId } });
+            if (!notif.read) {
+                this.store.markAsRead(notif.id);
+            }
+        } else if (notif.type === 'whatsapp_message' && notif.payload?.phoneNumber) {
+            op.hide();
+            this.router.navigate(['/whatsapp/inbox'], { 
+                queryParams: { 
+                    phone: notif.payload.phoneNumber,
+                    leadId: notif.payload.leadId,
+                    channelId: notif.payload.channelId
+                } 
+            });
+            if (!notif.read) {
+                this.store.markAsRead(notif.id);
+            }
+        }
     }
 }
