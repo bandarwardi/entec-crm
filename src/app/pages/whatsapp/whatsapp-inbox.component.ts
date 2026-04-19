@@ -11,6 +11,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { ListboxModule } from 'primeng/listbox';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { db } from '../../core/firebase/firebase.config';
@@ -28,6 +29,7 @@ import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 
     InputIconModule,
     ListboxModule,
     TagModule,
+    TooltipModule,
     TranslatePipe
   ],
   template: `
