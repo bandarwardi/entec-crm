@@ -29,6 +29,8 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { HostListener } from '@angular/core';
 import * as XLSX from 'xlsx';
 import { AuthStore } from '../../core/stores/auth.store';
+import { WhatsappStore } from '../../core/stores/whatsapp.store';
+import { WhatsappService } from '../../core/services/whatsapp.service';
 
 import { PLATFORMS } from '../../core/constants/platforms.constants';
 import { SCREENS } from '../../core/constants/screens.constants';
@@ -506,6 +508,8 @@ export class LeadsComponent implements OnInit, OnDestroy {
   private userService = inject(UserService);
   private router = inject(Router);
   readonly store = inject(LeadsStore);
+  readonly whatsappStore = inject(WhatsappStore);
+  private whatsappService = inject(WhatsappService);
 
   displayCheckSub = false;
   checkPhone = '';
@@ -693,6 +697,7 @@ export class LeadsComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.initialLoad();
+    this.whatsappStore.startListening();
   }
 
   ngOnDestroy() {
@@ -831,8 +836,46 @@ export class LeadsComponent implements OnInit, OnDestroy {
   }
 
   openWhatsapp(lead: Lead) {
+    const channel = this.whatsappStore.channels().find(c => c.status === 'connected');
+    
+    // If no channel is connected, we still let it navigate because the inbox has its own UI for this
+    // but the user wants "verification" specifically.
+    if (!channel) {
+      this.messageService.add({ 
+        severity: 'warn', 
+        summary: 'تنبيه', 
+        detail: 'لا توجد قنوات واتساب متصلة حالياً للتحقق من الرقم' 
+      });
+      // Fallback: regular navigation
+      const cleanPhone = lead.phone.replace(/\D/g, '');
+      this.router.navigate(['/whatsapp/inbox'], { queryParams: { phone: cleanPhone, leadId: lead.id } });
+      return;
+    }
+
     const cleanPhone = lead.phone.replace(/\D/g, '');
-    this.router.navigate(['/whatsapp/inbox'], { queryParams: { phone: cleanPhone, leadId: lead.id } });
+    this.messageService.add({ severity: 'info', summary: 'جاري التحقق', detail: 'يتم التحقق من الرقم في واتساب...' });
+
+    this.whatsappService.checkNumber(channel.id, cleanPhone).subscribe({
+      next: (result: any) => {
+        if (result && result.exists) {
+          const finalPhone = result.jid.split('@')[0];
+          this.router.navigate(['/whatsapp/inbox'], { 
+            queryParams: { 
+              phone: finalPhone, 
+              leadId: lead.id,
+              channelId: channel.id
+            } 
+          });
+        } else {
+          this.messageService.add({ severity: 'error', summary: 'غير موجود', detail: 'هذا الرقم غير مسجل في واتساب' });
+        }
+      },
+      error: (err) => {
+        this.messageService.add({ severity: 'error', summary: 'خطأ', detail: err.error?.message || 'فشل التحقق من الرقم' });
+        // Fallback: regular navigation if check fails for other reasons (e.g. session error)
+        this.router.navigate(['/whatsapp/inbox'], { queryParams: { phone: cleanPhone, leadId: lead.id } });
+      }
+    });
   }
 
   openReminderDialog(lead: Lead) {

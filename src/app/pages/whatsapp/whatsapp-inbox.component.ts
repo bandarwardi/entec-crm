@@ -99,7 +99,8 @@ import 'emoji-picker-element';
                 type="text" 
                 [placeholder]="'ui.search' | t" 
                 class="w-full rounded-xl bg-white dark:bg-surface-800 border-surface-200 dark:border-surface-700 text-xs py-2 px-10 focus:ring-1 focus:ring-emerald-500/20"
-                (input)="onSearchLeads($event)" />
+                (input)="onSearchLeads($event)"
+                (keydown.enter)="onSearchEnter($event)" />
             </p-iconField>
           </div>
           
@@ -691,7 +692,8 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   private uploadAndSend(file: File) {
     const channel = this.selectedChannel();
     const leadId = this.currentLeadId();
-    if (!channel || !leadId) return;
+    const phone = this.targetPhone();
+    if (!channel || (!leadId && !phone)) return;
 
     this.sending.set(true);
     const formData = new FormData();
@@ -713,7 +715,8 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
           leadId, 
           contentVal, 
           this.currentFileType, 
-          mediaUrl
+          mediaUrl,
+          this.targetPhone() || undefined
         ).subscribe({
           next: () => {
             this.sending.set(false);
@@ -908,6 +911,64 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     this.leadSearchTerm.set(event.target.value);
   }
 
+  onSearchEnter(event: any) {
+    const value = event.target.value.trim();
+    if (!value) return;
+
+    // Filter non-digits to check against stored numbers
+    const cleanValue = value.replace(/\D/g, '');
+    
+    // 1. Check if found in filtered results
+    const existing = this.filteredLeads().find(l => 
+      l.phone.replace(/\D/g, '').includes(cleanValue) || 
+      cleanValue.includes(l.phone.replace(/\D/g, ''))
+    );
+    if (existing) {
+      this.selectLead(existing);
+      return;
+    }
+
+    // 2. Check in all leads (even those without messages)
+    const existingInAll = this.leadsStore.allLeads().find(l => 
+      l.phone.replace(/\D/g, '').includes(cleanValue) || 
+      cleanValue.includes(l.phone.replace(/\D/g, ''))
+    );
+    if (existingInAll) {
+      this.selectLead(existingInAll);
+      return;
+    }
+
+    // 3. If looks like a phone number, check on WhatsApp
+    const isPhone = /^\+?\d{8,}$/.test(value);
+    if (isPhone) {
+      const channel = this.selectedChannel();
+      if (!channel) {
+        this.messageService.add({ severity: 'warn', summary: 'تنبيه', detail: 'يرجى اختيار قناة واتساب أولاً' });
+        return;
+      }
+
+      this.messageService.add({ severity: 'info', summary: 'جاري التحقق', detail: 'يتم التحقق من الرقم في واتساب...' });
+      
+      const cleanPhoneToCheck = value.replace(/\D/g, '');
+      this.whatsappService.checkNumber(channel.id, cleanPhoneToCheck).subscribe({
+        next: (result: any) => {
+          if (result && result.exists) {
+            const cleanPhone = result.jid.split('@')[0];
+            this.targetPhone.set(cleanPhone);
+            this.currentLeadName.set(cleanPhone);
+            this.currentLeadId.set(null); 
+            this.messageService.add({ severity: 'success', summary: 'موجود', detail: 'الرقم مسجل في واتساب، يمكنك مراسلته الآن' });
+          } else {
+            this.messageService.add({ severity: 'error', summary: 'غير موجود', detail: 'هذا الرقم غير مسجل في واتساب' });
+          }
+        },
+        error: (err) => {
+          this.messageService.add({ severity: 'error', summary: 'خطأ', detail: err.error?.message || 'فشل التحقق من الرقم' });
+        }
+      });
+    }
+  }
+
   selectLead(lead: any) {
     console.log('[Inbox] Selecting lead:', lead.name, lead.phone);
     this.targetPhone.set(lead.phone);
@@ -1005,12 +1066,16 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     const channel = this.selectedChannel();
     const leadId = this.currentLeadId();
     const text = this.newMessageText.trim();
-
-    if (!channel || !leadId) return;
+    const phone = this.targetPhone();
+    
+    if (!channel || (!leadId && !phone)) {
+      console.warn('[Inbox] Cannot send: Missing channel or recipient (leadId/phone)', { channel: !!channel, leadId, phone });
+      return;
+    }
     if (!text) return; // For text messages, we need text
 
     this.sending.set(true);
-    this.whatsappService.sendMessage(channel.id, leadId, text, 'text').subscribe({
+    this.whatsappService.sendMessage(channel.id, leadId, text, 'text', undefined, this.targetPhone() || undefined).subscribe({
       next: () => {
         this.newMessageText = '';
         this.sending.set(false);

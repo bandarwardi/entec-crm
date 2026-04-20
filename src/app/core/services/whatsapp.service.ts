@@ -49,13 +49,17 @@ export class WhatsappService {
     );
   }
 
-  sendMessage(channelId: string, leadId: string, content: string, messageType: string = 'text', mediaUrl?: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/messages/send`, { channelId, leadId, content, messageType, mediaUrl });
+  sendMessage(channelId: string, leadId: string | null, content: string, messageType: string = 'text', mediaUrl?: string, phoneNumber?: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/messages/send`, { channelId, leadId, content, messageType, mediaUrl, phoneNumber });
   }
 
   getMessages(channelId: string, phoneNumber: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/channels/${channelId}/messages/${phoneNumber}`);
   }
 
-  // Future: get conversations, etc.
+  checkNumber(channelId: string, phoneNumber: string): Observable<{ jid: string, exists: boolean }> {
+    return this.http.get<{ jid: string, exists: boolean }>(`${this.baseUrl}/channels/${channelId}/check-number`, {
+      params: { phoneNumber }
+    });
+  }
 }
