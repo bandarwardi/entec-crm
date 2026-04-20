@@ -15,7 +15,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { db } from '../../core/firebase/firebase.config';
-import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, onSnapshot, Timestamp, or } from 'firebase/firestore';
 
 @Component({
   selector: 'app-whatsapp-inbox',
@@ -126,6 +126,7 @@ import { collection, query, where, orderBy, limit, onSnapshot, Timestamp } from 
                       [class.text-right]="msg.direction === 'outbound'">
                   {{ msg.timestamp | date:'shortTime' }}
                   <i class="pi pi-check ml-1 text-[8px]" *ngIf="msg.direction === 'outbound'"></i>
+                  <i class="pi pi-sync pi-spin ml-1 text-[8px]" *ngIf="msg.unresolvedLid" pTooltip="تحويل الرقم..."></i>
                 </span>
               </div>
             }
@@ -266,22 +267,63 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   private startMessagesListening(channelId: string, phoneNumber: string) {
     this.stopMessagesListening();
 
+    const leadId = this.currentLeadId();
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    
+    console.log(`[Inbox] Starting listener for Channel: ${channelId}, Phone: ${cleanPhone}, LeadId: ${leadId}`);
+
     const messagesRef = collection(db, 'whatsappChannels', channelId, 'messages');
+    
+    // To get the LATEST messages, we order by desc and take a limit.
+    // Then we will reverse them in the UI to show oldest at top.
     const q = query(
       messagesRef,
-      where('externalNumber', '==', phoneNumber),
-      orderBy('timestamp', 'asc'),
-      limit(100)
+      orderBy('timestamp', 'desc'),
+      limit(200)
     );
 
     this.messagesUnsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: (doc.data()['timestamp'] as Timestamp)?.toDate() || new Date()
-      }));
-      this.messages.set(msgs);
+      console.log(`[Inbox] Received ${snapshot.size} messages from Firestore`);
+      
+      const allMsgs = snapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            timestamp: (data['timestamp'] as Timestamp)?.toDate() || new Date()
+          } as any;
+        })
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()); // Sort for UI (oldest first)
+
+      const filteredMsgs = allMsgs.filter(m => {
+        const msgPhone = String(m.externalNumber || '').replace(/\D/g, '');
+        const searchPhone = String(cleanPhone || '').replace(/\D/g, '');
+        const mLeadId = String(m.leadId || '').trim();
+        const sLeadId = String(leadId || '').trim();
+
+        // 1. Primary Match: Lead ID
+        // If the backend correctly identified the lead, this is the most secure way
+        if (sLeadId && mLeadId === sLeadId) return true;
+
+        // 2. Secondary Match: Phone Number (Last 8 digits)
+        // This handles cases where leadId might be missing but numbers match
+        const isPhoneMatch = (msgPhone.length >= 8 && searchPhone.length >= 8) && 
+                            (msgPhone.slice(-8) === searchPhone.slice(-8));
+
+        if (isPhoneMatch) return true;
+
+        // If it's an outbound message to this phone number, show it
+        if (m.direction === 'outbound' && msgPhone.slice(-8) === searchPhone.slice(-8)) return true;
+
+        return false;
+      });
+
+      console.log(`[Inbox] Displaying ${filteredMsgs.length} messages for this lead`);
+      this.messages.set(filteredMsgs);
       this.scrollToBottom();
+    }, (error) => {
+      console.error('[Inbox] Firestore Subscription Error:', error);
     });
   }
 
