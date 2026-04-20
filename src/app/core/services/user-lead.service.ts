@@ -20,6 +20,9 @@ export interface Lead {
   notes: string | null;
   status: LeadStatus;
   reminderAt: string | null;
+  lastMessageAt?: string | null;
+  profilePicUrl?: string | null;
+  isOnline?: boolean;
   reminderNote: string | null;
   reminderRead?: boolean;
   currentPlatform?: string;

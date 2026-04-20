@@ -68,6 +68,12 @@ export const appRoutes: Routes = [
                 data: { roles: ['super-admin', 'admin'] },
                 loadComponent: () => import('@/app/pages/super-admin/whatsapp/whatsapp-settings.component').then(m => m.WhatsappSettingsComponent) 
             },
+            { 
+                path: 'super-admin/daily-stats', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('@/app/pages/super-admin/daily-stats/daily-stats.component').then(m => m.DailyStatsComponent) 
+            },
 
             // Sales & Customers
             { 

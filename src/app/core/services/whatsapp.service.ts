@@ -49,8 +49,8 @@ export class WhatsappService {
     );
   }
 
-  sendMessage(channelId: string, leadId: string, content: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/messages/send`, { channelId, leadId, content });
+  sendMessage(channelId: string, leadId: string, content: string, messageType: string = 'text', mediaUrl?: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/messages/send`, { channelId, leadId, content, messageType, mediaUrl });
   }
 
   getMessages(channelId: string, phoneNumber: string): Observable<any[]> {

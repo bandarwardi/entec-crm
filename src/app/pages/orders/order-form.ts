@@ -495,8 +495,8 @@ export class OrderFormComponent implements OnInit {
       customerType: ['new'],
       existingCustomer: [null],
       newCustomer: this.fb.group({
-        name: ['', Validators.required],
-        phone: ['', Validators.required],
+        name: [''],
+        phone: [''],
         email: [''],
         address: [''],
         country: [''],
@@ -504,13 +504,13 @@ export class OrderFormComponent implements OnInit {
         latitude: [null],
         longitude: [null]
       }),
-      leadAgentId: [null, Validators.required],
-      closerAgentId: [null, Validators.required],
-      type: ['new', Validators.required],
+      leadAgentId: [null],
+      closerAgentId: [null],
+      type: ['new'],
       status: ['completed'],
       referrerName: [''],
-      amount: [0, [Validators.required, Validators.min(0)]],
-      paymentMethod: ['Zelle', Validators.required],
+      amount: [0],
+      paymentMethod: ['Zelle'],
       serverName: [''],
       serverExpiryDate: [null],
       appType: [''],
@@ -588,8 +588,7 @@ export class OrderFormComponent implements OnInit {
   onCustomerTypeChange() {
     const type = this.orderForm.get('customerType')?.value;
     if (type === 'existing') {
-      this.orderForm.get('newCustomer')?.disable();
-      this.orderForm.get('existingCustomer')?.setValidators(Validators.required);
+      this.orderForm.get('existingCustomer')?.clearValidators();
     } else {
       this.orderForm.get('newCustomer')?.enable();
       this.orderForm.get('existingCustomer')?.clearValidators();

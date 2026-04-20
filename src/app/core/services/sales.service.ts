@@ -127,6 +127,10 @@ export class SalesService {
     return this.http.get<DashboardStats>(`${this.apiUrl}/dashboard`, { params: { period } });
   }
 
+  getTodayAdminStats(): Observable<{ todayLeadsCount: number; employeePerformance: any[] }> {
+    return this.http.get<any>(`${API_BASE_URL}/admin/dashboard/today`);
+  }
+
   // Orders
   getOrders(params: any): Observable<PaginatedResponse<Order>> {
     let httpParams = new HttpParams();

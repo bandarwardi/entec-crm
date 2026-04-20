@@ -39,6 +39,7 @@ export const ar = {
     'ui.actions': 'إجراءات',
     'ui.loading': 'جاري التحميل...',
     'ui.no_data': 'لا توجد بيانات',
+    'ui.no_results': 'لا توجد نتائج',
     'ui.confirm': 'تأكيد',
     'ui.yes': 'نعم',
     'ui.no': 'لا',
@@ -195,6 +196,10 @@ export const ar = {
     'whatsapp.inbox.welcome_title': 'مرحباً بك في واتساب EN TEC',
     'whatsapp.inbox.welcome_subtitle': 'اختر قناة ومحادثة من القائمة الجانبية للبدء في المراسلة.',
     'whatsapp.inbox.title': 'رسائل واتساب',
+    'whatsapp.inbox.unresolved_lid': 'تحويل الرقم...',
+    'whatsapp.inbox.upload_image': 'إرسال صورة',
+    'whatsapp.inbox.record_audio': 'تسجيل رسالة صوتية',
+    'whatsapp.inbox.upload_sticker': 'إرسال ملصق',
     
     'leads.check_subscription': 'تحقق من الاشتراك',
     'leads.filter.all_agents': 'الكل (موظفين)',

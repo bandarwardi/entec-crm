@@ -1,6 +1,8 @@
 import { Component, inject, signal, ViewChild, ElementRef, afterNextRender, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs';
 import { AiChatService, AiConversation, AiMessage, SalesScenario } from '../../core/services/ai-chat.service';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -14,7 +16,12 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
   standalone: true,
   imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, TooltipModule, ProgressSpinnerModule, TranslatePipe],
   template: `
-    <div class="fixed bottom-6 z-[2000] flex flex-col items-end gap-3" [class.left-6]="i18n.isRTL()" [class.right-6]="!i18n.isRTL()" [style.direction]="i18n.direction()">
+    <div class="fixed z-[2000] flex flex-col items-end gap-3 transition-all duration-300" 
+         [class.bottom-6]="!isWhatsAppPage()" 
+         [class.bottom-24]="isWhatsAppPage()"
+         [class.left-6]="i18n.isRTL()" 
+         [class.right-6]="!i18n.isRTL()" 
+         [style.direction]="i18n.direction()">
       <!-- Chat Window -->
       @if (isOpen()) {
         <div class="bg-white dark:bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-80 sm:w-[400px] flex flex-col overflow-hidden animate-scalein h-[550px]" [class.origin-bottom-left]="i18n.isRTL()" [class.origin-bottom-right]="!i18n.isRTL()">
@@ -211,9 +218,12 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
 })
 export class AiChatBubbleComponent implements OnInit {
   private aiChatService = inject(AiChatService);
+  private router = inject(Router);
   i18n = inject(I18nService);
   
   @ViewChild('scrollContainer') scrollContainer!: ElementRef;
+
+  isWhatsAppPage = signal(false);
 
   isOpen = signal(false);
   isLoading = signal(false);

@@ -39,6 +39,7 @@ export const en = {
     'ui.actions': 'Actions',
     'ui.loading': 'Loading...',
     'ui.no_data': 'No data available',
+    'ui.no_results': 'No results found',
     'ui.confirm': 'Confirm',
     'ui.yes': 'Yes',
     'ui.no': 'No',
@@ -171,6 +172,10 @@ export const en = {
     'whatsapp.inbox.welcome_title': 'Welcome to EN TEC WhatsApp',
     'whatsapp.inbox.welcome_subtitle': 'Select a channel and a conversation from the sidebar to start messaging.',
     'whatsapp.inbox.title': 'WhatsApp Messages',
+    'whatsapp.inbox.unresolved_lid': 'Resolving number...',
+    'whatsapp.inbox.upload_image': 'Send Image',
+    'whatsapp.inbox.record_audio': 'Record Voice Note',
+    'whatsapp.inbox.upload_sticker': 'Send Sticker',
     
     'leads.check_subscription': 'Check Subscription',
     'leads.filter.all_agents': 'All Agents',

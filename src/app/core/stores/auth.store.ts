@@ -90,7 +90,7 @@ export const AuthStore = signalStore(
                   localStorage.setItem('user', JSON.stringify(res.user));
                   if (res.firebaseToken) {
                     localStorage.setItem('firebaseToken', res.firebaseToken);
-                    loginToFirebase(res.firebaseToken);
+                    // loginToFirebase(res.firebaseToken); // Disabled custom token login
                   }
                 }
               },
@@ -115,12 +115,13 @@ export const AuthStore = signalStore(
     };
 
     const loginToFirebase = async (token: string) => {
-      try {
-        await signInWithCustomToken(auth, token);
-        console.log('Firebase: Logged in successfully with custom token');
-      } catch (error) {
-        console.error('Firebase: Failed to login with custom token', error);
-      }
+      // try {
+      //   await signInWithCustomToken(auth, token);
+      //   console.log('Firebase: Logged in successfully with custom token');
+      // } catch (error) {
+      //   console.error('Firebase: Failed to login with custom token', error);
+      // }
+      console.log('Firebase: Custom token login is disabled');
     };
 
     return {
@@ -142,7 +143,7 @@ export const AuthStore = signalStore(
                     localStorage.setItem('user', JSON.stringify(res.user));
                     if (res.firebaseToken) {
                       localStorage.setItem('firebaseToken', res.firebaseToken);
-                      loginToFirebase(res.firebaseToken);
+                      // loginToFirebase(res.firebaseToken); // Disabled custom token login
                     }
                     startRefreshTimer();
                   } else {
@@ -206,10 +207,10 @@ export const AuthStore = signalStore(
       async init() {
         if (store.isLoggedIn()) {
           startRefreshTimer();
-          const fbToken = store.firebaseToken();
-          if (fbToken) {
-            await loginToFirebase(fbToken);
-          }
+          // const fbToken = store.firebaseToken();
+          // if (fbToken) {
+          //   await loginToFirebase(fbToken);
+          // }
         }
       },
 
