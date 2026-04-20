@@ -599,6 +599,7 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   newMessageText = '';
   sending = signal(false);
   private messagesUnsubscribe?: () => void;
+  private globalMessagesUnsubscribe?: () => void;
 
   // Audio Recording
   isRecording = signal(false);
@@ -801,12 +802,73 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     effect(() => {
       const channel = this.selectedChannel();
       const phone = this.targetPhone();
-      if (channel && phone) {
-        this.startMessagesListening(channel.id, phone);
+      if (channel) {
+        this.startGlobalMessagesListening(channel.id);
+        if (phone) {
+          this.startMessagesListening(channel.id, phone);
+        } else {
+          this.stopMessagesListening();
+        }
       } else {
+        this.stopGlobalMessagesListening();
         this.stopMessagesListening();
       }
     });
+  }
+
+  startGlobalMessagesListening(channelId: string) {
+    if (this.globalMessagesUnsubscribe) {
+      this.globalMessagesUnsubscribe();
+    }
+
+    const messagesRef = collection(db, 'whatsappChannels', channelId, 'messages');
+    // Only listen to new messages from now on
+    const q = query(
+      messagesRef,
+      where('timestamp', '>=', Timestamp.now()),
+      orderBy('timestamp', 'asc')
+    );
+
+    let isInitialLoad = true;
+    this.globalMessagesUnsubscribe = onSnapshot(q, (snapshot) => {
+      if (isInitialLoad) {
+        isInitialLoad = false;
+        return; // Skip initial empty/matching snapshot to avoid reloading on mount
+      }
+
+      let needsReload = false;
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          const leadId = data['leadId'];
+          
+          if (leadId) {
+             const leadExists = this.leadsStore.allLeads().some(l => l.id === leadId);
+             if (leadExists) {
+                // Update local timestamp to push it to the top
+                this.leadsStore.updateLeadLocal(leadId, { 
+                  lastMessageAt: data['timestamp']?.toDate()?.toISOString() || new Date().toISOString() 
+                });
+             } else {
+                needsReload = true; // New lead or not in current page, reload list
+             }
+          } else {
+             needsReload = true; // Unresolved lead, reload to see if backend auto-created it
+          }
+        }
+      });
+
+      if (needsReload) {
+        this.leadsStore.loadLeads({ page: 1, limit: 100 });
+      }
+    });
+  }
+
+  stopGlobalMessagesListening() {
+    if (this.globalMessagesUnsubscribe) {
+      this.globalMessagesUnsubscribe();
+      this.globalMessagesUnsubscribe = undefined;
+    }
   }
 
   ngOnInit() {
@@ -934,7 +996,9 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.stopMessagesListening();
+    if (this.messagesUnsubscribe) this.messagesUnsubscribe();
+    if (this.globalMessagesUnsubscribe) this.globalMessagesUnsubscribe();
+    this.stopRecordingTimer();
   }
 
   sendMessage() {

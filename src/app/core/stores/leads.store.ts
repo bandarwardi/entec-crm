@@ -161,6 +161,10 @@ export const LeadsStore = signalStore(
         )
       ),
 
+      updateLeadLocal(id: string, changes: Partial<Lead>) {
+        patchState(store, updateEntity({ id, changes }));
+      },
+
       deleteLead: rxMethod<string>(
         pipe(
           switchMap((id) =>
