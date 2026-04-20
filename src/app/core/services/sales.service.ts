@@ -127,9 +127,10 @@ export class SalesService {
     return this.http.get<DashboardStats>(`${this.apiUrl}/dashboard`, { params: { period } });
   }
 
-  getTodayAdminStats(): Observable<{ todayLeadsCount: number; employeePerformance: any[] }> {
-    return this.http.get<any>(`${API_BASE_URL}/admin/dashboard/today`);
-  }
+    getTodayAdminStats(date?: string): Observable<{ todayLeadsCount: number; employeePerformance: any[] }> {
+        const params = date ? new HttpParams().set('date', date) : undefined;
+        return this.http.get<any>(`${API_BASE_URL}/admin/dashboard/today`, { params });
+    }
 
   // Orders
   getOrders(params: any): Observable<PaginatedResponse<Order>> {

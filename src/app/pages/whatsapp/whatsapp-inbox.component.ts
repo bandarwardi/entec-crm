@@ -776,9 +776,18 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
         this.currentLeadId.set(params['leadId'] || null);
         
         // Find lead name from store if possible
-        const lead = this.leadsStore.allLeads().find(l => l.id === params['leadId']);
+        const lead = this.leadsStore.allLeads().find(l => l.id === params['leadId'] || l.phone === params['phone']);
         if (lead) {
           this.currentLeadName.set(lead.name);
+          if (!this.currentLeadId()) this.currentLeadId.set(lead.id);
+        }
+
+        // Handle specific channel if provided
+        if (params['channelId']) {
+            const channel = this.store.channels().find(c => c.id === params['channelId']);
+            if (channel) {
+                this.selectedChannel.set(channel);
+            }
         }
 
         // Auto-select first channel if none selected

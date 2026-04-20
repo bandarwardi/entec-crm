@@ -95,7 +95,8 @@ export class NotificationsService {
       severity: 'info',
       summary: notif.title,
       detail: notif.body,
-      life: 8000
+      life: 8000,
+      data: notif // Pass the whole notification object
     });
   }
 

@@ -539,8 +539,19 @@ export const en = {
     'notfound.subtitle': 'Requested resource is not available.',
     'notfound.go_dashboard': 'Go to Dashboard',
 
-    // Users
-    'users.title': 'User Management',
+    // Daily Stats Admin
+    'daily_stats.title': 'Detailed Daily Statistics',
+    'daily_stats.subtitle': 'Live follow-up of attendance, breaks, and new leads for the day',
+    'daily_stats.today_total_leads': 'Total Today Leads',
+    'daily_stats.employee': 'Employee',
+    'daily_stats.status': 'Status',
+    'daily_stats.first_login': 'First Login',
+    'daily_stats.late': 'Late',
+    'daily_stats.break': 'Total Break',
+    'daily_stats.deductions': 'Deductions',
+    'daily_stats.leads_count': 'New Leads',
+    'daily_stats.no_employees': 'No employees registered currently',
+    'daily_stats.select_date': 'Select Date',
     'users.subtitle': 'Manage all registered users and their permissions',
     'users.add_button': 'Add User',
     'users.login_requests': 'Login Requests',

@@ -568,6 +568,19 @@ export const ar = {
 
     // Users
     'users.title': 'إدارة المستخدمين',
+    // Daily Stats Admin
+    'daily_stats.title': 'الإحصائيات اليومية التفصيلية',
+    'daily_stats.subtitle': 'متابعة فورية للحضور والانقطاع والعملاء الجدد لليوم',
+    'daily_stats.today_total_leads': 'إجمالي المحتملين اليوم',
+    'daily_stats.employee': 'الموظف',
+    'daily_stats.status': 'الحالة',
+    'daily_stats.first_login': 'أول دخول',
+    'daily_stats.late': 'التأخير',
+    'daily_stats.break': 'إجمالي الانقطاع',
+    'daily_stats.deductions': 'الخصومات',
+    'daily_stats.leads_count': 'محتملين جدد',
+    'daily_stats.no_employees': 'لا يوجد موظفين مسجلين حالياً',
+    'daily_stats.select_date': 'اختر التاريخ',
     'users.subtitle': 'إدارة كافة المستخدمين المسجلين في النظام وصلاحياتهم',
     'users.add_button': 'إضافة مستخدم',
     'users.login_requests': 'طلبات تسجيل الدخول',

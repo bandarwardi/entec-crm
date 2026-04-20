@@ -240,24 +240,22 @@ export class AppTopbar {
     }
 
     goToLead(notif: any, op: any) {
-        if (notif.payload?.leadId) {
-            op.hide();
-            this.router.navigate(['/leads'], { queryParams: { id: notif.payload.leadId } });
-            if (!notif.read) {
-                this.store.markAsRead(notif.id);
-            }
-        } else if (notif.type === 'whatsapp_message' && notif.payload?.phoneNumber) {
-            op.hide();
+        op.hide();
+        
+        if (notif.type === 'whatsapp_message') {
             this.router.navigate(['/whatsapp/inbox'], { 
                 queryParams: { 
-                    phone: notif.payload.phoneNumber,
-                    leadId: notif.payload.leadId,
-                    channelId: notif.payload.channelId
+                    phone: notif.payload?.phoneNumber,
+                    leadId: notif.payload?.leadId,
+                    channelId: notif.payload?.channelId
                 } 
             });
-            if (!notif.read) {
-                this.store.markAsRead(notif.id);
-            }
+        } else if (notif.payload?.leadId) {
+            this.router.navigate(['/leads'], { queryParams: { id: notif.payload.leadId } });
+        }
+        
+        if (!notif.read) {
+            this.store.markAsRead(notif.id);
         }
     }
 }
