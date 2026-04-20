@@ -176,6 +176,7 @@ export const en = {
     'whatsapp.inbox.upload_image': 'Send Image',
     'whatsapp.inbox.record_audio': 'Record Voice Note',
     'whatsapp.inbox.upload_sticker': 'Send Sticker',
+    'whatsapp.inbox.upload_document': 'Send Document',
     
     'leads.check_subscription': 'Check Subscription',
     'leads.filter.all_agents': 'All Agents',

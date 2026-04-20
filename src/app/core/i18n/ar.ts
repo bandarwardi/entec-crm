@@ -200,6 +200,7 @@ export const ar = {
     'whatsapp.inbox.upload_image': 'إرسال صورة',
     'whatsapp.inbox.record_audio': 'تسجيل رسالة صوتية',
     'whatsapp.inbox.upload_sticker': 'إرسال ملصق',
+    'whatsapp.inbox.upload_document': 'إرسال مستند',
     
     'leads.check_subscription': 'تحقق من الاشتراك',
     'leads.filter.all_agents': 'الكل (موظفين)',

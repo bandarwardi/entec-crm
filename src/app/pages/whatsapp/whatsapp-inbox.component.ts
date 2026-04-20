@@ -273,6 +273,23 @@ import 'emoji-picker-element';
                           </div>
                         }
                       </div>
+                    } @else if (msg.messageType === 'document') {
+                      <div class="py-2 px-1 min-w-[200px]">
+                        <div class="flex items-center gap-3 bg-black/5 dark:bg-white/5 rounded-xl p-3 border border-black/5 dark:border-white/5 shadow-inner">
+                          <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-emerald-600">
+                            <i class="pi pi-file text-xl"></i>
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div class="text-xs font-black truncate text-surface-900 dark:text-white">{{ msg.content || 'Document' }}</div>
+                            <div class="text-[9px] text-surface-500 uppercase mt-0.5">{{ msg.mediaUrl ? 'File' : 'No URL' }}</div>
+                          </div>
+                          @if (msg.mediaUrl) {
+                            <a [href]="msg.mediaUrl" target="_blank" class="w-8 h-8 rounded-full bg-white dark:bg-surface-800 flex items-center justify-center shadow-sm text-surface-600 hover:text-emerald-500 transition-colors">
+                              <i class="pi pi-download text-xs"></i>
+                            </a>
+                          }
+                        </div>
+                      </div>
                     } @else {
                       <!-- Text Content -->
                       <div class="whitespace-pre-wrap break-words leading-relaxed text-[#303030] dark:text-white">
@@ -353,6 +370,15 @@ import 'emoji-picker-element';
                       (click)="triggerFileUpload('image')"
                       severity="secondary"
                       [pTooltip]="'whatsapp.inbox.upload_image' | t"
+                      styleClass="p-0 text-xl text-surface-600">
+                    </p-button>
+                    <p-button 
+                      type="button"
+                      icon="pi pi-file" 
+                      [text]="true"
+                      (click)="triggerFileUpload('document')"
+                      severity="secondary"
+                      [pTooltip]="'whatsapp.inbox.upload_document' | t"
                       styleClass="p-0 text-xl text-surface-600">
                     </p-button>
                     <p-button 
@@ -663,10 +689,13 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     .then((result: any) => {
       const mediaUrl = result.url || result.file_url;
       if (mediaUrl) {
+        // For documents, use original filename if possible, otherwise from newMessageText
+        const contentVal = this.currentFileType === 'document' ? (file.name || this.newMessageText) : this.newMessageText;
+        
         this.whatsappService.sendMessage(
           channel.id, 
           leadId, 
-          '', 
+          contentVal, 
           this.currentFileType, 
           mediaUrl
         ).subscribe({
@@ -711,7 +740,7 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     this.newMessageText += event.detail.unicode;
   }
 
-  currentFileType: 'image' | 'audio' | 'sticker' | 'text' = 'text';
+  currentFileType: 'image' | 'audio' | 'sticker' | 'document' | 'text' = 'text';
 
   quickStickers = [
     { name: 'Smile', url: 'https://raw.githubusercontent.com/WhatsApp/stickers/main/Android/app/src/main/assets/1/01_Cuppy_smile.webp' },
@@ -732,7 +761,7 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     this.whatsappService.sendMessage(channel.id, leadId, '', 'sticker', url).subscribe();
   }
 
-  triggerFileUpload(type: 'image' | 'audio' | 'sticker') {
+  triggerFileUpload(type: 'image' | 'audio' | 'sticker' | 'document') {
     this.currentFileType = type;
     this.fileInput.nativeElement.click();
   }
