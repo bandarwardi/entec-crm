@@ -534,7 +534,11 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   leadSearchTerm = signal('');
   filteredLeads = computed(() => {
     const term = this.leadSearchTerm().toLowerCase();
-    const leads = [...this.leadsStore.allLeads()]; // Create copy for sorting
+    // Filter to show only leads with conversations (lastMessageAt is not null)
+    let leads = this.leadsStore.allLeads().filter(l => !!l.lastMessageAt);
+    
+    // Create copy for sorting
+    leads = [...leads];
     
     // Sort by lastMessageAt (descending)
     leads.sort((a, b) => {
@@ -543,11 +547,11 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
       return timeB - timeA;
     });
 
-    if (!term) return leads.slice(0, 15);
+    if (!term) return leads.slice(0, 30);
     return leads.filter(l => 
       l.name.toLowerCase().includes(term) || 
       l.phone.includes(term)
-    ).slice(0, 20);
+    ).slice(0, 40);
   });
 
   messages = signal<any[]>([]);
@@ -564,11 +568,18 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   private recordingStartTime?: number;
 
   startRecording() {
+    // Check supported types, prefer webm/opus which is standard for browsers
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+      ? 'audio/webm;codecs=opus' 
+      : 'audio/ogg;codecs=opus';
+
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(stream => {
-        this.mediaRecorder = new MediaRecorder(stream);
+        this.mediaRecorder = new MediaRecorder(stream, { mimeType });
         this.audioChunks = [];
-        this.mediaRecorder.ondataavailable = (event) => this.audioChunks.push(event.data);
+        this.mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) this.audioChunks.push(event.data);
+        };
         this.mediaRecorder.start();
         
         this.isRecording.set(true);
@@ -619,6 +630,7 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     if (!this.mediaRecorder) return;
 
     this.mediaRecorder.onstop = () => {
+      // Force audio/ogg; codecs=opus for WhatsApp compatibility
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/ogg; codecs=opus' });
       const file = new File([audioBlob], `recording_${Date.now()}.ogg`, { type: 'audio/ogg' });
       
