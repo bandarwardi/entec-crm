@@ -277,7 +277,7 @@ import 'emoji-picker-element';
                       <div class="py-2 px-1 min-w-[200px]">
                         <div class="flex items-center gap-3 bg-black/5 dark:bg-white/5 rounded-xl p-3 border border-black/5 dark:border-white/5 shadow-inner">
                           <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center text-emerald-600">
-                            <i class="pi pi-file text-xl"></i>
+                            <i class="pi pi-file text-lg"></i>
                           </div>
                           <div class="flex-1 min-w-0">
                             <div class="text-xs font-black truncate text-surface-900 dark:text-white">{{ msg.content || 'Document' }}</div>
@@ -332,101 +332,99 @@ import 'emoji-picker-element';
             <!-- Input Area -->
             <div class="p-3 bg-[#f0f2f5] dark:bg-surface-900 border-t dark:border-surface-700">
               <form (ngSubmit)="sendMessage()" class="flex items-center gap-2 max-w-5xl mx-auto">
-                <p-button 
-                  type="button"
-                  icon="pi pi-face-smile" 
-                  [text]="true"
-                  (click)="emojiPopover.toggle($event)"
-                  severity="secondary"
-                  styleClass="p-0 text-xl text-surface-600">
-                </p-button>
-
-                <p-popover #op styleClass="p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
-                  <emoji-picker (emoji-click)="addEmoji($event)"></emoji-picker>
-                </p-popover>
-
-                <!-- File Upload Actions -->
                 <div class="flex items-center gap-1">
-                  <input #fileInput type="file" (change)="onFileSelected($event)" style="display: none" />
-                  
-                  @if (isRecording()) {
-                    <div class="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full border border-red-100 dark:border-red-900/30 animate-pulse">
-                      <div class="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span class="text-[10px] font-bold text-red-600 dark:text-red-400">{{ recordingDuration() }}</span>
-                      <p-button 
-                        type="button"
-                        icon="pi pi-trash" 
-                        [text]="true"
-                        (click)="cancelRecording()"
-                        severity="danger"
-                        styleClass="p-0 w-6 h-6 text-xs">
-                      </p-button>
+                  <!-- Attachments Toggle -->
+                  <p-button 
+                    type="button" 
+                    icon="pi pi-plus" 
+                    [text]="true" 
+                    (click)="attachOp.toggle($event)"
+                    severity="secondary"
+                    styleClass="p-0 w-10 h-10 text-xl text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
+                  </p-button>
+
+                  <p-popover #attachOp styleClass="w-56 p-2 rounded-2xl border-none shadow-2xl overflow-hidden">
+                    <div class="flex flex-col gap-1">
+                      <button type="button" (click)="triggerFileUpload('image'); attachOp.hide()" class="flex items-center gap-3 p-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group">
+                        <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                          <i class="pi pi-image text-lg"></i>
+                        </div>
+                        <span class="text-sm font-black text-surface-700 dark:text-surface-200">{{ 'whatsapp.inbox.upload_image' | t }}</span>
+                      </button>
+
+                      <button type="button" (click)="triggerFileUpload('document'); attachOp.hide()" class="flex items-center gap-3 p-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                          <i class="pi pi-file text-lg"></i>
+                        </div>
+                        <span class="text-sm font-black text-surface-700 dark:text-surface-200">{{ 'whatsapp.inbox.upload_document' | t }}</span>
+                      </button>
+
+                      <button type="button" (click)="stickerOp.toggle($event); attachOp.hide()" class="flex items-center gap-3 p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                          <i class="pi pi-bolt text-lg"></i>
+                        </div>
+                        <span class="text-sm font-black text-surface-700 dark:text-surface-200">{{ 'whatsapp.inbox.upload_sticker' | t }}</span>
+                      </button>
                     </div>
-                  } @else {
-                    <p-button 
-                      type="button"
-                      icon="pi pi-image" 
-                      [text]="true"
-                      (click)="triggerFileUpload('image')"
-                      severity="secondary"
-                      [pTooltip]="'whatsapp.inbox.upload_image' | t"
-                      styleClass="p-0 text-xl text-surface-600">
-                    </p-button>
-                    <p-button 
-                      type="button"
-                      icon="pi pi-file" 
-                      [text]="true"
-                      (click)="triggerFileUpload('document')"
-                      severity="secondary"
-                      [pTooltip]="'whatsapp.inbox.upload_document' | t"
-                      styleClass="p-0 text-xl text-surface-600">
-                    </p-button>
-                    <p-button 
-                      type="button"
-                      icon="pi pi-microphone" 
-                      [text]="true"
-                      (click)="startRecording()"
-                      severity="secondary"
-                      [pTooltip]="'whatsapp.inbox.record_audio' | t"
-                      styleClass="p-0 text-xl text-surface-600">
-                    </p-button>
-                    <p-button 
-                      type="button"
-                      icon="pi pi-images" 
-                      [text]="true"
-                      (click)="stickerOp.toggle($event)"
-                      severity="secondary"
-                      [pTooltip]="'whatsapp.inbox.upload_sticker' | t"
-                      styleClass="p-0 text-xl text-surface-600">
-                    </p-button>
-                  }
+                  </p-popover>
+
+                  <!-- Voice Recording -->
+                  <p-button 
+                    type="button" 
+                    [icon]="isRecording() ? 'pi pi-stop-circle' : 'pi pi-microphone'" 
+                    [text]="true" 
+                    (click)="isRecording() ? cancelRecording() : startRecording()"
+                    [severity]="isRecording() ? 'danger' : 'secondary'"
+                    [pTooltip]="isRecording() ? 'إلغاء التسجيل' : ('whatsapp.inbox.record_audio' | t)"
+                    styleClass="p-0 w-10 h-10 text-xl text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
+                  </p-button>
+
+                  <!-- Emoji Picker -->
+                  <p-button 
+                    type="button"
+                    icon="pi pi-face-smile" 
+                    [text]="true"
+                    (click)="emojiOp.toggle($event)"
+                    severity="secondary"
+                    styleClass="p-0 w-10 h-10 text-xl text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
+                  </p-button>
+
+                  <p-popover #emojiOp styleClass="p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+                    <emoji-picker (emoji-click)="addEmoji($event)"></emoji-picker>
+                  </p-popover>
                 </div>
 
-                <p-popover #stickerOp styleClass="w-72 p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
-                  <div class="bg-surface-50 dark:bg-surface-800 p-3 border-b dark:border-surface-700 flex justify-between items-center">
-                    <span class="text-xs font-black text-emerald-600">ملصقات سريعة</span>
-                    <p-button icon="pi pi-upload" [text]="true" styleClass="p-0 w-6 h-6 text-xs" (click)="triggerFileUpload('sticker'); stickerOp.hide()" pTooltip="رفع ملصق خاص"></p-button>
+                @if (isRecording()) {
+                  <div class="flex-1 bg-white dark:bg-surface-800 rounded-full px-5 py-2 flex items-center justify-between border border-emerald-100 dark:border-emerald-900/30 animate-pulse">
+                    <div class="flex items-center gap-3">
+                      <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                      </span>
+                      <span class="text-xs font-black text-red-500">جاري التسجيل...</span>
+                    </div>
+                    <span class="text-sm font-black font-mono text-surface-600 dark:text-surface-300">{{ recordingDuration() }}</span>
+                    <p-button 
+                      type="button"
+                      icon="pi pi-trash" 
+                      [text]="true"
+                      (click)="cancelRecording()"
+                      severity="danger"
+                      styleClass="p-0 w-6 h-6 text-xs">
+                    </p-button>
                   </div>
-                  <div class="p-2 grid grid-cols-4 gap-2 max-h-64 overflow-y-auto custom-scrollbar">
-                    @for (s of quickStickers; track s.url) {
-                      <div class="aspect-square rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 p-1 cursor-pointer transition-all hover:scale-110 flex items-center justify-center"
-                           (click)="sendQuickSticker(s.url); stickerOp.hide()">
-                        <img [src]="s.url" class="w-full h-full object-contain" />
-                      </div>
-                    }
+                } @else {
+                  <div class="flex-1 relative">
+                    <input 
+                      pInputText 
+                      [(ngModel)]="newMessageText" 
+                      name="msg"
+                      [disabled]="isRecording()"
+                      [placeholder]="isRecording() ? 'جاري التسجيل...' : ('chat.type_message_placeholder' | t)"
+                      class="w-full rounded-full bg-white dark:bg-surface-800 border-none px-5 py-2.5 text-sm focus:ring-1 focus:ring-primary/20"
+                      autocomplete="off" />
                   </div>
-                </p-popover>
-
-                <div class="flex-1 relative">
-                  <input 
-                    pInputText 
-                    [(ngModel)]="newMessageText" 
-                    name="msg"
-                    [disabled]="isRecording()"
-                    [placeholder]="isRecording() ? 'جاري التسجيل...' : ('chat.type_message_placeholder' | t)"
-                    class="w-full rounded-full bg-white dark:bg-surface-800 border-none px-5 py-2.5 text-sm focus:ring-1 focus:ring-primary/20"
-                    autocomplete="off" />
-                </div>
+                }
 
                 @if (isRecording()) {
                   <p-button 
@@ -444,6 +442,22 @@ import 'emoji-picker-element';
                     styleClass="rounded-full w-10 h-10 p-0 flex items-center justify-center">
                   </p-button>
                 }
+
+                <!-- Hidden Stickers Popover -->
+                <p-popover #stickerOp styleClass="w-72 p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+                  <div class="bg-surface-50 dark:bg-surface-800 p-3 border-b dark:border-surface-700 flex justify-between items-center">
+                    <span class="text-xs font-black text-emerald-600">ملصقات سريعة</span>
+                    <p-button icon="pi pi-upload" [text]="true" styleClass="p-0 w-6 h-6 text-xs" (click)="triggerFileUpload('sticker'); stickerOp.hide()" pTooltip="رفع ملصق خاص"></p-button>
+                  </div>
+                  <div class="p-2 grid grid-cols-4 gap-2 max-h-64 overflow-y-auto custom-scrollbar">
+                    @for (s of quickStickers; track s.url) {
+                      <div class="aspect-square rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 p-1 cursor-pointer transition-all hover:scale-110 flex items-center justify-center"
+                           (click)="sendQuickSticker(s.url); stickerOp.hide()">
+                        <img [src]="s.url" class="w-full h-full object-contain" />
+                      </div>
+                    }
+                  </div>
+                </p-popover>
               </form>
             </div>
           } @else {
@@ -532,6 +546,7 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('op') emojiPopover!: Popover;
   @ViewChild('stickerOp') stickerPopover!: Popover;
+  @ViewChild('attachOp') attachPopover!: Popover;
 
   selectedChannel = signal<WhatsappChannel | null>(null);
   targetPhone = signal<string | null>(null);
