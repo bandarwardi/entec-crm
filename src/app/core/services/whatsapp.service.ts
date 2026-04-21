@@ -130,4 +130,8 @@ export class WhatsappService {
   requestPairingCode(channelId: string, phoneNumber: string): Observable<any> {
     return this.http.post(`${this.baseUrl}/channels/${channelId}/request-pairing-code`, { phoneNumber });
   }
+
+  fetchHistory(leadId: string, channelId: string, count: number = 50): Observable<any> {
+    return this.http.post(`${this.baseUrl}/leads/${leadId}/fetch-history`, { channelId, count });
+  }
 }

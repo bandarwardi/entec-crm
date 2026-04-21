@@ -361,6 +361,17 @@ import 'emoji-picker-element';
             <!-- Messages Area -->
             <div #scrollContainer class="flex-1 overflow-y-auto p-6 flex flex-col gap-2 whatsapp-bg relative">
               
+              <div class="flex justify-center mb-4">
+                <p-button 
+                  label="تحميل الرسائل القديمة من واتساب" 
+                  [text]="true" 
+                  icon="pi pi-history" 
+                  [loading]="fetchingHistory()"
+                  (onClick)="loadMoreHistory()"
+                  styleClass="text-[10px] font-black bg-white/50 dark:bg-surface-800/50 backdrop-blur rounded-full px-4 py-1.5 border border-surface-200 dark:border-surface-700 hover:bg-white dark:hover:bg-surface-800 transition-all">
+                </p-button>
+              </div>
+
               @if (messageSearchTerm()) {
                 <div class="sticky top-0 z-20 mx-auto bg-white/90 dark:bg-surface-800/90 backdrop-blur shadow-sm px-4 py-2 rounded-full text-[10px] font-black text-emerald-600 border border-emerald-100 dark:border-emerald-800/20 mb-4 animate-bounce">
                   تم العثور على {{ filteredMessages().length }} رسالة
@@ -1742,6 +1753,34 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
       this.newMessageText = suggestion;
       this.aiSuggestion.set(null);
     }
+  }
+
+  fetchingHistory = signal(false);
+
+  loadMoreHistory() {
+    const channel = this.selectedChannel();
+    const leadId = this.currentLeadId();
+    if (!channel || !leadId) return;
+
+    this.fetchingHistory.set(true);
+    this.whatsappService.fetchHistory(leadId, channel.id, 50).subscribe({
+      next: (res) => {
+        this.fetchingHistory.set(false);
+        this.messageService.add({ 
+          severity: 'success', 
+          summary: 'تم التحميل', 
+          detail: `تم استرجاع ${res.count} رسالة قديمة` 
+        });
+      },
+      error: (err) => {
+        this.fetchingHistory.set(false);
+        this.messageService.add({ 
+          severity: 'error', 
+          summary: 'خطأ', 
+          detail: 'فشل تحميل التاريخ: ' + (err.error?.message || 'خطأ غير معروف') 
+        });
+      }
+    });
   }
 
   private scrollToBottom() {
