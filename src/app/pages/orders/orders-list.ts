@@ -6,7 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { OrdersStore } from '../../core/stores/orders.store';
-import { OrderStatus, OrderType } from '../../core/services/sales.service';
+import { OrderStatus, OrderType, SalesService } from '../../core/services/sales.service';
 import { TagModule } from 'primeng/tag';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SelectModule } from 'primeng/select';
@@ -57,6 +57,12 @@ import { DialogModule } from 'primeng/dialog';
                      autocomplete="off" dir="ltr"
                      class="w-full md:w-80 h-12 rounded-2xl border-white/30 bg-white/10 backdrop-blur-md text-white placeholder:text-white/60 focus:ring-white/30 px-6 font-medium text-left" />
             </p-iconField>
+            <p-button [label]="'تصدير' | t" icon="pi pi-file-excel" (onClick)="exportToExcel()" 
+                      styleClass="rounded-2xl px-6 h-12 font-black bg-emerald-700 text-white border-none shadow-xl transform hover:scale-105 transition-all text-sm uppercase"></p-button>
+            <p-button [label]="'استيراد' | t" icon="pi pi-upload" (onClick)="fileInput.click()" 
+                      styleClass="rounded-2xl px-6 h-12 font-black bg-teal-600 text-white border-none shadow-xl transform hover:scale-105 transition-all text-sm uppercase"></p-button>
+            <input #fileInput type="file" (change)="onFileSelect($event)" accept=".xlsx" class="hidden">
+            
             <p-button [label]="'ui.add' | t" icon="pi pi-plus" routerLink="/orders/new" 
                       styleClass="rounded-2xl px-8 h-12 font-black bg-white text-emerald-600 border-none shadow-xl transform hover:scale-105 transition-all text-md uppercase tracking-widest"></p-button>
           </div>
@@ -91,6 +97,7 @@ import { DialogModule } from 'primeng/dialog';
             <th style="width: 10%">{{ 'orders.list.table.payment_method' | t }}</th>
             <th style="width: 10%">{{ 'orders.list.table.devices' | t }}</th>
             <th style="width: 10%">{{ 'orders.list.table.status' | t }}</th>
+            <th style="width: 10%">تاريخ الاشتراك</th>
             <th style="width: 10%">{{ 'orders.list.table.date' | t }}</th>
             <th style="width: 9%">{{ 'ui.actions' | t }}</th>
           </tr>
@@ -118,6 +125,9 @@ import { DialogModule } from 'primeng/dialog';
             </td>
             <td>
                 <p-tag [value]="('orders.status.' + order.status) | t" [severity]="getStatusSeverity(order.status)"></p-tag>
+            </td>
+            <td>
+                <div class="text-xs font-bold">{{ (order.subscriptionDate || order.createdAt) | date:'shortDate' }}</div>
             </td>
             <td>{{ order.createdAt | date:'shortDate' }}</td>
             <td>
@@ -150,6 +160,7 @@ export class OrdersListComponent implements OnInit {
   private authStore = inject(AuthStore);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
+  private salesService = inject(SalesService);
   private i18n = inject(I18nService);
   isSuperAdmin = computed(() => this.authStore.user()?.role === 'super-admin');
   searchTerm = '';
@@ -282,5 +293,37 @@ export class OrdersListComponent implements OnInit {
         });
       }
     });
+  }
+
+  exportToExcel() {
+    this.salesService.exportOrders().subscribe(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Sales-Export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
+  }
+
+  onFileSelect(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.salesService.importOrders(file).subscribe({
+        next: (res) => {
+          this.messageService.add({ 
+            severity: 'success', 
+            summary: 'تم الاستيراد بنجاح', 
+            detail: `تم نجاح ${res.success} سجل، وفشل ${res.failed}` 
+          });
+          this.store.loadOrders({ page: 1, limit: this.store.pageSize() });
+          event.target.value = '';
+        },
+        error: (err) => {
+          this.messageService.add({ severity: 'error', summary: 'خطأ في الاستيراد', detail: err.error?.message || 'فشل رفع الملف' });
+          event.target.value = '';
+        }
+      });
+    }
   }
 }

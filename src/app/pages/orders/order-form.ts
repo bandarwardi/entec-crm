@@ -202,6 +202,10 @@ import { COUNTRIES } from '../../core/constants/countries.constants';
                         <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-2">{{ 'order_form.payment_method' | t }}</label>
                         <p-select appendTo="body" [options]="paymentOptions()" formControlName="paymentMethod" optionLabel="label" optionValue="value" styleClass="w-full rounded-xl dark:bg-surface-950 dark:border-surface-800 py-1 px-4"></p-select>
                     </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-2">تاريخ الاشتراك</label>
+                        <p-datepicker formControlName="subscriptionDate" styleClass="w-full" inputStyleClass="w-full rounded-xl dark:bg-surface-950 dark:border-surface-800 dark:text-surface-0 px-4 py-2" [fluid]="true" appendTo="body"></p-datepicker>
+                    </div>
                 </div>
             </div>
 
@@ -519,7 +523,8 @@ export class OrderFormComponent implements OnInit {
       notes: [''],
       devices: this.fb.array([]),
       attachments: [[]],
-      invoiceFile: [null]
+      invoiceFile: [null],
+      subscriptionDate: [new Date()]
     });
 
     this.onCustomerTypeChange();
@@ -619,7 +624,8 @@ export class OrderFormComponent implements OnInit {
         appExpiryDate: o.appExpiryDate ? new Date(o.appExpiryDate) : null,
         notes: o.notes,
         attachments: o.attachments || [],
-        invoiceFile: o.invoiceFile || null
+        invoiceFile: o.invoiceFile || null,
+        subscriptionDate: o.subscriptionDate ? new Date(o.subscriptionDate) : new Date(o.createdAt)
       });
 
       this.devices.clear();

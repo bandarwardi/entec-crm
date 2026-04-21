@@ -56,6 +56,7 @@ export interface Order {
   devices: OrderDevice[];
   attachments?: string[];
   invoiceFile?: string;
+  subscriptionDate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -175,5 +176,15 @@ export class SalesService {
 
   deleteCustomer(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/customers/${id}`);
+  }
+
+  exportOrders(): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/export/excel`, { responseType: 'blob' });
+  }
+
+  importOrders(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post(`${this.apiUrl}/import/excel`, formData);
   }
 }
