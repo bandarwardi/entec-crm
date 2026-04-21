@@ -50,18 +50,25 @@ export const CustomersStore = signalStore(
         switchMap((params) =>
           salesService.getCustomers(params).pipe(
             tapResponse({
-              next: (res) => patchState(store,
-                setAllEntities(res.data),
-                { 
-                  loading: false, 
-                  total: res.total, 
-                  currentPage: params.page, 
-                  pageSize: params.limit,
-                  searchTerm: params.search || '',
-                  lastFetched: Date.now(),
-                  lastParams: JSON.stringify(params)
-                }
-              ),
+              next: (res) => {
+                const normalized = {
+                  page: params.page,
+                  limit: params.limit,
+                  search: params.search || ''
+                };
+                patchState(store,
+                  setAllEntities(res.data),
+                  { 
+                    loading: false, 
+                    total: res.total, 
+                    currentPage: params.page, 
+                    pageSize: params.limit,
+                    searchTerm: params.search || '',
+                    lastFetched: Date.now(),
+                    lastParams: JSON.stringify(normalized)
+                  }
+                );
+              },
               error: (err: any) => patchState(store, { 
                 loading: false, 
                 error: err.error?.message || i18n.t('errors.load_customers') 
@@ -79,7 +86,13 @@ export const CustomersStore = signalStore(
         const CACHE_TTL = 5 * 60 * 1000;
         const last = store.lastFetched();
         const lastP = store.lastParams();
-        const currentP = JSON.stringify(params);
+        
+        const normalized = {
+          page: params.page,
+          limit: params.limit,
+          search: params.search || ''
+        };
+        const currentP = JSON.stringify(normalized);
         
         const isStale = !last || (Date.now() - last) > CACHE_TTL;
         const paramsChanged = lastP !== currentP;

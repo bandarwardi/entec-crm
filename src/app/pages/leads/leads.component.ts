@@ -714,7 +714,6 @@ export class LeadsComponent implements OnInit, OnDestroy {
   }
 
   initialLoad() {
-    this.store.ensureLoaded({ page: 1, limit: this.store.pageSize() });
 
     if (this.isSuperAdmin() || this.isAdmin()) {
       this.userService.getUsers().subscribe(users => {

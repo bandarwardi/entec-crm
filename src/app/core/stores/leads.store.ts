@@ -63,22 +63,33 @@ export const LeadsStore = signalStore(
         switchMap((params) =>
           leadService.getLeads(params).pipe(
             tapResponse({
-              next: (res) => patchState(store,
-                setAllEntities(res.data),
-                { 
-                  loading: false, 
-                  total: res.total, 
-                  currentPage: params.page, 
-                  pageSize: params.limit,
-                  searchTerm: params.search || '',
-                  filterStatus: params.status || null,
-                  filterState: params.state || null,
-                  filterHasReminder: params.hasReminder || null,
-                  filterCreatedBy: params.createdBy || null,
-                  lastFetched: Date.now(),
-                  lastParams: JSON.stringify(params)
-                }
-              ),
+              next: (res) => {
+                const normalized = {
+                  page: params.page,
+                  limit: params.limit,
+                  search: params.search || '',
+                  status: params.status || null,
+                  state: params.state || null,
+                  hasReminder: params.hasReminder || null,
+                  createdBy: params.createdBy || null
+                };
+                patchState(store,
+                  setAllEntities(res.data),
+                  { 
+                    loading: false, 
+                    total: res.total, 
+                    currentPage: params.page, 
+                    pageSize: params.limit,
+                    searchTerm: params.search || '',
+                    filterStatus: params.status || null,
+                    filterState: params.state || null,
+                    filterHasReminder: params.hasReminder || null,
+                    filterCreatedBy: params.createdBy || null,
+                    lastFetched: Date.now(),
+                    lastParams: JSON.stringify(normalized)
+                  }
+                );
+              },
               error: (err: any) => patchState(store, { 
                 loading: false, 
                 error: err.error?.message || i18n.t('errors.load_leads') 
@@ -96,7 +107,18 @@ export const LeadsStore = signalStore(
         const CACHE_TTL = 5 * 60 * 1000;
         const last = store.lastFetched();
         const lastP = store.lastParams();
-        const currentP = JSON.stringify(params);
+        
+        // Normalize params for consistent comparison
+        const normalized = {
+          page: params.page,
+          limit: params.limit,
+          search: params.search || '',
+          status: params.status || null,
+          state: params.state || null,
+          hasReminder: params.hasReminder || null,
+          createdBy: params.createdBy || null
+        };
+        const currentP = JSON.stringify(normalized);
         
         const isStale = !last || (Date.now() - last) > CACHE_TTL;
         const paramsChanged = lastP !== currentP;

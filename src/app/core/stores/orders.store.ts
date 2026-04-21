@@ -56,20 +56,29 @@ export const OrdersStore = signalStore(
         switchMap((params) =>
           salesService.getOrders(params).pipe(
             tapResponse({
-              next: (res) => patchState(store,
-                setAllEntities(res.data),
-                { 
-                  loading: false, 
-                  total: res.total, 
-                  currentPage: params.page, 
-                  pageSize: params.limit,
-                  searchTerm: params.search || '',
-                  filterStatus: params.status || null,
-                  filterType: params.type || null,
-                  lastFetched: Date.now(),
-                  lastParams: JSON.stringify(params)
-                }
-              ),
+              next: (res) => {
+                const normalized = {
+                  page: params.page,
+                  limit: params.limit,
+                  search: params.search || '',
+                  status: params.status || null,
+                  type: params.type || null
+                };
+                patchState(store,
+                  setAllEntities(res.data),
+                  { 
+                    loading: false, 
+                    total: res.total, 
+                    currentPage: params.page, 
+                    pageSize: params.limit,
+                    searchTerm: params.search || '',
+                    filterStatus: params.status || null,
+                    filterType: params.type || null,
+                    lastFetched: Date.now(),
+                    lastParams: JSON.stringify(normalized)
+                  }
+                );
+              },
               error: (err: any) => patchState(store, { 
                 loading: false, 
                 error: err.error?.message || i18n.t('errors.load_orders') 
@@ -87,7 +96,15 @@ export const OrdersStore = signalStore(
         const CACHE_TTL = 5 * 60 * 1000;
         const last = store.lastFetched();
         const lastP = store.lastParams();
-        const currentP = JSON.stringify(params);
+        
+        const normalized = {
+          page: params.page,
+          limit: params.limit,
+          search: params.search || '',
+          status: params.status || null,
+          type: params.type || null
+        };
+        const currentP = JSON.stringify(normalized);
         
         const isStale = !last || (Date.now() - last) > CACHE_TTL;
         const paramsChanged = lastP !== currentP;
