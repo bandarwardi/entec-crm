@@ -366,9 +366,26 @@ import 'emoji-picker-element';
               </div>
             }
 
-            <!-- Input Area -->
             <div class="p-3 bg-[#f0f2f5] dark:bg-surface-900 border-t dark:border-surface-700">
               <form (ngSubmit)="sendMessage()" class="flex items-center gap-2 max-w-5xl mx-auto">
+                <!-- Send Button (Moved to Left) -->
+                @if (isRecording()) {
+                  <p-button 
+                    type="button"
+                    icon="pi pi-send" 
+                    (click)="stopAndSendRecording()"
+                    severity="success"
+                    styleClass="rounded-full w-10 h-10 p-0 flex items-center justify-center -scale-x-100">
+                  </p-button>
+                } @else {
+                  <p-button 
+                    type="submit"
+                    icon="pi pi-send" 
+                    [disabled]="!newMessageText.trim() || sending()"
+                    styleClass="rounded-full w-10 h-10 p-0 flex items-center justify-center -scale-x-100">
+                  </p-button>
+                }
+
                 <div class="flex items-center gap-1">
                   <!-- Attachments Toggle -->
                   <p-button 
@@ -473,23 +490,6 @@ import 'emoji-picker-element';
                       class="w-full rounded-full bg-white dark:bg-surface-800 border-none px-5 py-2.5 text-sm focus:ring-1 focus:ring-primary/20"
                       autocomplete="off" />
                   </div>
-                }
-
-                @if (isRecording()) {
-                  <p-button 
-                    type="button"
-                    icon="pi pi-send" 
-                    (click)="stopAndSendRecording()"
-                    severity="success"
-                    styleClass="rounded-full w-10 h-10 p-0 flex items-center justify-center">
-                  </p-button>
-                } @else {
-                  <p-button 
-                    type="submit"
-                    icon="pi pi-send" 
-                    [disabled]="!newMessageText.trim() || sending()"
-                    styleClass="rounded-full w-10 h-10 p-0 flex items-center justify-center">
-                  </p-button>
                 }
 
                 <!-- Hidden Stickers Popover -->
@@ -1096,12 +1096,10 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
       this.messages.set(filteredMsgs);
       this.scrollToBottom();
 
-      // Check if we should trigger AI suggestion
+      // Clear AI suggestion if we already replied (outbound)
       const lastMsg = filteredMsgs[filteredMsgs.length - 1];
-      if (lastMsg && lastMsg.direction === 'inbound' && filteredMsgs.length > prevCount) {
-        this.triggerAiSuggestion();
-      } else if (lastMsg?.direction === 'outbound') {
-        this.aiSuggestion.set(null); // Clear if we already replied
+      if (lastMsg?.direction === 'outbound') {
+        this.aiSuggestion.set(null); 
       }
     }, (error) => {
       console.error('[Inbox] Firestore Subscription Error:', error);
