@@ -179,7 +179,7 @@ export class SalesService {
   }
 
   exportOrders(): Observable<Blob> {
-    return this.http.get(`${this.apiUrl}/export/excel`, { responseType: 'blob' });
+    return this.http.get(`${this.apiUrl}/excel-export`, { responseType: 'blob' });
   }
 
   importOrders(file: File): Observable<any> {
