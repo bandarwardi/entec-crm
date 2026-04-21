@@ -49,8 +49,8 @@ export class WhatsappService {
     );
   }
 
-  sendMessage(channelId: string, leadId: string | null, content: string, messageType: string = 'text', mediaUrl?: string, phoneNumber?: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/messages/send`, { channelId, leadId, content, messageType, mediaUrl, phoneNumber });
+  sendMessage(channelId: string, leadId: string | null, content: string, messageType: string = 'text', mediaUrl?: string, phoneNumber?: string, quotedMessageId?: string, quotedContent?: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/messages/send`, { channelId, leadId, content, messageType, mediaUrl, phoneNumber, quotedMessageId, quotedContent });
   }
 
   getMessages(channelId: string, phoneNumber: string): Observable<any[]> {
@@ -89,5 +89,25 @@ export class WhatsappService {
 
   getAiSuggestion(channelId: string, phoneNumber: string): Observable<{ suggestion: string | null }> {
     return this.http.post<{ suggestion: string | null }>(`${this.baseUrl}/ai-suggest`, { channelId, phoneNumber });
+  }
+
+  markAsRead(leadId: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/leads/${leadId}/mark-as-read`, {});
+  }
+
+  getTemplates(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/templates`);
+  }
+
+  createTemplate(data: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/templates`, data);
+  }
+
+  deleteTemplate(id: string): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/templates/${id}`);
+  }
+
+  toggleArchive(leadId: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/leads/${leadId}/toggle-archive`, {});
   }
 }

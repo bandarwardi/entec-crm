@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, effect, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, effect, CUSTOM_ELEMENTS_SCHEMA, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -15,6 +15,9 @@ import { TooltipModule } from 'primeng/tooltip';
 import { Popover, PopoverModule } from 'primeng/popover';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { SelectModule } from 'primeng/select';
+import { TextareaModule } from 'primeng/textarea';
+import { LeadStatus } from '../../core/services/user-lead.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { db } from '../../core/firebase/firebase.config';
@@ -37,16 +40,18 @@ import 'emoji-picker-element';
     TooltipModule,
     PopoverModule,
     ToastModule,
+    SelectModule,
+    TextareaModule,
     TranslatePipe
   ],
   providers: [MessageService],
   template: `
     <p-toast />
-    <div class="flex h-[calc(100vh-9rem)] gap-4 overflow-hidden relative w-full">
+    <div class="flex h-[calc(100vh-6rem)] lg:h-[calc(100vh-9rem)] lg:gap-4 overflow-hidden relative w-full">
       
       <!-- Sidebar (Channels & Leads) -->
       @if (!isMobile() || !targetPhone()) {
-        <div class="w-full lg:w-85 flex flex-col bg-surface-50 dark:bg-surface-900 rounded-3xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-sm">
+        <div class="flex-1 lg:flex-none lg:w-85 flex flex-col bg-surface-50 dark:bg-surface-900 lg:rounded-3xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-sm animate-fade-in">
           
           <!-- Top Section: Selected Channel / Profile -->
           <div class="p-4 bg-white dark:bg-surface-800 border-b dark:border-surface-700">
@@ -103,17 +108,72 @@ import 'emoji-picker-element';
                 (keydown.enter)="onSearchEnter($event)" />
             </p-iconField>
           </div>
+
+          <!-- Filter Section -->
+          <div class="px-4 pb-3 flex gap-2 overflow-x-auto custom-scrollbar no-scrollbar-ui">
+            <button 
+              type="button"
+              (click)="currentFilter.set('all')"
+              class="px-3 py-1.5 rounded-full text-[10px] font-black transition-all shrink-0 border border-transparent"
+              [class.bg-emerald-500]="currentFilter() === 'all'"
+              [class.text-white]="currentFilter() === 'all'"
+              [class.bg-surface-100]="currentFilter() !== 'all'"
+              [class.dark:bg-surface-800]="currentFilter() !== 'all'"
+              [class.text-surface-600]="currentFilter() !== 'all'">
+              الكل
+            </button>
+            <button 
+              type="button"
+              (click)="currentFilter.set('unread')"
+              class="px-3 py-1.5 rounded-full text-[10px] font-black transition-all shrink-0 border border-transparent flex items-center gap-1.5"
+              [class.bg-emerald-500]="currentFilter() === 'unread'"
+              [class.text-white]="currentFilter() === 'unread'"
+              [class.bg-surface-100]="currentFilter() !== 'unread'"
+              [class.dark:bg-surface-800]="currentFilter() !== 'unread'"
+              [class.text-surface-600]="currentFilter() !== 'unread'">
+              غير مقروء
+              @if (totalUnread() > 0) {
+                <span class="w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center text-[8px]">{{ totalUnread() }}</span>
+              }
+            </button>
+            <button 
+              type="button"
+              (click)="currentFilter.set('groups')"
+              class="px-3 py-1.5 rounded-full text-[10px] font-black transition-all shrink-0 border border-transparent"
+              [class.bg-emerald-500]="currentFilter() === 'groups'"
+              [class.text-white]="currentFilter() === 'groups'"
+              [class.bg-surface-100]="currentFilter() !== 'groups'"
+              [class.dark:bg-surface-800]="currentFilter() !== 'groups'"
+              [class.text-surface-600]="currentFilter() !== 'groups'">
+              المجموعات
+            </button>
+            <button 
+              type="button"
+              (click)="currentFilter.set('archived')"
+              class="px-3 py-1.5 rounded-full text-[10px] font-black transition-all shrink-0 border border-transparent"
+              [class.bg-emerald-500]="currentFilter() === 'archived'"
+              [class.text-white]="currentFilter() === 'archived'"
+              [class.bg-surface-100]="currentFilter() !== 'archived'"
+              [class.dark:bg-surface-800]="currentFilter() !== 'archived'"
+              [class.text-surface-600]="currentFilter() !== 'archived'">
+              المؤرشفة
+            </button>
+          </div>
           
           <!-- Leads List -->
           <div class="flex-1 overflow-y-auto px-2 pb-4 custom-scrollbar">
             <div class="flex flex-col gap-1">
               @for (lead of filteredLeads(); track lead.id) {
                 <div 
-                  class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-200 group"
+                  class="flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition-all duration-200 group border"
                   [class.bg-white]="targetPhone() === lead.phone"
                   [class.dark:bg-surface-800]="targetPhone() === lead.phone"
                   [class.shadow-sm]="targetPhone() === lead.phone"
                   [class.border-emerald-200]="targetPhone() === lead.phone"
+                  [class.bg-emerald-50/30]="(lead.unreadCount || 0) > 0 && targetPhone() !== lead.phone"
+                  [class.dark:bg-emerald-900/10]="(lead.unreadCount || 0) > 0 && targetPhone() !== lead.phone"
+                  [class.border-emerald-100/50]="(lead.unreadCount || 0) > 0 && targetPhone() !== lead.phone"
+                  [class.border-transparent]="(!lead.unreadCount || lead.unreadCount === 0) && targetPhone() !== lead.phone"
                   [class.hover:bg-surface-100]="targetPhone() !== lead.phone"
                   [class.dark:hover:bg-surface-800/50]="targetPhone() !== lead.phone"
                   (click)="selectLead(lead)">
@@ -127,6 +187,11 @@ import 'emoji-picker-element';
                     } @else {
                       {{ lead.name.substring(0, 1).toUpperCase() }}
                     }
+                    @if (lead.isGroup) {
+                      <div class="absolute -top-0.5 -left-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border border-white dark:border-surface-800 z-10">
+                        <i class="pi pi-users text-[8px] text-white"></i>
+                      </div>
+                    }
                     @if (lead.isOnline) {
                       <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-white dark:bg-surface-800 rounded-full flex items-center justify-center">
                         <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
@@ -137,7 +202,10 @@ import 'emoji-picker-element';
                   <!-- Info -->
                   <div class="flex-1 min-w-0">
                     <div class="flex justify-between items-center mb-0.5">
-                      <span class="font-black text-sm truncate text-surface-900 dark:text-surface-100" [class.text-emerald-600]="targetPhone() === lead.phone">
+                      <span class="text-sm truncate text-surface-900 dark:text-surface-100" 
+                        [class.font-black]="lead.unreadCount && lead.unreadCount > 0 || targetPhone() === lead.phone" 
+                        [class.font-bold]="(!lead.unreadCount || lead.unreadCount === 0) && targetPhone() !== lead.phone"
+                        [class.text-emerald-600]="targetPhone() === lead.phone">
                         {{ lead.name }}
                       </span>
                       @if (lead.lastMessageAt) {
@@ -146,10 +214,15 @@ import 'emoji-picker-element';
                         </span>
                       }
                     </div>
-                    <div class="flex items-center gap-1">
-                      <span class="text-[11px] text-surface-500 font-bold truncate dir-ltr text-right w-full">
+                    <div class="flex justify-between items-center">
+                      <span class="text-[11px] text-surface-500 font-bold truncate dir-ltr text-right max-w-full flex-1">
                         {{ lead.phone }}
                       </span>
+                      @if (lead.unreadCount && lead.unreadCount > 0) {
+                        <div class="h-5 min-w-[20px] px-1.5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-sm animate-bounce">
+                          {{ lead.unreadCount }}
+                        </div>
+                      }
                     </div>
                   </div>
                 </div>
@@ -167,11 +240,11 @@ import 'emoji-picker-element';
 
       <!-- Conversations/Chat Column -->
       @if (!isMobile() || targetPhone()) {
-        <div class="flex-1 flex flex-col bg-white dark:bg-surface-900 rounded-3xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-sm">
+        <div class="flex-1 flex flex-col bg-white dark:bg-surface-900 lg:rounded-3xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-sm animate-fade-in">
           @if (selectedChannel()) {
             <!-- Chat Header -->
-            <div class="p-4 border-b dark:border-surface-700 bg-surface-50/50 dark:bg-surface-800/50 flex justify-between items-center shadow-sm relative z-10">
-              <div class="flex items-center gap-3">
+            <div class="p-4 border-b dark:border-surface-700 bg-surface-50/50 dark:bg-surface-800/50 flex justify-between items-center shadow-sm relative z-10 transition-all">
+              <div class="flex items-center gap-3 flex-1 min-w-0">
                 @if (isMobile() && targetPhone()) {
                   <p-button 
                     icon="pi pi-arrow-right" 
@@ -180,34 +253,101 @@ import 'emoji-picker-element';
                     styleClass="p-0 w-8 h-8 text-surface-600 lg:hidden">
                   </p-button>
                 }
-                <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary overflow-hidden border border-emerald-100 dark:border-emerald-800/50 shadow-sm">
-                  @if (selectedLead()?.profilePicUrl) {
-                    <img [src]="selectedLead()?.profilePicUrl" class="w-full h-full object-cover" />
-                  } @else {
-                    <i class="pi pi-user text-xl"></i>
-                  }
-                </div>
-                <div class="flex flex-col">
-                  <span class="font-black text-lg">{{ currentLeadName() || targetPhone() }}</span>
-                  @if (selectedLead()?.isOnline) {
-                    <span class="text-[10px] text-emerald-500 font-black animate-pulse flex items-center gap-1">
-                      <i class="pi pi-circle-fill text-[6px]"></i>
-                      متصل الآن
-                    </span>
-                  }
-                </div>
+                
+                @if (!messageSearchActive()) {
+                  <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary overflow-hidden border border-emerald-100 dark:border-emerald-800/50 shadow-sm shrink-0">
+                    @if (selectedLead()?.profilePicUrl) {
+                      <img [src]="selectedLead()?.profilePicUrl" class="w-full h-full object-cover" />
+                    } @else {
+                      <div class="w-full h-full flex items-center justify-center bg-emerald-500 text-white font-black text-sm">
+                        {{ (selectedLead()?.name || '?').substring(0, 1).toUpperCase() }}
+                      </div>
+                    }
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="font-black text-sm sm:text-base truncate">{{ currentLeadName() || targetPhone() }}</span>
+                    @if (selectedLead()?.isOnline) {
+                      <span class="text-[10px] text-emerald-500 font-black animate-pulse flex items-center gap-1">
+                        <i class="pi pi-circle-fill text-[6px]"></i>
+                        متصل الآن
+                      </span>
+                    }
+                  </div>
+                } @else {
+                  <div class="flex-1 max-w-md animate-fade-in">
+                    <p-iconField iconPosition="left">
+                      <p-inputIcon class="pi pi-search text-surface-400" />
+                      <input 
+                        pInputText 
+                        type="text" 
+                        [(ngModel)]="messageSearchTerm"
+                        [placeholder]="'ابحث في الرسائل...'" 
+                        class="w-full rounded-full bg-white dark:bg-surface-800 border-none text-xs py-2 px-10 focus:ring-1 focus:ring-emerald-500"
+                        autoFocus />
+                    </p-iconField>
+                  </div>
+                }
+              </div>
+
+              <div class="flex items-center gap-1 sm:gap-2">
+                <p-button 
+                  [icon]="selectedLead()?.isArchived ? 'pi pi-upload' : 'pi pi-archive'" 
+                  [text]="true" 
+                  [rounded]="true" 
+                  (click)="toggleArchive(selectedLead())"
+                  [pTooltip]="selectedLead()?.isArchived ? 'إلغاء الأرشفة' : 'أرشفة المحادثة'"
+                  styleClass="w-9 h-9 sm:w-10 sm:h-10 text-surface-600 hover:bg-surface-100 transition-all">
+                </p-button>
+                
+                <p-button 
+                  [icon]="messageSearchActive() ? 'pi pi-times' : 'pi pi-search'" 
+                  [text]="true" 
+                  [rounded]="true" 
+                  (click)="toggleMessageSearch()"
+                  [pTooltip]="messageSearchActive() ? 'إغلاق البحث' : 'بحث في الرسائل'"
+                  styleClass="w-9 h-9 sm:w-10 sm:h-10 text-surface-600 hover:bg-surface-100 transition-all">
+                </p-button>
+
+                <!-- Toggle Sidebar Button -->
+                <p-button 
+                  icon="pi pi-info-circle" 
+                  [text]="true" 
+                  [rounded]="true" 
+                  (click)="showingDetails.set(!showingDetails())"
+                  [severity]="showingDetails() ? 'primary' : 'secondary'"
+                  pTooltip="تفاصيل العميل"
+                  styleClass="w-9 h-9 sm:w-10 sm:h-10 transition-all">
+                </p-button>
               </div>
             </div>
 
+            <!-- Connection Status Banner -->
+            @if (selectedChannel()?.status !== 'connected') {
+              <div class="bg-amber-50 dark:bg-amber-900/20 px-4 py-2 flex items-center justify-between border-b border-amber-100 dark:border-amber-900/30 animate-pulse relative z-10">
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-exclamation-triangle text-amber-500"></i>
+                  <span class="text-[10px] font-black text-amber-700 dark:text-amber-400">القناة غير متصلة الآن، قد لا تصل الرسائل بشكل فوري.</span>
+                </div>
+                <button type="button" (click)="reconnect()" class="text-[9px] font-black bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600 transition-all border-none cursor-pointer">إعادة ربط</button>
+              </div>
+            }
+
             <!-- Messages Area -->
-            <div #scrollContainer class="flex-1 overflow-y-auto p-6 flex flex-col gap-2 whatsapp-bg">
-              @for (msg of messages(); track msg.id) {
+            <div #scrollContainer class="flex-1 overflow-y-auto p-6 flex flex-col gap-2 whatsapp-bg relative">
+              
+              @if (messageSearchTerm()) {
+                <div class="sticky top-0 z-20 mx-auto bg-white/90 dark:bg-surface-800/90 backdrop-blur shadow-sm px-4 py-2 rounded-full text-[10px] font-black text-emerald-600 border border-emerald-100 dark:border-emerald-800/20 mb-4 animate-bounce">
+                  تم العثور على {{ filteredMessages().length }} رسالة
+                </div>
+              }
+
+              @for (msg of filteredMessages(); track msg.id) {
                 <div class="flex flex-col max-w-[85%] mb-1" 
                      [class.self-start]="msg.direction === 'outbound'"
                      [class.self-end]="msg.direction === 'inbound'">
-                  <div class="px-3 py-2 rounded-lg shadow-sm text-[13px] relative bubble"
-                       [class.bg-[#dcf8c6]]="msg.direction === 'outbound'"
-                       [class.dark:bg-[#056162]]="msg.direction === 'outbound'"
+                  <div class="px-3 py-2 rounded-lg shadow-sm text-[13px] relative bubble group/bubble"
+                       [class.bg-[#dcf8c6]]="msg.direction === 'outbound' && msg.messageType === 'text'"
+                       [class.dark:bg-[#056162]]="msg.direction === 'outbound' && msg.messageType === 'text'"
                        [class.text-surface-900]="msg.direction === 'outbound' || msg.direction === 'inbound'"
                        [class.dark:text-white]="msg.direction === 'outbound' || msg.direction === 'inbound'"
                        [class.bg-white]="msg.direction === 'inbound'"
@@ -215,6 +355,26 @@ import 'emoji-picker-element';
                        [class.bubble-out]="msg.direction === 'outbound'"
                        [class.bubble-in]="msg.direction === 'inbound'">
                     
+                    <!-- Quoted Message Display -->
+                    @if (msg.quotedContent) {
+                      <div class="mb-2 p-2 rounded bg-black/5 dark:bg-white/5 border-r-4 border-emerald-500 dark:border-emerald-400 text-[11px] opacity-80 cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                           (click)="scrollToMessage(msg.quotedMessageId)">
+                        <div class="font-black text-emerald-600 dark:text-emerald-400 mb-0.5 flex items-center gap-1">
+                          <i class="pi pi-reply text-[10px]"></i>
+                          الرد على الرسالة
+                        </div>
+                        <div class="truncate italic">{{ msg.quotedContent }}</div>
+                      </div>
+                    }
+
+                    <!-- Group Sender Name -->
+                    @if (selectedLead()?.isGroup && msg.direction === 'inbound') {
+                      <div class="text-[11px] font-black text-emerald-600 dark:text-emerald-400 mb-1 flex items-center gap-1.5 leading-none">
+                        <span class="hover:underline cursor-pointer">{{ msg.senderName || 'مشارك' }}</span>
+                        <span class="text-[8px] opacity-40 font-normal">•</span>
+                        <span class="text-[9px] opacity-50 font-mono tracking-tighter">{{ msg.senderJid?.split('@')[0] }}</span>
+                      </div>
+                    }
                     <!-- Media Content -->
                     @if (msg.messageType === 'sticker') {
                       <div class="p-1 flex justify-center">
@@ -249,7 +409,7 @@ import 'emoji-picker-element';
                               [rounded]="true"
                               [text]="true"
                               (click)="toggleAudio(audioPlayer)"
-                              styleClass="w-10 h-10 bg-emerald-500 text-white hover:bg-emerald-600 border-none shadow-md flex items-center justify-center p-0 rtl-flip">
+                              styleClass="w-10 h-10 !bg-emerald-500 !text-white flex items-center justify-center p-0 rtl-flip shadow-lg">
                             </p-button>
                             <div class="flex-1 flex flex-col gap-1.5">
                               <input 
@@ -294,6 +454,18 @@ import 'emoji-picker-element';
                           }
                         </div>
                       </div>
+                    } @else if (msg.messageType === 'video') {
+                      <div class="mb-1 -mx-1 -mt-1 overflow-hidden rounded-t-lg bg-black flex justify-center items-center">
+                        <video [src]="msg.mediaUrl" 
+                               controls 
+                               class="max-w-full block max-h-[400px]">
+                        </video>
+                      </div>
+                      @if (msg.content) {
+                        <div class="whitespace-pre-wrap break-words leading-relaxed text-[#303030] dark:text-white pb-1 px-1">
+                          {{ msg.content }}
+                        </div>
+                      }
                     } @else {
                       <!-- Text Content -->
                       <div class="whitespace-pre-wrap break-words leading-relaxed text-inherit">
@@ -328,6 +500,14 @@ import 'emoji-picker-element';
                         </div>
                       }
                     </div>
+
+                    <!-- Reply Button (Action) - Absolute Positioned -->
+                    <button 
+                      class="absolute -left-10 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white dark:bg-surface-800 shadow-xl border border-surface-200 dark:border-surface-700 items-center justify-center text-surface-500 hover:text-emerald-500 hover:scale-110 transition-all opacity-0 group-hover/bubble:opacity-100 hidden md:flex"
+                      (click)="setReplyTo(msg)"
+                      title="رد على المحادثة">
+                      <i class="pi pi-reply text-xs"></i>
+                    </button>
                   </div>
                 </div>
               }
@@ -369,6 +549,23 @@ import 'emoji-picker-element';
               </div>
             }
 
+            <!-- Reply Preview (Above Input) -->
+            @if (replyToMessage()) {
+              <div class="px-4 py-3 bg-surface-100 dark:bg-surface-800 border-t dark:border-surface-700 animate-fade-in relative z-20 flex items-center gap-3">
+                 <div class="w-1 bg-emerald-500 rounded h-10 shrink-0"></div>
+                 <div class="flex-1 min-w-0">
+                    <div class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 mb-1">الرد على هذه الرسالة...</div>
+                    <div class="text-xs text-surface-500 truncate italic">{{ replyToMessage()?.content }}</div>
+                 </div>
+                 <p-button 
+                   icon="pi pi-times" 
+                   [text]="true" 
+                   (click)="replyToMessage.set(null)"
+                   styleClass="p-0 w-8 h-8 text-surface-400">
+                 </p-button>
+              </div>
+            }
+
             <div class="p-3 bg-[#f0f2f5] dark:bg-surface-900 border-t dark:border-surface-700">
               <form (ngSubmit)="sendMessage()" class="flex items-center gap-2 max-w-5xl mx-auto">
                 <!-- Send Button (Moved to Left) -->
@@ -389,111 +586,137 @@ import 'emoji-picker-element';
                   </p-button>
                 }
 
-                <div class="flex items-center gap-1">
-                  <!-- Attachments Toggle -->
-                  <p-button 
-                    type="button" 
-                    icon="pi pi-plus" 
-                    [text]="true" 
-                    (click)="attachOp.toggle($event)"
-                    severity="secondary"
-                    styleClass="p-0 w-10 h-10 text-xl text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
-                  </p-button>
-
-                  <!-- AI Manual Suggest Trigger -->
-                  <p-button 
-                    type="button" 
-                    icon="pi pi-sparkles" 
-                    [text]="true" 
-                    (click)="triggerAiSuggestion()"
-                    [loading]="aiSuggestionLoading()"
-                    severity="help"
-                    [pTooltip]="'توليد اقتراح رد ذكي'"
-                    styleClass="p-0 w-10 h-10 text-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-all">
-                  </p-button>
-
-                  <p-popover #attachOp styleClass="w-56 p-2 rounded-2xl border-none shadow-2xl overflow-hidden">
-                    <div class="flex flex-col gap-1">
-                      <button type="button" (click)="triggerFileUpload('image'); attachOp.hide()" class="flex items-center gap-3 p-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group">
-                        <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                          <i class="pi pi-image text-lg"></i>
-                        </div>
-                        <span class="text-sm font-black text-surface-700 dark:text-surface-200">{{ 'whatsapp.inbox.upload_image' | t }}</span>
-                      </button>
-
-                      <button type="button" (click)="triggerFileUpload('document'); attachOp.hide()" class="flex items-center gap-3 p-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                          <i class="pi pi-file text-lg"></i>
-                        </div>
-                        <span class="text-sm font-black text-surface-700 dark:text-surface-200">{{ 'whatsapp.inbox.upload_document' | t }}</span>
-                      </button>
-
-                      <button type="button" (click)="stickerOp.toggle($event); attachOp.hide()" class="flex items-center gap-3 p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group">
-                        <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                          <i class="pi pi-bolt text-lg"></i>
-                        </div>
-                        <span class="text-sm font-black text-surface-700 dark:text-surface-200">{{ 'whatsapp.inbox.upload_sticker' | t }}</span>
-                      </button>
-                    </div>
-                  </p-popover>
-
-                  <!-- Voice Recording -->
-                  <p-button 
-                    type="button" 
-                    [icon]="isRecording() ? 'pi pi-stop-circle' : 'pi pi-microphone'" 
-                    [text]="true" 
-                    (click)="isRecording() ? cancelRecording() : startRecording()"
-                    [severity]="isRecording() ? 'danger' : 'secondary'"
-                    [pTooltip]="isRecording() ? 'إلغاء التسجيل' : ('whatsapp.inbox.record_audio' | t)"
-                    styleClass="p-0 w-10 h-10 text-xl text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
-                  </p-button>
-
-                  <!-- Emoji Picker -->
-                  <p-button 
-                    type="button"
-                    icon="pi pi-face-smile" 
-                    [text]="true"
-                    (click)="emojiOp.toggle($event)"
-                    severity="secondary"
-                    styleClass="p-0 w-10 h-10 text-xl text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
-                  </p-button>
-
-                  <p-popover #emojiOp styleClass="p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
-                    <emoji-picker (emoji-click)="addEmoji($event)"></emoji-picker>
-                  </p-popover>
-                </div>
-
+                <!-- Input Field (Flex-1) -->
                 @if (isRecording()) {
-                  <div class="flex-1 bg-white dark:bg-surface-800 rounded-full px-5 py-2 flex items-center justify-between border border-emerald-100 dark:border-emerald-900/30 animate-pulse">
-                    <div class="flex items-center gap-3">
-                      <span class="relative flex h-2 w-2">
+                  <div class="flex-1 bg-white dark:bg-surface-800 rounded-full px-4 py-2 flex items-center justify-between border border-emerald-100 dark:border-emerald-900/30 animate-pulse min-w-0">
+                    <div class="flex items-center gap-2 truncate">
+                      <span class="relative flex h-2 w-2 shrink-0">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                       </span>
-                      <span class="text-xs font-black text-red-500">جاري التسجيل...</span>
+                      <span class="text-[11px] font-black text-red-500 truncate">جاري التسجيل...</span>
                     </div>
-                    <span class="text-sm font-black font-mono text-surface-600 dark:text-surface-300">{{ recordingDuration() }}</span>
-                    <p-button 
-                      type="button"
-                      icon="pi pi-trash" 
-                      [text]="true"
-                      (click)="cancelRecording()"
-                      severity="danger"
-                      styleClass="p-0 w-6 h-6 text-xs">
-                    </p-button>
+                    <div class="flex items-center gap-2 shrink-0">
+                       <span class="text-xs font-black font-mono text-surface-600 dark:text-surface-300">{{ recordingDuration() }}</span>
+                       <p-button 
+                        type="button"
+                        icon="pi pi-trash" 
+                        [text]="true"
+                        (click)="cancelRecording()"
+                        severity="danger"
+                        styleClass="p-0 w-7 h-7 text-xs">
+                      </p-button>
+                    </div>
                   </div>
                 } @else {
-                  <div class="flex-1 relative">
+                  <div class="flex-1 relative min-w-0">
                     <input 
                       pInputText 
                       [(ngModel)]="newMessageText" 
                       name="msg"
                       [disabled]="isRecording()"
                       [placeholder]="isRecording() ? 'جاري التسجيل...' : ('chat.type_message_placeholder' | t)"
-                      class="w-full rounded-full bg-white dark:bg-surface-800 border-none px-5 py-2.5 text-sm focus:ring-1 focus:ring-primary/20"
+                      class="w-full rounded-full bg-white dark:bg-surface-800 border-none px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary/20 shadow-sm"
                       autocomplete="off" />
                   </div>
                 }
+
+                <!-- Essential Buttons -->
+                <div class="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                  <p-button 
+                    type="button" 
+                    [icon]="isRecording() ? 'pi pi-stop-circle' : 'pi pi-microphone'" 
+                    [text]="true" 
+                    (click)="isRecording() ? cancelRecording() : startRecording()"
+                    [severity]="isRecording() ? 'danger' : 'secondary'"
+                    styleClass="p-0 w-9 h-9 sm:w-10 sm:h-10 text-lg text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
+                  </p-button>
+
+                  @if (!isRecording()) {
+                    <p-button 
+                      type="button" 
+                      icon="pi pi-sparkles" 
+                      [text]="true" 
+                      (click)="triggerAiSuggestion()"
+                      [loading]="aiSuggestionLoading()"
+                      severity="help"
+                      styleClass="p-0 w-9 h-9 sm:w-10 sm:h-10 text-lg text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-all">
+                    </p-button>
+
+                    <p-button 
+                      type="button" 
+                      icon="pi pi-list" 
+                      [text]="true" 
+                      (click)="templateOp.toggle($event)"
+                      severity="success"
+                      styleClass="p-0 w-9 h-9 sm:w-10 sm:h-10 text-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-full transition-all"
+                      pTooltip="ردود سريعة">
+                    </p-button>
+
+                    <p-button 
+                      type="button" 
+                      icon="pi pi-plus" 
+                      [text]="true" 
+                      (click)="attachOp.toggle($event)"
+                      severity="secondary"
+                      styleClass="p-0 w-9 h-9 sm:w-10 sm:h-10 text-lg text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
+                    </p-button>
+                  }
+
+                  <p-popover #attachOp styleClass="w-56 p-2 rounded-2xl border-none shadow-2xl overflow-hidden">
+                    <div class="flex flex-col gap-1">
+                      <button type="button" (click)="triggerFileUpload('image'); attachOp.hide()" class="flex items-right gap-3 p-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group text-right">
+                        <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shrink-0">
+                          <i class="pi pi-image text-lg"></i>
+                        </div>
+                        <span class="font-black text-xs text-surface-700 dark:text-surface-200">صورة</span>
+                      </button>
+
+                      <button type="button" (click)="triggerFileUpload('document'); attachOp.hide()" class="flex items-right gap-3 p-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group text-right">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shrink-0">
+                          <i class="pi pi-file text-lg"></i>
+                        </div>
+                        <span class="font-black text-xs text-surface-700 dark:text-surface-200">ملف</span>
+                      </button>
+
+                      <button type="button" (click)="emojiOp.toggle($event); attachOp.hide()" class="flex lg:hidden items-right gap-3 p-3 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group text-right">
+                        <div class="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600 group-hover:scale-110 transition-transform shrink-0">
+                          <i class="pi pi-face-smile text-lg"></i>
+                        </div>
+                        <span class="font-black text-xs text-surface-700 dark:text-surface-200">إيموجي</span>
+                      </button>
+
+                      <button type="button" (click)="triggerFileUpload('video'); attachOp.hide()" class="flex items-right gap-3 p-3 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-xl transition-colors border-none bg-transparent w-full cursor-pointer group text-right">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform shrink-0">
+                          <i class="pi pi-video text-lg"></i>
+                        </div>
+                        <span class="font-black text-xs text-surface-700 dark:text-surface-200">فيديو</span>
+                      </button>
+                    </div>
+                  </p-popover>
+
+                  <p-popover #emojiOp styleClass="p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+                    <emoji-picker (emoji-click)="addEmoji($event)"></emoji-picker>
+                  </p-popover>
+
+                  <!-- Templates Popover -->
+                  <p-popover #templateOp styleClass="w-72 p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+                    <div class="bg-surface-50 dark:bg-surface-800 p-3 border-b dark:border-surface-700 flex justify-between items-center">
+                      <span class="text-xs font-black text-emerald-600">القوالب والردود السريعة</span>
+                    </div>
+                    <div class="max-h-80 overflow-y-auto custom-scrollbar">
+                      @for (t of templates(); track t._id) {
+                        <div class="p-3 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 cursor-pointer border-b last:border-none dark:border-surface-700 transition-colors"
+                             (click)="useTemplate(t.content); templateOp.hide()">
+                          <div class="text-[11px] font-black text-surface-900 dark:text-white mb-1">{{ t.title }}</div>
+                          <div class="text-[10px] text-surface-500 truncate">{{ t.content }}</div>
+                        </div>
+                      } @empty {
+                        <div class="p-8 text-center text-surface-400 text-[10px]">لا توجد قوالب متاحة</div>
+                      }
+                    </div>
+                  </p-popover>
+                </div>
 
                 <!-- Hidden Stickers Popover -->
                 <p-popover #stickerOp styleClass="w-72 p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
@@ -521,6 +744,97 @@ import 'emoji-picker-element';
               <p class="text-surface-500 max-w-md">{{ 'whatsapp.inbox.welcome_subtitle' | t }}</p>
             </div>
           }
+        </div>
+      }
+
+      <!-- Lead Details Sidebar (Right Column) -->
+      @if (showingDetails() && selectedLead()) {
+        <div class="hidden lg:flex w-80 flex-col bg-white dark:bg-surface-900 rounded-3xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-sm animate-slide-in-right">
+          <!-- Sidebar Header -->
+          <div class="p-5 border-b dark:border-surface-700 flex flex-col items-center">
+             <div class="w-24 h-24 rounded-full bg-surface-100 dark:bg-surface-800 border-4 border-white dark:border-surface-900 shadow-lg overflow-hidden mb-4">
+                @if (selectedLead()?.profilePicUrl) {
+                  <img [src]="selectedLead()?.profilePicUrl" class="w-full h-full object-cover" />
+                } @else {
+                  <div class="w-full h-full flex items-center justify-center bg-emerald-500 text-white text-3xl font-black">
+                    {{ (selectedLead()?.name || '?').substring(0, 1).toUpperCase() }}
+                  </div>
+                }
+             </div>
+             <h2 class="text-lg font-black text-surface-900 dark:text-white mb-1">{{ selectedLead()?.name }}</h2>
+             <span class="text-xs text-surface-500 font-bold dir-ltr">{{ selectedLead()?.phone }}</span>
+
+             <div class="mt-4 flex gap-2 w-full">
+                <button class="flex-1 py-2 px-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2">
+                  <i class="pi pi-phone text-[10px]"></i> اتصال
+                </button>
+                <button (click)="toggleArchive(selectedLead())" class="flex-1 py-2 px-3 bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 text-surface-600 dark:text-surface-300 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2">
+                  <i class="pi pi-archive text-[10px]"></i> {{ selectedLead()?.isArchived ? 'فك الأرشفة' : 'أرشفة' }}
+                </button>
+             </div>
+          </div>
+
+          <!-- Sidebar Content -->
+          <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
+             <!-- Status Section -->
+             <div class="mb-6">
+                <label class="block text-[10px] font-black text-surface-400 mb-2 uppercase tracking-wider">حالة العميل</label>
+                <p-select 
+                  [options]="leadStatuses" 
+                  [(ngModel)]="selectedLead()!.status" 
+                  (onChange)="updateLeadStatus($event.value)"
+                  class="w-[100%] custom-select" 
+                  styleClass="w-full rounded-xl border-surface-200 dark:border-surface-700 text-xs">
+                  <ng-template #item let-item>
+                    <div class="flex items-center gap-2 text-xs">
+                      <div class="w-2 h-2 rounded-full" [class]="item.color"></div>
+                      <span class="font-bold">{{ item.label }}</span>
+                    </div>
+                  </ng-template>
+                </p-select>
+             </div>
+
+             <!-- Notes Section -->
+             <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                  <label class="block text-[10px] font-black text-surface-400 uppercase tracking-wider">ملاحظات الموظف</label>
+                  @if (isSavingNote()) {
+                    <i class="pi pi-spin pi-spinner text-[10px] text-emerald-500"></i>
+                  }
+                </div>
+                <textarea 
+                  pInputTextarea 
+                  [(ngModel)]="selectedLead()!.notes"
+                  (blur)="updateLeadNote(selectedLead()!.notes || '')"
+                  [placeholder]="'أضف ملاحظات عن هذا العميل...'"
+                  class="w-full min-h-[100px] rounded-xl bg-surface-50 dark:bg-surface-800 border-none p-3 text-[11px] focus:ring-1 focus:ring-emerald-500/30 text-right leading-relaxed resize-none"></textarea>
+             </div>
+
+             <!-- Shared Media Section (Quick Preview) -->
+             <div>
+                <div class="flex justify-between items-center mb-3">
+                  <label class="block text-[10px] font-black text-surface-400 uppercase tracking-wider">الوسائط المشتركة</label>
+                  <button class="text-[9px] font-bold text-emerald-600 hover:underline">عرض الكل</button>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <!-- Recent Media Gallery -->
+                  @for (msg of sharedMedia().slice(0, 12); track msg.id) {
+                    <div class="aspect-square rounded-lg bg-surface-100 dark:bg-surface-800 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity border border-surface-200 dark:border-surface-700">
+                      @if (msg.messageType === 'image') {
+                        <img [src]="msg.mediaUrl" class="w-full h-full object-cover" />
+                      } @else if (msg.messageType === 'video') {
+                        <div class="w-full h-full flex items-center justify-center bg-black relative">
+                          <img [src]="msg.thumbnailUrl || msg.mediaUrl" class="w-full h-full object-cover opacity-60" />
+                          <i class="pi pi-play-circle text-white text-xl absolute"></i>
+                        </div>
+                      }
+                    </div>
+                  } @empty {
+                    <div class="col-span-3 py-4 text-center text-[10px] text-surface-400 italic">لا توجد وسائط مؤخراً</div>
+                  }
+                </div>
+             </div>
+          </div>
         </div>
       }
     </div>
@@ -623,9 +937,13 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   
   isMobile = signal(false);
 
+  @HostListener('window:resize')
+  onResize() {
+    this.checkMobile();
+  }
+
   private checkMobile() {
     const isSmall = window.innerWidth < 1100;
-    console.log('[Inbox] Checking screen size:', window.innerWidth, 'isMobile:', isSmall);
     this.isMobile.set(isSmall);
   }
 
@@ -637,10 +955,46 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   }
   
   leadSearchTerm = signal('');
+  messageSearchTerm = signal('');
+  currentFilter = signal<'all' | 'unread' | 'groups' | 'archived'>('all');
+
+  totalUnread = computed(() => {
+    return this.leadsStore.allLeads().reduce((acc, l) => acc + (l.unreadCount || 0), 0);
+  });
+
+  sharedMedia = computed(() => {
+    return this.messages().filter(m => m.messageType === 'image' || m.messageType === 'video').reverse();
+  });
+
+  filteredMessages = computed(() => {
+    const term = this.messageSearchTerm().toLowerCase();
+    if (!term) return this.messages();
+    return this.messages().filter(m => 
+      m.content?.toLowerCase().includes(term) || 
+      m.senderName?.toLowerCase().includes(term)
+    );
+  });
+
   filteredLeads = computed(() => {
     const term = this.leadSearchTerm().toLowerCase();
+    const filter = this.currentFilter();
+    
     // Filter to show only leads with conversations (lastMessageAt is not null)
     let leads = this.leadsStore.allLeads().filter(l => !!l.lastMessageAt);
+    
+    // Default: Exclude archived unless current filter is 'archived'
+    if (filter !== 'archived') {
+      leads = leads.filter(l => !l.isArchived);
+    } else {
+      leads = leads.filter(l => !!l.isArchived);
+    }
+
+    // Apply Specific Filter
+    if (filter === 'unread') {
+      leads = leads.filter(l => (l.unreadCount || 0) > 0);
+    } else if (filter === 'groups') {
+      leads = leads.filter(l => !!l.isGroup);
+    }
     
     // Create copy for sorting
     leads = [...leads];
@@ -664,6 +1018,19 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   sending = signal(false);
   aiSuggestion = signal<string | null>(null);
   aiSuggestionLoading = signal(false);
+  replyToMessage = signal<any>(null);
+  templates = signal<any[]>([]);
+  showingDetails = signal(false);
+  messageSearchActive = signal(false);
+  isSavingNote = signal(false);
+  
+  leadStatuses = [
+    { label: 'جديد', value: LeadStatus.NEW, icon: 'pi pi-plus', color: 'bg-blue-500' },
+    { label: 'متابع', value: LeadStatus.FOLLOW_UP, icon: 'pi pi-sync', color: 'bg-orange-500' },
+    { label: 'تم البيع', value: LeadStatus.CLOSED_WON, icon: 'pi pi-check-circle', color: 'bg-emerald-500' },
+    { label: 'لم يكتمل', value: LeadStatus.CLOSED_LOST, icon: 'pi pi-times-circle', color: 'bg-red-500' },
+  ];
+
   private messagesUnsubscribe?: () => void;
   private globalMessagesUnsubscribe?: () => void;
 
@@ -775,13 +1142,18 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
         // For documents, use original filename if possible, otherwise from newMessageText
         const contentVal = this.currentFileType === 'document' ? (file.name || this.newMessageText) : this.newMessageText;
         
+        const quote = this.replyToMessage();
+        this.replyToMessage.set(null); // clear
+
         this.whatsappService.sendMessage(
           channel.id, 
           leadId, 
           contentVal, 
           this.currentFileType, 
           mediaUrl,
-          this.targetPhone() || undefined
+          this.targetPhone() || undefined,
+          quote?.waMessageId,
+          quote?.content
         ).subscribe({
           next: () => {
             this.sending.set(false);
@@ -791,6 +1163,52 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
       }
     })
     .catch(() => this.sending.set(false));
+  }
+
+  toggleArchive(lead: any) {
+    if (!lead) return;
+    this.whatsappService.toggleArchive(lead.id).subscribe({
+      next: (res) => {
+        this.leadsStore.updateLeadLocal(lead.id, { isArchived: res.isArchived });
+        // Clear selection if unarchiving from archive list OR archiving from all list
+        this.backToList();
+        this.messageService.add({ 
+            severity: 'success', 
+            summary: 'نجاح', 
+            detail: res.isArchived ? 'تمت أرشفة المحادثة بنجاح' : 'تم إلغاء أرشفة المحادثة' 
+        });
+      }
+    });
+  }
+
+  toggleMessageSearch() {
+    this.messageSearchActive.set(!this.messageSearchActive());
+    if (!this.messageSearchActive()) {
+      this.messageSearchTerm.set('');
+    }
+  }
+
+  reconnect() {
+    const channel = this.selectedChannel();
+    if (channel) {
+      this.store.reconnectChannel(channel.id);
+      this.messageService.add({ severity: 'info', summary: 'جاري الاتصال', detail: 'يتم الآن محاولة إعادة ربط القناة...' });
+    }
+  }
+
+  updateLeadStatus(status: LeadStatus) {
+    const lead = this.selectedLead();
+    if (!lead) return;
+    this.leadsStore.updateLead({ id: lead.id, changes: { status } });
+    this.messageService.add({ severity: 'success', summary: 'نجاح', detail: 'تم تحديث حالة العميل' });
+  }
+
+  updateLeadNote(notes: string) {
+    const lead = this.selectedLead();
+    if (!lead) return;
+    this.isSavingNote.set(true);
+    this.leadsStore.updateLead({ id: lead.id, changes: { notes } });
+    setTimeout(() => this.isSavingNote.set(false), 500);
   }
 
   toggleAudio(player: HTMLAudioElement) {
@@ -820,11 +1238,33 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     return colors[Math.abs(hash) % colors.length];
   }
 
+  setReplyTo(msg: any) {
+    this.replyToMessage.set(msg);
+    // Focus input
+    setTimeout(() => {
+      const input = document.querySelector('input[name="msg"]') as HTMLInputElement;
+      if (input) input.focus();
+    }, 100);
+  }
+
+  scrollToMessage(messageId: string) {
+    const el = document.querySelector(`[data-msg-id="${messageId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('bg-emerald-500/20');
+      setTimeout(() => el.classList.remove('bg-emerald-500/20'), 2000);
+    }
+  }
+
   addEmoji(event: any) {
     this.newMessageText += event.detail.unicode;
   }
 
-  currentFileType: 'image' | 'audio' | 'sticker' | 'document' | 'text' = 'text';
+  useTemplate(content: string) {
+    this.newMessageText += (this.newMessageText ? ' ' : '') + content;
+  }
+
+  currentFileType: 'image' | 'audio' | 'sticker' | 'document' | 'video' | 'text' = 'text';
 
   quickStickers = [
     { name: 'Smile', url: 'https://raw.githubusercontent.com/WhatsApp/stickers/main/Android/app/src/main/assets/1/01_Cuppy_smile.webp' },
@@ -845,7 +1285,7 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     this.whatsappService.sendMessage(channel.id, leadId, '', 'sticker', url).subscribe();
   }
 
-  triggerFileUpload(type: 'image' | 'audio' | 'sticker' | 'document') {
+  triggerFileUpload(type: 'image' | 'audio' | 'sticker' | 'document' | 'video') {
     this.currentFileType = type;
     this.fileInput.nativeElement.click();
   }
@@ -940,8 +1380,12 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.checkMobile();
     this.store.startListening();
     this.leadsStore.loadLeads({ page: 1, limit: 100 });
+    
+    // Load Templates
+    this.whatsappService.getTemplates().subscribe(res => this.templates.set(res));
     
     // Handle query params for direct chat from Leads
     this.route.queryParams.subscribe(params => {
@@ -953,21 +1397,33 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
         const lead = this.leadsStore.allLeads().find(l => l.id === params['leadId'] || l.phone === params['phone']);
         if (lead) {
           this.currentLeadName.set(lead.name);
+          this.targetPhone.set(lead.phone);
           if (!this.currentLeadId()) this.currentLeadId.set(lead.id);
+
+          // Mark as read in backend
+          if ((lead.unreadCount || 0) > 0) {
+            this.whatsappService.markAsRead(lead.id).subscribe();
+            // Optimistic update
+            this.leadsStore.updateLeadLocal(lead.id, { unreadCount: 0 });
+          }
+        }
+
+        if (this.isMobile() && params['phone']) {
+          // Additional mobile logic if needed
         }
 
         // Handle specific channel if provided
         if (params['channelId']) {
-            const channel = this.store.channels().find(c => c.id === params['channelId']);
-            if (channel) {
-                this.selectedChannel.set(channel);
-            }
+          const channel = this.store.channels().find(c => c.id === params['channelId']);
+          if (channel) {
+            this.selectedChannel.set(channel);
+          }
         }
+      }
 
-        // Auto-select first channel if none selected
-        if (!this.selectedChannel() && this.store.channels().length > 0) {
-          this.selectedChannel.set(this.store.channels()[0]);
-        }
+      // Auto-select first channel if none selected
+      if (!this.selectedChannel() && this.store.channels().length > 0) {
+        this.selectedChannel.set(this.store.channels()[0]);
       }
     });
   }
@@ -1042,6 +1498,13 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     
     if (!this.selectedChannel() && this.store.channels().length > 0) {
       this.selectedChannel.set(this.store.channels()[0]);
+    }
+
+    // Mark as read in backend
+    if (lead.unreadCount > 0) {
+       this.whatsappService.markAsRead(lead.id).subscribe();
+       // Optimistic update
+       this.leadsStore.updateLeadLocal(lead.id, { unreadCount: 0 });
     }
 
     // On mobile, scroll to top of chat when selected

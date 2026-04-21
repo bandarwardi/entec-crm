@@ -6,10 +6,13 @@ import { API_BASE_URL } from '../constants/api.constants';
 export enum LeadStatus {
   NEW = 'new',
   INTERESTED = 'interested',
+  FOLLOW_UP = 'follow_up',
   NOT_INTERESTED = 'not_interested',
   SUBSCRIBED_ELSEWHERE = 'subscribed_elsewhere',
   PENDING_CALLBACK = 'pending_callback',
   CONVERTED = 'converted',
+  CLOSED_WON = 'closed_won',
+  CLOSED_LOST = 'closed_lost',
 }
 
 export interface Lead {
@@ -29,6 +32,10 @@ export interface Lead {
   currentDevice?: string;
   subscriptionAmount?: number;
   subscriptionDuration?: number;
+  isGroup?: boolean;
+  groupJid?: string;
+  unreadCount?: number;
+  isArchived?: boolean;
   createdBy?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
