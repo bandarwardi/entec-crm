@@ -62,4 +62,20 @@ export class WhatsappService {
       params: { phoneNumber }
     });
   }
+
+  formatPhoneForWhatsapp(phone: string): string {
+    let cleaned = phone.replace(/\D/g, '');
+
+    // US Number: 10 digits
+    if (cleaned.length === 10) {
+      cleaned = '1' + cleaned;
+    }
+
+    // Egyptian Number: 11 digits starting with 01
+    if (cleaned.length === 11 && cleaned.startsWith('01')) {
+      cleaned = '2' + cleaned;
+    }
+
+    return cleaned;
+  }
 }

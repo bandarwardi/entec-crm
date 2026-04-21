@@ -915,8 +915,8 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
     const value = event.target.value.trim();
     if (!value) return;
 
-    // Filter non-digits to check against stored numbers
-    const cleanValue = value.replace(/\D/g, '');
+    // Filter non-digits and apply smart formatting
+    const cleanValue = this.whatsappService.formatPhoneForWhatsapp(value);
     
     // 1. Check if found in filtered results
     const existing = this.filteredLeads().find(l => 
@@ -930,8 +930,8 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
 
     // 2. Check in all leads (even those without messages)
     const existingInAll = this.leadsStore.allLeads().find(l => 
-      l.phone.replace(/\D/g, '').includes(cleanValue) || 
-      cleanValue.includes(l.phone.replace(/\D/g, ''))
+      this.whatsappService.formatPhoneForWhatsapp(l.phone).includes(cleanValue) || 
+      cleanValue.includes(this.whatsappService.formatPhoneForWhatsapp(l.phone))
     );
     if (existingInAll) {
       this.selectLead(existingInAll);
@@ -949,7 +949,7 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
 
       this.messageService.add({ severity: 'info', summary: 'جاري التحقق', detail: 'يتم التحقق من الرقم في واتساب...' });
       
-      const cleanPhoneToCheck = value.replace(/\D/g, '');
+      const cleanPhoneToCheck = this.whatsappService.formatPhoneForWhatsapp(value);
       this.whatsappService.checkNumber(channel.id, cleanPhoneToCheck).subscribe({
         next: (result: any) => {
           if (result && result.exists) {

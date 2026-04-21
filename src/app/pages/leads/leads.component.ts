@@ -847,12 +847,12 @@ export class LeadsComponent implements OnInit, OnDestroy {
         detail: 'لا توجد قنوات واتساب متصلة حالياً للتحقق من الرقم' 
       });
       // Fallback: regular navigation
-      const cleanPhone = lead.phone.replace(/\D/g, '');
+      const cleanPhone = this.whatsappService.formatPhoneForWhatsapp(lead.phone);
       this.router.navigate(['/whatsapp/inbox'], { queryParams: { phone: cleanPhone, leadId: lead.id } });
       return;
     }
 
-    const cleanPhone = lead.phone.replace(/\D/g, '');
+    const cleanPhone = this.whatsappService.formatPhoneForWhatsapp(lead.phone);
     this.messageService.add({ severity: 'info', summary: 'جاري التحقق', detail: 'يتم التحقق من الرقم في واتساب...' });
 
     this.whatsappService.checkNumber(channel.id, cleanPhone).subscribe({
