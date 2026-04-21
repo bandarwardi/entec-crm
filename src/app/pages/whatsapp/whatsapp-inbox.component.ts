@@ -534,10 +534,10 @@ import 'emoji-picker-element';
         background-blend-mode: overlay;
         transition: background-color 0.3s ease;
       }
-      :host-context(.dark) .whatsapp-bg {
+      :host-context(.dark) .whatsapp-bg,
+      .dark .whatsapp-bg {
         background-color: #0b141a !important;
-        background-blend-mode: soft-light;
-        opacity: 0.95;
+        background-image: none !important;
       }
       :host-context(.dark) .bubble-out {
         border-color: #056162;
