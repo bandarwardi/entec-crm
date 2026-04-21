@@ -152,6 +152,10 @@ export const WhatsappStore = signalStore(
             c.sessionId === sessionId ? { ...c, qrCode, status: 'qr_pending' } : c
           )
         });
+      },
+
+      requestPairingCode(channelId: string, phoneNumber: string) {
+        return whatsappService.requestPairingCode(channelId, phoneNumber);
       }
     };
   })

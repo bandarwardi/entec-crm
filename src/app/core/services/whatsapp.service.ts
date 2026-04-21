@@ -107,7 +107,27 @@ export class WhatsappService {
     return this.http.delete(`${this.baseUrl}/templates/${id}`);
   }
 
-  toggleArchive(leadId: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/leads/${leadId}/toggle-archive`, {});
+  toggleArchive(leadId: string, channelId?: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/leads/${leadId}/toggle-archive`, { channelId });
+  }
+
+  modifyChat(channelId: string, leadId: string, action: 'archive' | 'unarchive' | 'mute' | 'unmute' | 'pin' | 'unpin' | 'markRead' | 'markUnread' | 'delete'): Observable<any> {
+    return this.http.post(`${this.baseUrl}/chats/modify`, { channelId, leadId, action });
+  }
+
+  updatePresence(channelId: string, leadId: string, presence: 'available' | 'unavailable' | 'composing' | 'recording'): Observable<any> {
+    return this.http.post(`${this.baseUrl}/presence/update`, { channelId, leadId, presence });
+  }
+
+  starMessage(channelId: string, leadId: string, messageId: string, star: boolean): Observable<any> {
+    return this.http.post(`${this.baseUrl}/messages/star`, { channelId, leadId, messageId, star });
+  }
+
+  blockUser(channelId: string, leadId: string, action: 'block' | 'unblock'): Observable<any> {
+    return this.http.post(`${this.baseUrl}/users/block`, { channelId, leadId, action });
+  }
+
+  requestPairingCode(channelId: string, phoneNumber: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/channels/${channelId}/request-pairing-code`, { phoneNumber });
   }
 }

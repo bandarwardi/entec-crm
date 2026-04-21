@@ -294,10 +294,36 @@ import 'emoji-picker-element';
                   [icon]="selectedLead()?.isArchived ? 'pi pi-upload' : 'pi pi-archive'" 
                   [text]="true" 
                   [rounded]="true" 
-                  (click)="toggleArchive(selectedLead())"
+                  (click)="toggleArchive(selectedLead()!)"
                   [pTooltip]="selectedLead()?.isArchived ? 'إلغاء الأرشفة' : 'أرشفة المحادثة'"
                   styleClass="w-9 h-9 sm:w-10 sm:h-10 text-surface-600 hover:bg-surface-100 transition-all">
                 </p-button>
+
+                <p-button 
+                  icon="pi pi-ellipsis-v" 
+                  [text]="true" 
+                  [rounded]="true" 
+                  (click)="chatMenu.toggle($event)"
+                  pTooltip="خيارات إضافية"
+                  styleClass="w-9 h-9 sm:w-10 sm:h-10 text-surface-600 hover:bg-surface-100 transition-all">
+                </p-button>
+
+                <p-popover #chatMenu styleClass="w-48 p-1">
+                  <div class="flex flex-col gap-1">
+                    <button class="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 text-xs text-surface-700 dark:text-surface-200 border-none bg-transparent cursor-pointer w-full text-right" (click)="modifyChat('mute'); chatMenu.hide()">
+                      <i class="pi pi-volume-off text-amber-500"></i>
+                      <span>كتم المحادثة</span>
+                    </button>
+                    <button class="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 text-xs text-surface-700 dark:text-surface-200 border-none bg-transparent cursor-pointer w-full text-right" (click)="modifyChat('pin'); chatMenu.hide()">
+                      <i class="pi pi-bookmark text-blue-500"></i>
+                      <span>تثبيت المحادثة</span>
+                    </button>
+                    <button class="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 text-xs text-red-500 border-none bg-transparent cursor-pointer w-full text-right" (click)="blockUser(); chatMenu.hide()">
+                      <i class="pi pi-ban"></i>
+                      <span>حظر المستخدم</span>
+                    </button>
+                  </div>
+                </p-popover>
                 
                 <p-button 
                   [icon]="messageSearchActive() ? 'pi pi-times' : 'pi pi-search'" 
@@ -1078,7 +1104,8 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   }
 
   private startRecordingTimer() {
-    this.recordingTimer = setInterval(() => {
+    if (this.typingTimeout) clearTimeout(this.typingTimeout);
+    this.typingTimeout = setTimeout(() => {
       const elapsed = Math.floor((Date.now() - (this.recordingStartTime || 0)) / 1000);
       const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
       const seconds = (elapsed % 60).toString().padStart(2, '0');
@@ -1167,7 +1194,8 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
 
   toggleArchive(lead: any) {
     if (!lead) return;
-    this.whatsappService.toggleArchive(lead.id).subscribe({
+    const channelId = this.selectedChannel()?.id;
+    this.whatsappService.toggleArchive(lead.id, channelId).subscribe({
       next: (res) => {
         this.leadsStore.updateLeadLocal(lead.id, { isArchived: res.isArchived });
         // Clear selection if unarchiving from archive list OR archiving from all list
@@ -1179,6 +1207,73 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  private typingTimeout: any;
+  
+  onTextChange() {
+    const channel = this.selectedChannel();
+    const leadId = this.currentLeadId();
+    if (!channel || !leadId) return;
+
+    this.whatsappService.updatePresence(channel.id, leadId, 'composing').subscribe();
+
+    if (this.typingTimeout) clearTimeout(this.typingTimeout);
+    this.typingTimeout = setTimeout(() => {
+      this.whatsappService.updatePresence(channel.id, leadId, 'available').subscribe();
+    }, 3000);
+  }
+
+  modifyChat(action: any) {
+    const channel = this.selectedChannel();
+    const leadId = this.currentLeadId();
+    if (!channel || !leadId) return;
+
+    this.whatsappService.modifyChat(channel.id, leadId, action).subscribe({
+      next: () => {
+        this.messageService.add({ severity: 'success', summary: 'نجاح', detail: 'تم تنفيذ العملية بنجاح' });
+      }
+    });
+  }
+
+  blockUser() {
+    const channel = this.selectedChannel();
+    const leadId = this.currentLeadId();
+    if (!channel || !leadId) return;
+
+    if (!confirm('هل أنت متأكد من حظر هذا المستخدم؟')) return;
+
+    this.whatsappService.blockUser(channel.id, leadId, 'block').subscribe({
+      next: () => {
+        this.messageService.add({ severity: 'warn', summary: 'تم الحظر', detail: 'تم حظر المستخدم بنجاح' });
+      }
+    });
+  }
+
+  sendLocationPrompt() {
+    const prompt = window.prompt('أدخل الإحداثيات (lat,lng) واسم الموقع مفصولين بـ | مثال: 24.7136|46.6753|الرياض|العليا');
+    if (prompt) this.sendDirectly(prompt, 'location');
+  }
+
+  sendPollPrompt() {
+    const prompt = window.prompt('أدخل السؤال والخيارات مفصولة بـ | مثال: هل الموعد مناسب؟|نعم|لا|ربما');
+    if (prompt) this.sendDirectly(prompt, 'poll');
+  }
+
+  sendContactPrompt() {
+    const prompt = window.prompt('أدخل اسم جهة الاتصال والـ VCard مفصولين بـ |');
+    if (prompt) this.sendDirectly(prompt, 'contact');
+  }
+
+  private sendDirectly(content: string, type: string) {
+    const channel = this.selectedChannel();
+    const leadId = this.currentLeadId();
+    if (!channel || !leadId) return;
+    this.whatsappService.sendMessage(channel.id, leadId, content, type).subscribe();
+  }
+
+  triggerDocUpload() {
+    this.triggerFileUpload('document');
   }
 
   toggleMessageSearch() {

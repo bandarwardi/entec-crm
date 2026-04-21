@@ -167,13 +167,49 @@ import { I18nService } from '../../../core/i18n/i18n.service';
         [modal]="true" 
         [style]="{width: '400px'}">
         <div class="flex flex-col items-center gap-4 p-4 text-center">
-          @if (selectedChannel?.qrCode) {
-            <img [src]="selectedChannel?.qrCode" alt="QR Code" class="w-64 h-64 shadow-lg rounded-lg border border-gray-200" />
-            <p class="text-sm font-medium text-gray-600">{{ 'whatsapp.admin.scan_instructions' | t }}</p>
+          @if (!showPairing) {
+            @if (selectedChannel?.qrCode) {
+              <img [src]="selectedChannel?.qrCode" alt="QR Code" class="w-64 h-64 shadow-lg rounded-lg border border-gray-200" />
+              <p class="text-sm font-medium text-gray-600">{{ 'whatsapp.admin.scan_instructions' | t }}</p>
+              
+              <div class="w-full border-t dark:border-surface-700 my-2"></div>
+              <p-button 
+                [label]="'الربط عبر رقم الهاتف' | t" 
+                [text]="true" 
+                icon="pi pi-phone" 
+                (onClick)="showPairing = true">
+              </p-button>
+            } @else {
+              <div class="flex flex-col items-center gap-4 py-8">
+                <i class="pi pi-spin pi-spinner text-5xl text-primary"></i>
+                <p class="font-bold text-gray-500">{{ 'whatsapp.admin.generating_qr' | t }}</p>
+              </div>
+            }
           } @else {
-            <div class="flex flex-col items-center gap-4 py-8">
-              <i class="pi pi-spin pi-spinner text-5xl text-primary"></i>
-              <p class="font-bold text-gray-500">{{ 'whatsapp.admin.generating_qr' | t }}</p>
+            <div class="flex flex-col gap-4 w-full p-2">
+              <p class="text-sm text-surface-600">أدخل رقم الهاتف المرتبط بالواتساب (بالصيغة الدولية، مثلاً 9665xxxxxxxx)</p>
+              <div class="flex gap-2">
+                <input pInputText [(ngModel)]="pairingPhone" placeholder="9665xxxxxxxx" class="flex-1" />
+                <p-button label="طلب الكود" (onClick)="getPairingCode()" [loading]="pairingLoading"></p-button>
+              </div>
+
+              @if (pairingCode) {
+                <div class="mt-4 p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border-2 border-dashed border-emerald-500">
+                  <p class="text-[10px] uppercase font-black text-emerald-600 mb-2">كود الإقران الخاص بك هو:</p>
+                  <div class="text-3xl font-mono font-black tracking-[0.5em] text-emerald-700 dark:text-emerald-400">
+                    {{ pairingCode }}
+                  </div>
+                  <p class="text-[10px] text-emerald-600 mt-4 leading-relaxed">افتح واتساب على هاتفك > الأجهزة المرتبطة > ربط جهاز > الربط عبر رقم الهاتف بدلاً من ذلك، ثم أدخل الكود أعلاه.</p>
+                </div>
+              }
+
+              <p-button 
+                label="العودة لمسح الـ QR" 
+                [text]="true" 
+                icon="pi pi-qrcode" 
+                (onClick)="showPairing = false; pairingCode = ''; pairingPhone = ''"
+                styleClass="mt-2">
+              </p-button>
             </div>
           }
         </div>
@@ -196,6 +232,11 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
   editingAgents: string[] = [];
 
   selectedChannel: any = null;
+  
+  showPairing = false;
+  pairingPhone = '';
+  pairingCode = '';
+  pairingLoading = false;
   
   constructor() {
     // Monitor status changes via Firestore through the store
@@ -282,7 +323,25 @@ export class WhatsappSettingsComponent implements OnInit, OnDestroy {
 
   showQr(channel: any) {
     this.selectedChannel = channel;
+    this.showPairing = false;
+    this.pairingCode = '';
+    this.pairingPhone = '';
     this.showQrDialog = true;
+  }
+
+  getPairingCode() {
+    if (!this.pairingPhone || !this.selectedChannel) return;
+    this.pairingLoading = true;
+    this.store.requestPairingCode(this.selectedChannel.id, this.pairingPhone).subscribe({
+      next: (res: any) => {
+        this.pairingCode = res.code;
+        this.pairingLoading = false;
+      },
+      error: (err) => {
+        this.pairingLoading = false;
+        alert('فشل طلب الكود: ' + (err.error?.message || 'خطأ غير معروف'));
+      }
+    });
   }
 
   confirmDelete(channel: any) {
