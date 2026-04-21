@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WhatsappService } from '../../../core/services/whatsapp.service';
@@ -44,12 +44,12 @@ import { InputTextModule } from 'primeng/inputtext';
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2">
           <p-card styleClass="border-0 shadow-sm rounded-2xl overflow-hidden">
-            <template pTemplate="header">
+            <ng-template pTemplate="header">
               <div class="bg-surface-50 dark:bg-surface-800 p-4 border-b dark:border-surface-700 flex items-center gap-2">
                 <i class="pi pi-info-circle text-primary"></i>
                 <span class="font-bold">معلومات الشركة وسياسة الرد</span>
               </div>
-            </template>
+            </ng-template>
             <div class="flex flex-col gap-4">
               <div class="flex flex-col gap-2">
                 <label class="font-bold text-sm">التوجيهات والبيانات (System Prompt)</label>
@@ -88,12 +88,12 @@ import { InputTextModule } from 'primeng/inputtext';
           </p-card>
 
           <p-card styleClass="border-0 shadow-sm rounded-2xl overflow-hidden">
-            <template pTemplate="header">
+            <ng-template pTemplate="header">
                 <div class="bg-surface-50 dark:bg-surface-800 p-4 border-b dark:border-surface-700 flex items-center gap-2">
                   <i class="pi pi-microchip text-primary"></i>
                   <span class="font-bold">الموديل المستخدم</span>
                 </div>
-              </template>
+              </ng-template>
               <div class="flex flex-col gap-2">
                 <label class="text-xs font-bold text-surface-500">Google Gemini Model</label>
                 <input 
@@ -117,6 +117,7 @@ import { InputTextModule } from 'primeng/inputtext';
 export class AiSettingsTabComponent implements OnInit {
   private whatsappService = inject(WhatsappService);
   private messageService = inject(MessageService);
+  private cdr = inject(ChangeDetectorRef);
   
   settings = {
     systemPrompt: '',
@@ -133,7 +134,10 @@ export class AiSettingsTabComponent implements OnInit {
   loadSettings() {
     this.whatsappService.getAiSettings().subscribe({
       next: (res) => {
-        if (res) this.settings = res;
+        if (res) {
+          this.settings = res;
+          this.cdr.detectChanges();
+        }
       }
     });
   }
