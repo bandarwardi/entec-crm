@@ -44,34 +44,36 @@ export const CustomersStore = signalStore(
     const i18n = inject(I18nService);
     const ordersStore = inject(OrdersStore);
 
-    return {
-      loadCustomers: rxMethod<{ page: number; limit: number; search?: string }>(
-        pipe(
-          tap(() => patchState(store, { loading: true })),
-          switchMap((params) =>
-            salesService.getCustomers(params).pipe(
-              tapResponse({
-                next: (res) => patchState(store,
-                  setAllEntities(res.data),
-                  { 
-                    loading: false, 
-                    total: res.total, 
-                    currentPage: params.page, 
-                    pageSize: params.limit,
-                    searchTerm: params.search || '',
-                    lastFetched: Date.now(),
-                    lastParams: JSON.stringify(params)
-                  }
-                ),
-                error: (err: any) => patchState(store, { 
+    const loadCustomersAction = rxMethod<{ page: number; limit: number; search?: string }>(
+      pipe(
+        tap(() => patchState(store, { loading: true })),
+        switchMap((params) =>
+          salesService.getCustomers(params).pipe(
+            tapResponse({
+              next: (res) => patchState(store,
+                setAllEntities(res.data),
+                { 
                   loading: false, 
-                  error: err.error?.message || i18n.t('errors.load_customers') 
-                }),
-              })
-            )
+                  total: res.total, 
+                  currentPage: params.page, 
+                  pageSize: params.limit,
+                  searchTerm: params.search || '',
+                  lastFetched: Date.now(),
+                  lastParams: JSON.stringify(params)
+                }
+              ),
+              error: (err: any) => patchState(store, { 
+                loading: false, 
+                error: err.error?.message || i18n.t('errors.load_customers') 
+              }),
+            })
           )
         )
-      ),
+      )
+    );
+
+    return {
+      loadCustomers: loadCustomersAction,
 
       ensureLoaded: (params: { page: number; limit: number; search?: string }, force = false) => {
         const CACHE_TTL = 5 * 60 * 1000;
@@ -83,7 +85,7 @@ export const CustomersStore = signalStore(
         const paramsChanged = lastP !== currentP;
         
         if (isStale || paramsChanged || force || store.ids().length === 0) {
-          store.loadCustomers(params);
+          loadCustomersAction(params);
         }
       },
 

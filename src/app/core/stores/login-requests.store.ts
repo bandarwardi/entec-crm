@@ -44,58 +44,62 @@ export const LoginRequestsStore = signalStore(
     const messageService = inject(MessageService);
     const apiUrl = `${API_BASE_URL}/auth`;
 
-    return {
-      loadRequests: rxMethod<void>(
-        pipe(
-          tap(() => patchState(store, { loading: true })),
-          switchMap(() =>
-            http.get<LoginRequest[]>(`${apiUrl}/pending-requests`).pipe(
-              tapResponse({
-                next: (requests) => patchState(store, { 
-                  requests, 
-                  loading: false,
-                  lastRequestsFetched: Date.now() 
-                }),
-                error: (err: any) => patchState(store, { loading: false, error: err.error?.message })
-              })
-            )
+    const loadRequestsAction = rxMethod<void>(
+      pipe(
+        tap(() => patchState(store, { loading: true })),
+        switchMap(() =>
+          http.get<LoginRequest[]>(`${apiUrl}/pending-requests`).pipe(
+            tapResponse({
+              next: (requests) => patchState(store, { 
+                requests, 
+                loading: false,
+                lastRequestsFetched: Date.now() 
+              }),
+              error: (err: any) => patchState(store, { loading: false, error: err.error?.message })
+            })
           )
         )
-      ),
+      )
+    );
+
+    const loadHistoryAction = rxMethod<void>(
+      pipe(
+        tap(() => patchState(store, { loading: true })),
+        switchMap(() =>
+          http.get<LoginRequest[]>(`${apiUrl}/history-requests`).pipe(
+            tapResponse({
+              next: (history) => patchState(store, { 
+                history, 
+                loading: false,
+                lastHistoryFetched: Date.now()
+              }),
+              error: (err: any) => patchState(store, { loading: false, error: err.error?.message })
+            })
+          )
+        )
+      )
+    );
+
+    return {
+      loadRequests: loadRequestsAction,
 
       ensureRequestsLoaded: (force = false) => {
         const CACHE_TTL = 30 * 1000; // Shorter cache for login requests as they are sensitive
         const last = store.lastRequestsFetched();
         const isStale = !last || (Date.now() - last) > CACHE_TTL;
         if (isStale || force || store.requests().length === 0) {
-          store.loadRequests();
+          loadRequestsAction();
         }
       },
 
-      loadHistory: rxMethod<void>(
-        pipe(
-          tap(() => patchState(store, { loading: true })),
-          switchMap(() =>
-            http.get<LoginRequest[]>(`${apiUrl}/history-requests`).pipe(
-              tapResponse({
-                next: (history) => patchState(store, { 
-                  history, 
-                  loading: false,
-                  lastHistoryFetched: Date.now()
-                }),
-                error: (err: any) => patchState(store, { loading: false, error: err.error?.message })
-              })
-            )
-          )
-        )
-      ),
+      loadHistory: loadHistoryAction,
 
       ensureHistoryLoaded: (force = false) => {
         const CACHE_TTL = 2 * 60 * 1000;
         const last = store.lastHistoryFetched();
         const isStale = !last || (Date.now() - last) > CACHE_TTL;
         if (isStale || force || store.history().length === 0) {
-          store.loadHistory();
+          loadHistoryAction();
         }
       },
 

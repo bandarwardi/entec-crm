@@ -30,6 +30,7 @@ const initialState: OrdersState = {
   currentPage: 1,
   pageSize: 20,
   searchTerm: '',
+  filterStatus: null,
   filterType: null,
   error: null,
   lastFetched: null,
@@ -49,36 +50,38 @@ export const OrdersStore = signalStore(
     const router = inject(Router);
     const i18n = inject(I18nService);
 
-    return {
-      loadOrders: rxMethod<{ page: number; limit: number; search?: string; status?: OrderStatus; type?: OrderType }>(
-        pipe(
-          tap(() => patchState(store, { loading: true })),
-          switchMap((params) =>
-            salesService.getOrders(params).pipe(
-              tapResponse({
-                next: (res) => patchState(store,
-                  setAllEntities(res.data),
-                  { 
-                    loading: false, 
-                    total: res.total, 
-                    currentPage: params.page, 
-                    pageSize: params.limit,
-                    searchTerm: params.search || '',
-                    filterStatus: params.status || null,
-                    filterType: params.type || null,
-                    lastFetched: Date.now(),
-                    lastParams: JSON.stringify(params)
-                  }
-                ),
-                error: (err: any) => patchState(store, { 
+    const loadOrdersAction = rxMethod<{ page: number; limit: number; search?: string; status?: OrderStatus; type?: OrderType }>(
+      pipe(
+        tap(() => patchState(store, { loading: true })),
+        switchMap((params) =>
+          salesService.getOrders(params).pipe(
+            tapResponse({
+              next: (res) => patchState(store,
+                setAllEntities(res.data),
+                { 
                   loading: false, 
-                  error: err.error?.message || i18n.t('errors.load_orders') 
-                }),
-              })
-            )
+                  total: res.total, 
+                  currentPage: params.page, 
+                  pageSize: params.limit,
+                  searchTerm: params.search || '',
+                  filterStatus: params.status || null,
+                  filterType: params.type || null,
+                  lastFetched: Date.now(),
+                  lastParams: JSON.stringify(params)
+                }
+              ),
+              error: (err: any) => patchState(store, { 
+                loading: false, 
+                error: err.error?.message || i18n.t('errors.load_orders') 
+              }),
+            })
           )
         )
-      ),
+      )
+    );
+
+    return {
+      loadOrders: loadOrdersAction,
 
       ensureLoaded: (params: { page: number; limit: number; search?: string; status?: OrderStatus; type?: OrderType }, force = false) => {
         const CACHE_TTL = 5 * 60 * 1000;
@@ -90,7 +93,7 @@ export const OrdersStore = signalStore(
         const paramsChanged = lastP !== currentP;
         
         if (isStale || paramsChanged || force || store.ids().length === 0) {
-          store.loadOrders(params);
+          loadOrdersAction(params);
         }
       },
 

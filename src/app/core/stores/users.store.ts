@@ -34,31 +34,33 @@ export const UsersStore = signalStore(
     const userService = inject(UserService);
     const i18n = inject(I18nService);
 
-    return {
-      loadUsers: rxMethod<string | void>(
-        pipe(
-          tap(() => patchState(store, { loading: true })),
-          switchMap((search) =>
-            userService.getUsers(search || undefined).pipe(
-              tapResponse({
-                next: (users) => patchState(store, 
-                  setAllEntities(users), 
-                  { 
-                    loading: false, 
-                    error: null,
-                    lastFetched: Date.now(),
-                    lastSearch: search || null
-                  }
-                ),
-                error: (err: any) => patchState(store, { 
+    const loadUsersAction = rxMethod<string | void>(
+      pipe(
+        tap(() => patchState(store, { loading: true })),
+        switchMap((search) =>
+          userService.getUsers(search || undefined).pipe(
+            tapResponse({
+              next: (users) => patchState(store, 
+                setAllEntities(users), 
+                { 
                   loading: false, 
-                  error: err.error?.message || i18n.t('errors.load_users') 
-                }),
-              })
-            )
+                  error: null,
+                  lastFetched: Date.now(),
+                  lastSearch: search || null
+                }
+              ),
+              error: (err: any) => patchState(store, { 
+                loading: false, 
+                error: err.error?.message || i18n.t('errors.load_users') 
+              }),
+            })
           )
         )
-      ),
+      )
+    );
+
+    return {
+      loadUsers: loadUsersAction,
 
       ensureLoaded: (search?: string, force = false) => {
         const CACHE_TTL = 5 * 60 * 1000;
@@ -70,7 +72,7 @@ export const UsersStore = signalStore(
         const searchChanged = lastS !== currentS;
         
         if (isStale || searchChanged || force || store.ids().length === 0) {
-          store.loadUsers(search);
+          loadUsersAction(search);
         }
       },
 
