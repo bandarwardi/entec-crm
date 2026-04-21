@@ -194,14 +194,14 @@ export class LoginRequestsComponent implements OnInit {
   ]);
 
   ngOnInit() {
-    this.store.loadRequests();
+    this.store.ensureRequestsLoaded();
   }
 
   onTabChange() {
     if (this.activeTab() === 'history') {
-      this.store.loadHistory();
+      this.store.ensureHistoryLoaded();
     } else {
-      this.store.loadRequests();
+      this.store.ensureRequestsLoaded();
     }
   }
 

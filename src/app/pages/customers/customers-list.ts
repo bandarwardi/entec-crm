@@ -227,7 +227,7 @@ export class CustomersListComponent implements OnInit {
   loadData(event: any) {
     this.first = event.first;
     const page = (event.first / event.rows) + 1;
-    this.store.loadCustomers({
+    this.store.ensureLoaded({
       page,
       limit: event.rows,
       search: this.searchTerm

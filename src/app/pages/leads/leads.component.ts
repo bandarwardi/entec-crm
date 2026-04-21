@@ -714,7 +714,7 @@ export class LeadsComponent implements OnInit, OnDestroy {
   }
 
   initialLoad() {
-    this.store.loadLeads({ page: 1, limit: this.store.pageSize() });
+    this.store.ensureLoaded({ page: 1, limit: this.store.pageSize() });
 
     if (this.isSuperAdmin() || this.isAdmin()) {
       this.userService.getUsers().subscribe(users => {
@@ -745,7 +745,7 @@ export class LeadsComponent implements OnInit, OnDestroy {
 
   loadLeads(event: LazyLoadEvent | any) {
     const page = (event.first / event.rows) + 1;
-    this.store.loadLeads({ 
+    this.store.ensureLoaded({ 
       page, 
       limit: event.rows, 
       search: this.store.searchTerm(),

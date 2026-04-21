@@ -22,6 +22,8 @@ interface LeadsState {
   filterCreatedBy: string | null;
   error: string | null;
   selectedLeadId: string | null;
+  lastFetched: number | null;
+  lastParams: string | null; // JSON string of last successful load params
 }
 
 const initialState: LeadsState = {
@@ -37,7 +39,9 @@ const initialState: LeadsState = {
   filterHasReminder: null,
   filterCreatedBy: null,
   error: null,
-  selectedLeadId: null
+  selectedLeadId: null,
+  lastFetched: null,
+  lastParams: null
 };
 
 export const LeadsStore = signalStore(
@@ -56,21 +60,23 @@ export const LeadsStore = signalStore(
     const loadLeadsAction = rxMethod<{ page: number; limit: number; search?: string; status?: string; state?: string; hasReminder?: string; createdBy?: string }>(
       pipe(
         tap(() => patchState(store, { loading: true })),
-        switchMap(({ page, limit, search, status, state, hasReminder, createdBy }) =>
-          leadService.getLeads({ page, limit, search, status, state, hasReminder, createdBy }).pipe(
+        switchMap((params) =>
+          leadService.getLeads(params).pipe(
             tapResponse({
               next: (res) => patchState(store,
                 setAllEntities(res.data),
                 { 
                   loading: false, 
                   total: res.total, 
-                  currentPage: page, 
-                  pageSize: limit,
-                  searchTerm: search || '',
-                  filterStatus: status || null,
-                  filterState: state || null,
-                  filterHasReminder: hasReminder || null,
-                  filterCreatedBy: createdBy || null
+                  currentPage: params.page, 
+                  pageSize: params.limit,
+                  searchTerm: params.search || '',
+                  filterStatus: params.status || null,
+                  filterState: params.state || null,
+                  filterHasReminder: params.hasReminder || null,
+                  filterCreatedBy: params.createdBy || null,
+                  lastFetched: Date.now(),
+                  lastParams: JSON.stringify(params)
                 }
               ),
               error: (err: any) => patchState(store, { 
@@ -85,6 +91,20 @@ export const LeadsStore = signalStore(
 
     return {
       loadLeads: loadLeadsAction,
+      
+      ensureLoaded: (params: { page: number; limit: number; search?: string; status?: string; state?: string; hasReminder?: string; createdBy?: string }, force = false) => {
+        const CACHE_TTL = 5 * 60 * 1000;
+        const last = store.lastFetched();
+        const lastP = store.lastParams();
+        const currentP = JSON.stringify(params);
+        
+        const isStale = !last || (Date.now() - last) > CACHE_TTL;
+        const paramsChanged = lastP !== currentP;
+        
+        if (isStale || paramsChanged || force || store.isEmpty()) {
+          loadLeadsAction(params);
+        }
+      },
 
       importLeads: rxMethod<Partial<Lead>[]>(
         pipe(

@@ -16,6 +16,8 @@ interface CustomersState {
   pageSize: number;
   searchTerm: string;
   error: string | null;
+  lastFetched: number | null;
+  lastParams: string | null;
 }
 
 const initialState: CustomersState = {
@@ -25,6 +27,8 @@ const initialState: CustomersState = {
   pageSize: 20,
   searchTerm: '',
   error: null,
+  lastFetched: null,
+  lastParams: null,
 };
 
 export const CustomersStore = signalStore(
@@ -44,17 +48,19 @@ export const CustomersStore = signalStore(
       loadCustomers: rxMethod<{ page: number; limit: number; search?: string }>(
         pipe(
           tap(() => patchState(store, { loading: true })),
-          switchMap(({ page, limit, search }) =>
-            salesService.getCustomers({ page, limit, search }).pipe(
+          switchMap((params) =>
+            salesService.getCustomers(params).pipe(
               tapResponse({
                 next: (res) => patchState(store,
                   setAllEntities(res.data),
                   { 
                     loading: false, 
                     total: res.total, 
-                    currentPage: page, 
-                    pageSize: limit,
-                    searchTerm: search || ''
+                    currentPage: params.page, 
+                    pageSize: params.limit,
+                    searchTerm: params.search || '',
+                    lastFetched: Date.now(),
+                    lastParams: JSON.stringify(params)
                   }
                 ),
                 error: (err: any) => patchState(store, { 
@@ -66,6 +72,20 @@ export const CustomersStore = signalStore(
           )
         )
       ),
+
+      ensureLoaded: (params: { page: number; limit: number; search?: string }, force = false) => {
+        const CACHE_TTL = 5 * 60 * 1000;
+        const last = store.lastFetched();
+        const lastP = store.lastParams();
+        const currentP = JSON.stringify(params);
+        
+        const isStale = !last || (Date.now() - last) > CACHE_TTL;
+        const paramsChanged = lastP !== currentP;
+        
+        if (isStale || paramsChanged || force || store.ids().length === 0) {
+          store.loadCustomers(params);
+        }
+      },
 
       updateCustomer: rxMethod<{ id: string; changes: Partial<Customer> }>(
         pipe(

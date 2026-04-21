@@ -13,6 +13,8 @@ interface UsersState {
   dialogVisible: boolean;
   selectedUser: User | null;
   error: string | null;
+  lastFetched: number | null;
+  lastSearch: string | null;
 }
 
 const initialState: UsersState = {
@@ -20,6 +22,8 @@ const initialState: UsersState = {
   dialogVisible: false,
   selectedUser: null,
   error: null,
+  lastFetched: null,
+  lastSearch: null,
 };
 
 export const UsersStore = signalStore(
@@ -39,7 +43,12 @@ export const UsersStore = signalStore(
               tapResponse({
                 next: (users) => patchState(store, 
                   setAllEntities(users), 
-                  { loading: false, error: null }
+                  { 
+                    loading: false, 
+                    error: null,
+                    lastFetched: Date.now(),
+                    lastSearch: search || null
+                  }
                 ),
                 error: (err: any) => patchState(store, { 
                   loading: false, 
@@ -50,6 +59,20 @@ export const UsersStore = signalStore(
           )
         )
       ),
+
+      ensureLoaded: (search?: string, force = false) => {
+        const CACHE_TTL = 5 * 60 * 1000;
+        const last = store.lastFetched();
+        const lastS = store.lastSearch();
+        const currentS = search || null;
+        
+        const isStale = !last || (Date.now() - last) > CACHE_TTL;
+        const searchChanged = lastS !== currentS;
+        
+        if (isStale || searchChanged || force || store.ids().length === 0) {
+          store.loadUsers(search);
+        }
+      },
 
       createUser: rxMethod<Partial<User>>(
         pipe(

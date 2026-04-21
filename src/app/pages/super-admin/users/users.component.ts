@@ -199,7 +199,7 @@ export class UsersComponent implements OnInit {
     @ViewChild('dt') dt!: Table;
 
     ngOnInit() {
-        this.store.loadUsers();
+        this.store.ensureLoaded();
     }
 
     onGlobalFilter(table: Table, event: Event) {

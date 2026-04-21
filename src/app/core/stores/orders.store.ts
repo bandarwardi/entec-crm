@@ -19,6 +19,8 @@ interface OrdersState {
   filterStatus: OrderStatus | null;
   filterType: OrderType | null;
   error: string | null;
+  lastFetched: number | null;
+  lastParams: string | null;
 }
 
 const initialState: OrdersState = {
@@ -28,9 +30,10 @@ const initialState: OrdersState = {
   currentPage: 1,
   pageSize: 20,
   searchTerm: '',
-  filterStatus: null,
   filterType: null,
   error: null,
+  lastFetched: null,
+  lastParams: null,
 };
 
 export const OrdersStore = signalStore(
@@ -50,19 +53,21 @@ export const OrdersStore = signalStore(
       loadOrders: rxMethod<{ page: number; limit: number; search?: string; status?: OrderStatus; type?: OrderType }>(
         pipe(
           tap(() => patchState(store, { loading: true })),
-          switchMap(({ page, limit, search, status, type }) =>
-            salesService.getOrders({ page, limit, search, status, type }).pipe(
+          switchMap((params) =>
+            salesService.getOrders(params).pipe(
               tapResponse({
                 next: (res) => patchState(store,
                   setAllEntities(res.data),
                   { 
                     loading: false, 
                     total: res.total, 
-                    currentPage: page, 
-                    pageSize: limit,
-                    searchTerm: search || '',
-                    filterStatus: status || null,
-                    filterType: type || null
+                    currentPage: params.page, 
+                    pageSize: params.limit,
+                    searchTerm: params.search || '',
+                    filterStatus: params.status || null,
+                    filterType: params.type || null,
+                    lastFetched: Date.now(),
+                    lastParams: JSON.stringify(params)
                   }
                 ),
                 error: (err: any) => patchState(store, { 
@@ -74,6 +79,20 @@ export const OrdersStore = signalStore(
           )
         )
       ),
+
+      ensureLoaded: (params: { page: number; limit: number; search?: string; status?: OrderStatus; type?: OrderType }, force = false) => {
+        const CACHE_TTL = 5 * 60 * 1000;
+        const last = store.lastFetched();
+        const lastP = store.lastParams();
+        const currentP = JSON.stringify(params);
+        
+        const isStale = !last || (Date.now() - last) > CACHE_TTL;
+        const paramsChanged = lastP !== currentP;
+        
+        if (isStale || paramsChanged || force || store.ids().length === 0) {
+          store.loadOrders(params);
+        }
+      },
 
       loadOrder: rxMethod<string>(
         pipe(

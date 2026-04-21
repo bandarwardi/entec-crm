@@ -1,8 +1,8 @@
-import { Component, inject, OnInit, signal, effect, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { SalesService, DashboardStats } from '../../core/services/sales.service';
+import { DashboardStore } from '../../core/stores/dashboard.store';
 import { AuthStore } from '../../core/stores/auth.store';
 import { NotificationsWidget } from './components/notificationswidget';
 import { StatsWidget } from './components/statswidget';
@@ -48,30 +48,30 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
             </div>
 
             <!-- Loading State -->
-             @if (loading()) {
+             @if (store.loading()) {
                 <div class="py-20 text-center w-full">
                     <i class="pi pi-spin pi-spinner text-4xl text-primary mb-4"></i>
                     <p class="font-black text-surface-400">{{ 'dashboard.loading' | t }}</p>
                 </div>
              }
 
-            @if (!loading() && data()) {
+            @if (!store.loading() && store.stats()) {
               <!-- Main Dashboard Content Grid -->
               <div class="grid grid-cols-12 gap-8">
                 <!-- Main KPIs -->
-                <app-stats-widget class="contents" [kpis]="data()!.kpis" />
+                <app-stats-widget class="contents" [kpis]="store.stats()!.kpis" />
                 
                 <!-- Secondary Widgets -->
                 <div class="col-span-12 xl:col-span-6 flex flex-col gap-8">
-                    <app-recent-sales-widget [orders]="data()!.recentOrders" />
-                    <app-best-selling-widget [agents]="data()!.topAgents" />
-                    <app-top-states-widget class="md:col-span-1" [data]="data()!.topStates" />
+                    <app-recent-sales-widget [orders]="store.stats()!.recentOrders" />
+                    <app-best-selling-widget [agents]="store.stats()!.topAgents" />
+                    <app-top-states-widget class="md:col-span-1" [data]="store.stats()!.topStates" />
                 </div>
                 
                 <div class="col-span-12 xl:col-span-6 flex flex-col gap-8">
-                    <app-revenue-stream-widget [monthlyRevenue]="data()!.revenueByMonth" />
+                    <app-revenue-stream-widget [monthlyRevenue]="store.stats()!.revenueByMonth" />
                     <div class="grid grid-cols-1 gap-8">
-                      <app-notifications-widget class="md:col-span-1" [ordersByType]="data()!.ordersByType" [leadsFunnel]="data()!.leadsFunnel" />
+                      <app-notifications-widget class="md:col-span-1" [ordersByType]="store.stats()!.ordersByType" [leadsFunnel]="store.stats()!.leadsFunnel" />
                     </div>
                 </div>
               </div>
@@ -81,13 +81,10 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
   styles: []
 })
 export class Dashboard implements OnInit {
-  private salesService = inject(SalesService);
   private i18n = inject(I18nService);
   readonly authStore = inject(AuthStore);
+  readonly store = inject(DashboardStore);
 
-  loading = signal(true);
-  data = signal<DashboardStats | null>(null);
-  todayAdminStats = signal<{ todayLeadsCount: number; employeePerformance: any[] } | null>(null);
   selectedPeriod = signal('30days');
 
   periodOptions = computed(() => [
@@ -100,27 +97,12 @@ export class Dashboard implements OnInit {
   ngOnInit() {
     this.loadStats();
     if (this.authStore.currentRole() === 'admin' || this.authStore.currentRole() === 'super-admin') {
-      this.loadTodayAdminStats();
+      this.store.loadTodayAdminStats();
     }
   }
 
   loadStats() {
-    this.loading.set(true);
-    this.salesService.getDashboardStats(this.selectedPeriod()).subscribe({
-      next: (res) => {
-        this.data.set(res);
-        this.loading.set(false);
-      },
-      error: () => this.loading.set(false)
-    });
-  }
-
-  loadTodayAdminStats() {
-    this.salesService.getTodayAdminStats().subscribe({
-      next: (res) => {
-        this.todayAdminStats.set(res);
-      }
-    });
+    this.store.ensureStatsLoaded(this.selectedPeriod());
   }
 }
 
