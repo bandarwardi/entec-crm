@@ -3,12 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WhatsappService } from '../../../core/services/whatsapp.service';
 import { ButtonModule } from 'primeng/button';
-import { InputTextareaModule } from 'primeng/inputtextarea';
+import { TextareaModule } from 'primeng/textarea';
 import { ToggleButtonModule } from 'primeng/togglebutton';
 import { CardModule } from 'primeng/card';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
-import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { InputTextModule } from 'primeng/inputtext';
 
 @Component({
   selector: 'app-ai-settings-tab',
@@ -17,11 +17,11 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
     CommonModule, 
     FormsModule, 
     ButtonModule, 
-    InputTextareaModule, 
+    TextareaModule, 
     ToggleButtonModule, 
     CardModule, 
     ToastModule,
-    TranslatePipe
+    InputTextModule
   ],
   providers: [MessageService],
   template: `
@@ -54,7 +54,7 @@ import { TranslatePipe } from '../../../core/i18n/translate.pipe';
               <div class="flex flex-col gap-2">
                 <label class="font-bold text-sm">التوجيهات والبيانات (System Prompt)</label>
                 <textarea 
-                  pInputTextarea 
+                  pTextarea 
                   [(ngModel)]="settings.systemPrompt" 
                   rows="12" 
                   class="w-full rounded-xl border-surface-200 dark:border-surface-700 focus:ring-primary/20"
