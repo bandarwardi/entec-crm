@@ -207,8 +207,11 @@ import 'emoji-picker-element';
                      [class.self-end]="msg.direction === 'inbound'">
                   <div class="px-3 py-2 rounded-lg shadow-sm text-[13px] relative bubble"
                        [class.bg-[#dcf8c6]]="msg.direction === 'outbound'"
+                       [class.dark:bg-[#056162]]="msg.direction === 'outbound'"
+                       [class.text-surface-900]="msg.direction === 'outbound' || msg.direction === 'inbound'"
+                       [class.dark:text-white]="msg.direction === 'outbound' || msg.direction === 'inbound'"
                        [class.bg-white]="msg.direction === 'inbound'"
-                       [class.dark:bg-surface-800]="msg.direction === 'inbound'"
+                       [class.dark:bg-[#202c33]]="msg.direction === 'inbound'"
                        [class.bubble-out]="msg.direction === 'outbound'"
                        [class.bubble-in]="msg.direction === 'inbound'">
                     
@@ -293,7 +296,7 @@ import 'emoji-picker-element';
                       </div>
                     } @else {
                       <!-- Text Content -->
-                      <div class="whitespace-pre-wrap break-words leading-relaxed text-[#303030] dark:text-white">
+                      <div class="whitespace-pre-wrap break-words leading-relaxed text-inherit">
                         {{ msg.content }}
                       </div>
                     }
@@ -529,6 +532,18 @@ import 'emoji-picker-element';
         background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
         background-repeat: repeat;
         background-blend-mode: overlay;
+        transition: background-color 0.3s ease;
+      }
+      :host-context(.dark) .whatsapp-bg {
+        background-color: #0b141a !important;
+        background-blend-mode: soft-light;
+        opacity: 0.95;
+      }
+      :host-context(.dark) .bubble-out {
+        border-color: #056162;
+      }
+      :host-context(.dark) .bubble-in {
+        border-color: #202c33;
       }
       .bubble {
         min-width: 60px;
