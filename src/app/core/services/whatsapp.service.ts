@@ -78,4 +78,16 @@ export class WhatsappService {
 
     return cleaned;
   }
+
+  getAiSettings(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/ai-settings`);
+  }
+
+  updateAiSettings(data: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/ai-settings`, data);
+  }
+
+  getAiSuggestion(channelId: string, phoneNumber: string): Observable<{ suggestion: string | null }> {
+    return this.http.post<{ suggestion: string | null }>(`${this.baseUrl}/ai-suggest`, { channelId, phoneNumber });
+  }
 }

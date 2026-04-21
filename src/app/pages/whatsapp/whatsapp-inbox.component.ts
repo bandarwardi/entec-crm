@@ -330,6 +330,42 @@ import 'emoji-picker-element';
               }
             </div>
 
+            <!-- AI Suggestion Bubble -->
+            @if (aiSuggestion() || aiSuggestionLoading()) {
+              <div class="px-4 py-2 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10 border-t dark:border-surface-700 animate-fade-in relative z-20">
+                <div class="max-w-5xl mx-auto flex items-start gap-3">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-sm shrink-0 mt-1">
+                    @if (aiSuggestionLoading()) {
+                      <i class="pi pi-spin pi-spinner text-xs"></i>
+                    } @else {
+                      <i class="pi pi-sparkles text-xs"></i>
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">اقتراح الذكاء الاصطناعي</span>
+                      @if (!aiSuggestionLoading()) {
+                        <button (click)="aiSuggestion.set(null)" class="text-surface-400 hover:text-red-500 transition-colors border-none bg-transparent cursor-pointer p-0">
+                          <i class="pi pi-times text-[10px]"></i>
+                        </button>
+                      }
+                    </div>
+                    @if (aiSuggestionLoading()) {
+                      <div class="flex flex-col gap-1">
+                        <div class="h-3 w-3/4 bg-surface-200 dark:bg-surface-700 rounded animate-pulse"></div>
+                        <div class="h-3 w-1/2 bg-surface-200 dark:bg-surface-700 rounded animate-pulse"></div>
+                      </div>
+                    } @else {
+                      <div (click)="useAiSuggestion()" class="text-xs text-surface-700 dark:text-surface-200 leading-relaxed cursor-pointer hover:bg-white/50 dark:hover:bg-surface-800/50 p-2 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800 transition-all group">
+                        {{ aiSuggestion() }}
+                        <div class="text-[9px] text-indigo-500 mt-1 font-bold opacity-0 group-hover:opacity-100 transition-opacity">إضغط لاستخدام هذا الرد ✨</div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
             <!-- Input Area -->
             <div class="p-3 bg-[#f0f2f5] dark:bg-surface-900 border-t dark:border-surface-700">
               <form (ngSubmit)="sendMessage()" class="flex items-center gap-2 max-w-5xl mx-auto">
@@ -342,6 +378,18 @@ import 'emoji-picker-element';
                     (click)="attachOp.toggle($event)"
                     severity="secondary"
                     styleClass="p-0 w-10 h-10 text-xl text-surface-600 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-all">
+                  </p-button>
+
+                  <!-- AI Manual Suggest Trigger -->
+                  <p-button 
+                    type="button" 
+                    icon="pi pi-sparkles" 
+                    [text]="true" 
+                    (click)="triggerAiSuggestion()"
+                    [loading]="aiSuggestionLoading()"
+                    severity="help"
+                    [pTooltip]="'توليد اقتراح رد ذكي'"
+                    styleClass="p-0 w-10 h-10 text-xl text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-all">
                   </p-button>
 
                   <p-popover #attachOp styleClass="w-56 p-2 rounded-2xl border-none shadow-2xl overflow-hidden">
@@ -599,6 +647,8 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   messages = signal<any[]>([]);
   newMessageText = '';
   sending = signal(false);
+  aiSuggestion = signal<string | null>(null);
+  aiSuggestionLoading = signal(false);
   private messagesUnsubscribe?: () => void;
   private globalMessagesUnsubscribe?: () => void;
 
@@ -1041,8 +1091,18 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
       });
 
       console.log(`[Inbox] Displaying ${filteredMsgs.length} messages for this lead`);
+      
+      const prevCount = this.messages().length;
       this.messages.set(filteredMsgs);
       this.scrollToBottom();
+
+      // Check if we should trigger AI suggestion
+      const lastMsg = filteredMsgs[filteredMsgs.length - 1];
+      if (lastMsg && lastMsg.direction === 'inbound' && filteredMsgs.length > prevCount) {
+        this.triggerAiSuggestion();
+      } else if (lastMsg?.direction === 'outbound') {
+        this.aiSuggestion.set(null); // Clear if we already replied
+      }
     }, (error) => {
       console.error('[Inbox] Firestore Subscription Error:', error);
     });
@@ -1085,6 +1145,32 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
         this.sending.set(false);
       }
     });
+  }
+
+  triggerAiSuggestion() {
+    const channel = this.selectedChannel();
+    const phone = this.targetPhone();
+    if (!channel || !phone) return;
+
+    this.aiSuggestionLoading.set(true);
+    this.whatsappService.getAiSuggestion(channel.id, phone).subscribe({
+      next: (res) => {
+        this.aiSuggestion.set(res.suggestion);
+        this.aiSuggestionLoading.set(false);
+        this.scrollToBottom();
+      },
+      error: () => {
+        this.aiSuggestionLoading.set(false);
+      }
+    });
+  }
+
+  useAiSuggestion() {
+    const suggestion = this.aiSuggestion();
+    if (suggestion) {
+      this.newMessageText = suggestion;
+      this.aiSuggestion.set(null);
+    }
   }
 
   private scrollToBottom() {
