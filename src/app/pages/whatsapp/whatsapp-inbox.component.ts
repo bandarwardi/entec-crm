@@ -47,12 +47,6 @@ import 'emoji-picker-element';
   providers: [MessageService],
   template: `
     <p-toast />
-    <input 
-      #fileInput 
-      type="file" 
-      class="hidden" 
-      (change)="onFileSelected($event)"
-      accept="image/*,video/*,audio/*,.webp,.pdf,.doc,.docx,.xls,.xlsx" />
     <div class="flex h-[calc(100vh-6rem)] lg:h-[calc(100vh-9rem)] lg:gap-4 overflow-hidden relative w-full">
       
       <!-- Sidebar (Channels & Leads) -->
@@ -197,8 +191,8 @@ import 'emoji-picker-element';
                     </div>
                     
                     @if (lead.isGroup) {
-                      <div class="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white dark:border-surface-900 shadow-sm z-10">
-                        <i class="pi pi-users text-[9px] text-white"></i>
+                      <div class="absolute top-0 right-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white dark:border-surface-900 shadow-sm z-20">
+                        <i class="pi pi-users text-[10px] text-white"></i>
                       </div>
                     }
                     
@@ -434,7 +428,7 @@ import 'emoji-picker-element';
                       <div class="mb-1 -mx-1 -mt-1 overflow-hidden rounded-t-lg bg-black/5 dark:bg-white/5 flex justify-center items-center min-h-[100px]">
                         <img [src]="msg.mediaUrl" 
                              class="max-w-full block cursor-pointer hover:opacity-95 transition-opacity" 
-                             style="height: auto; width: auto; max-height: 500px; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: auto;"
+                             style="height: auto; width: auto; max-height: 400px; object-fit: contain;"
                              alt="Image" />
                       </div>
                       @if (msg.content) {
@@ -968,7 +962,6 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
   private readonly messageService = inject(MessageService);
 
   @ViewChild('scrollContainer') private scrollContainer!: ElementRef;
-  @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('op') emojiPopover!: Popover;
   @ViewChild('stickerOp') stickerPopover!: Popover;
   @ViewChild('attachOp') attachPopover!: Popover;
@@ -1403,14 +1396,18 @@ export class WhatsappInboxComponent implements OnInit, OnDestroy {
 
   triggerFileUpload(type: 'image' | 'audio' | 'sticker' | 'document' | 'video') {
     this.currentFileType = type;
-    this.fileInput.nativeElement.click();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : type === 'audio' ? 'audio/*' : type === 'sticker' ? '.webp' : '*/*';
+    input.onchange = (e: any) => {
+      const file = e.target?.files?.[0];
+      if (file) this.uploadAndSend(file);
+    };
+    input.click();
   }
 
   onFileSelected(event: any) {
-    const file = event.target.files[0];
-    if (!file) return;
-    this.uploadAndSend(file);
-    event.target.value = ''; // clear input
+    // Legacy support, if needed
   }
 
   constructor() {

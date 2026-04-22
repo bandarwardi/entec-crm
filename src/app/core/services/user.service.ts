@@ -38,4 +38,17 @@ export class UserService {
   deleteUser(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  // --- Devices ---
+  getAllowedDevices(userId: string): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/${userId}/devices`);
+  }
+
+  addAllowedDevice(userId: string, fingerprint: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${userId}/devices`, { fingerprint });
+  }
+
+  removeAllowedDevice(userId: string, fingerprint: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${userId}/devices/${fingerprint}`);
+  }
 }

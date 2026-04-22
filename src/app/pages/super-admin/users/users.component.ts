@@ -13,7 +13,8 @@ import { TagModule } from 'primeng/tag';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { User } from '@/app/core/services/user.service';
+import { TooltipModule } from 'primeng/tooltip';
+import { User, UserService } from '@/app/core/services/user.service';
 import { PasswordModule } from 'primeng/password';
 import { UsersStore } from '@/app/core/stores/users.store';
 import { AuthStore } from '@/app/core/stores/auth.store';
@@ -110,6 +111,7 @@ import { TranslatePipe } from '@/app/core/i18n/translate.pipe';
                                 (onClick)="viewPerformance(user)" />
                         </td>
                         <td>
+                            <p-button icon="pi pi-desktop" class="mr-2" [rounded]="true" [outlined]="true" severity="secondary" (onClick)="openDevicesDialog(user)" pTooltip="إدارة الأجهزة المسموحة" tooltipPosition="top" />
                             <p-button icon="pi pi-pencil" class="ml-2" [rounded]="true" [outlined]="true" (onClick)="editUser(user)" />
                             <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (onClick)="deleteUser(user)" />
                         </td>
@@ -154,6 +156,38 @@ import { TranslatePipe } from '@/app/core/i18n/translate.pipe';
         </p-dialog>
 
         <p-confirmdialog [style]="{ width: '450px' }" [acceptLabel]="'ui.yes' | t" [rejectLabel]="'ui.no' | t" />
+        
+        <!-- Devices Dialog -->
+        <p-dialog [visible]="devicesDialogVisible" (visibleChange)="devicesDialogVisible = $event" [style]="{ width: '500px' }" [header]="'إدارة أجهزة الموظف: ' + (selectedUserForDevices?.name || '')" [modal]="true">
+            <ng-template pTemplate="content">
+                <div class="flex flex-col gap-4">
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1 flex flex-col gap-2">
+                            <label class="font-bold text-sm">إضافة بصمة جهاز جديد (Fingerprint)</label>
+                            <input pInputText [(ngModel)]="newDeviceFingerprint" placeholder="1234abcd5678efgh..." class="w-full" />
+                        </div>
+                        <p-button icon="pi pi-plus" [disabled]="!newDeviceFingerprint" (onClick)="addDevice()" [loading]="devicesLoading"></p-button>
+                    </div>
+
+                    <div class="mt-4">
+                        <h4 class="font-bold mb-3 border-b pb-2">الأجهزة المسجلة</h4>
+                        @if (allowedDevices.length === 0) {
+                            <div class="text-center text-surface-500 py-4 italic">لا توجد أجهزة مسجلة لهذا الموظف</div>
+                        } @else {
+                            <div class="flex flex-col gap-2">
+                                @for (device of allowedDevices; track device) {
+                                    <div class="flex justify-between items-center p-3 bg-surface-50 dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700">
+                                        <span class="font-mono text-sm break-all">{{ device }}</span>
+                                        <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true" (onClick)="removeDevice(device)" [loading]="devicesLoading"></p-button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </ng-template>
+        </p-dialog>
+        
         <p-toast position="bottom-right"></p-toast>
     </div>
     `,
@@ -176,7 +210,8 @@ import { TranslatePipe } from '@/app/core/i18n/translate.pipe';
         PasswordModule,
         RouterModule,
         TranslatePipe,
-        DatePipe
+        DatePipe,
+        TooltipModule
     ],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -187,8 +222,16 @@ export class UsersComponent implements OnInit {
     private i18n = inject(I18nService);
     readonly store = inject(UsersStore);
     readonly authStore = inject(AuthStore);
+    private userService = inject(UserService);
 
     submitted: boolean = false;
+
+    // Devices state
+    devicesDialogVisible = false;
+    selectedUserForDevices: User | null = null;
+    allowedDevices: string[] = [];
+    newDeviceFingerprint = '';
+    devicesLoading = false;
 
     roles = computed(() => [
         { label: 'Super Admin', value: 'super-admin' },
@@ -254,6 +297,60 @@ export class UsersComponent implements OnInit {
                 this.store.createUser(user);
             }
         }
+    }
+
+    // --- Device Management ---
+    openDevicesDialog(user: User) {
+        this.selectedUserForDevices = user;
+        this.devicesDialogVisible = true;
+        this.newDeviceFingerprint = '';
+        this.loadDevices();
+    }
+
+    loadDevices() {
+        if (!this.selectedUserForDevices) return;
+        this.devicesLoading = true;
+        this.userService.getAllowedDevices(this.selectedUserForDevices.id).subscribe({
+            next: (devices) => {
+                this.allowedDevices = devices || [];
+                this.devicesLoading = false;
+            },
+            error: () => {
+                this.messageService.add({ severity: 'error', summary: 'خطأ', detail: 'تعذر جلب الأجهزة' });
+                this.devicesLoading = false;
+            }
+        });
+    }
+
+    addDevice() {
+        if (!this.selectedUserForDevices || !this.newDeviceFingerprint) return;
+        this.devicesLoading = true;
+        this.userService.addAllowedDevice(this.selectedUserForDevices.id, this.newDeviceFingerprint).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'نجاح', detail: 'تمت إضافة الجهاز' });
+                this.newDeviceFingerprint = '';
+                this.loadDevices();
+            },
+            error: () => {
+                this.messageService.add({ severity: 'error', summary: 'خطأ', detail: 'فشل إضافة الجهاز' });
+                this.devicesLoading = false;
+            }
+        });
+    }
+
+    removeDevice(fingerprint: string) {
+        if (!this.selectedUserForDevices) return;
+        this.devicesLoading = true;
+        this.userService.removeAllowedDevice(this.selectedUserForDevices.id, fingerprint).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'info', summary: 'تم', detail: 'تم إزالة الجهاز' });
+                this.loadDevices();
+            },
+            error: () => {
+                this.messageService.add({ severity: 'error', summary: 'خطأ', detail: 'تعذر إزالة الجهاز' });
+                this.devicesLoading = false;
+            }
+        });
     }
 }
 

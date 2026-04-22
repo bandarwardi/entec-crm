@@ -37,6 +37,8 @@ interface AuthState {
   user: User | null;
   token: string | null;
   firebaseToken: string | null;
+  challengeToken: string | null;
+  challengeExpiresAt: Date | null;
   loading: boolean;
   error: string | null;
 }
@@ -45,6 +47,8 @@ const initialState: AuthState = {
   user: JSON.parse(localStorage.getItem('user') || 'null'),
   token: localStorage.getItem('token'),
   firebaseToken: localStorage.getItem('firebaseToken'),
+  challengeToken: null,
+  challengeExpiresAt: null,
   loading: false,
   error: null,
 };
@@ -52,18 +56,20 @@ const initialState: AuthState = {
 export const AuthStore = signalStore(
   { providedIn: 'root' },
   withState(initialState),
-  withComputed(({ user, token }) => ({
+  withComputed(({ user, token, challengeToken }) => ({
     isLoggedIn: computed(() => !!token()),
     currentRole: computed(() => user()?.role ?? null),
     hasRole: computed(() => (role: string) =>
       user()?.role === role || user()?.role === 'super-admin'
     ),
+    isWaitingChallenge: computed(() => !!challengeToken()),
   })),
   withMethods((store) => {
     const http = inject(HttpClient);
     const router = inject(Router);
     const apiUrl = `${API_BASE_URL}/auth`;
     let refreshInterval: any = null;
+    let pollInterval: any = null;
 
     const stopRefreshTimer = () => {
       if (refreshInterval) {
@@ -71,6 +77,13 @@ export const AuthStore = signalStore(
         refreshInterval = null;
       }
     };
+
+    const stopPollTimer = () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }
 
     const refreshToken = rxMethod<void>(
       pipe(
@@ -88,10 +101,6 @@ export const AuthStore = signalStore(
                   });
                   localStorage.setItem('token', res.access_token);
                   localStorage.setItem('user', JSON.stringify(res.user));
-                  if (res.firebaseToken) {
-                    localStorage.setItem('firebaseToken', res.firebaseToken);
-                    // loginToFirebase(res.firebaseToken); // Disabled custom token login
-                  }
                 }
               },
               error: (err: any) => {
@@ -105,52 +114,82 @@ export const AuthStore = signalStore(
 
     const startRefreshTimer = () => {
       stopRefreshTimer();
-      // Refresh every 10 minutes (JWTs are usually short-lived)
       refreshInterval = setInterval(() => {
         if (store.isLoggedIn()) {
-          // Trigger the rxMethod
           refreshToken();
         }
       }, 10 * 60 * 1000);
     };
 
-    const loginToFirebase = async (token: string) => {
-      // try {
-      //   await signInWithCustomToken(auth, token);
-      //   console.log('Firebase: Logged in successfully with custom token');
-      // } catch (error) {
-      //   console.error('Firebase: Failed to login with custom token', error);
-      // }
-      console.log('Firebase: Custom token login is disabled');
-    };
+    const startPollingChallenge = (token: string) => {
+      stopPollTimer();
+      pollInterval = setInterval(() => {
+        http.get<any>(`${apiUrl}/challenge-status/${token}`).subscribe({
+          next: (res) => {
+            if (res.status === 'approved') {
+              stopPollTimer();
+              patchState(store, {
+                user: res.user,
+                token: res.jwtToken,
+                challengeToken: null,
+                challengeExpiresAt: null,
+                loading: false
+              });
+              localStorage.setItem('token', res.jwtToken);
+              localStorage.setItem('user', JSON.stringify(res.user));
+              startRefreshTimer();
+            } else if (res.status === 'rejected') {
+              stopPollTimer();
+              patchState(store, { 
+                error: 'تم رفض طلب الدخول من خلال التطبيق', 
+                challengeToken: null, 
+                challengeExpiresAt: null,
+                loading: false 
+              });
+            } else if (res.status === 'expired') {
+              stopPollTimer();
+              patchState(store, { 
+                error: 'انتهت المهلة الزمنية دون الموافقة من التطبيق', 
+                challengeToken: null, 
+                challengeExpiresAt: null,
+                loading: false 
+              });
+            }
+          },
+          error: () => {
+            stopPollTimer();
+            patchState(store, { error: 'حدث خطأ أثناء التحقق من الطلب', challengeToken: null, loading: false });
+          }
+        });
+      }, 2000); // Poll every 2 seconds
+    }
 
     return {
-      login: rxMethod<{ email: string; password: string; lat?: number; lng?: number; device?: string }>(
+      login: rxMethod<{ email: string; password: string; deviceFingerprint: string; browserInfo: string }>(
         pipe(
-          tap(() => patchState(store, { loading: true, error: null })),
+          tap(() => patchState(store, { loading: true, error: null, challengeToken: null })),
           switchMap((creds) =>
             http.post<any>(`${apiUrl}/login`, creds).pipe(
               tapResponse({
                 next: (res) => {
                   if (res.access_token) {
+                    // Direct login (Bypassed)
                     patchState(store, {
                       user: res.user,
                       token: res.access_token,
-                      firebaseToken: res.firebaseToken,
                       loading: false
                     });
                     localStorage.setItem('token', res.access_token);
                     localStorage.setItem('user', JSON.stringify(res.user));
-                    if (res.firebaseToken) {
-                      localStorage.setItem('firebaseToken', res.firebaseToken);
-                      // loginToFirebase(res.firebaseToken); // Disabled custom token login
-                    }
                     startRefreshTimer();
-                  } else {
+                  } else if (res.challengeToken) {
+                    // Need MFA Challenge validation
                     patchState(store, {
-                      loading: false,
-                      error: res.message // Show the pending approval message
+                      challengeToken: res.challengeToken,
+                      challengeExpiresAt: res.expiresAt,
+                      loading: false
                     });
+                    startPollingChallenge(res.challengeToken);
                   }
                 },
                 error: (err: any) => {
@@ -165,6 +204,11 @@ export const AuthStore = signalStore(
           )
         )
       ),
+
+      cancelChallenge() {
+        stopPollTimer();
+        patchState(store, { challengeToken: null, challengeExpiresAt: null, loading: false });
+      },
 
       logout() {
         stopRefreshTimer();

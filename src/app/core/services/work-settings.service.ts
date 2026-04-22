@@ -12,6 +12,18 @@ export interface WorkSettings {
   breakDurationMinutes: number;
   deductionRatePerMinute: number;
   timezone: string;
+  securityEnabled: boolean;
+  autoLogoutDelayMinutes: number;
+  challengeExpiryMinutes: number;
+}
+
+export interface AllowedZone {
+  id?: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  isActive: boolean;
 }
 
 export interface Holiday {
@@ -47,5 +59,22 @@ export class WorkSettingsService {
 
   deleteHoliday(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/holidays/${id}`);
+  }
+
+  // --- Allowed Zones ---
+  getZones(): Observable<AllowedZone[]> {
+    return this.http.get<AllowedZone[]>(`${this.apiUrl}/zones`);
+  }
+
+  addZone(data: Partial<AllowedZone>): Observable<AllowedZone> {
+    return this.http.post<AllowedZone>(`${this.apiUrl}/zones`, data);
+  }
+
+  updateZone(id: string, data: Partial<AllowedZone>): Observable<AllowedZone> {
+    return this.http.put<AllowedZone>(`${this.apiUrl}/zones/${id}`, data);
+  }
+
+  deleteZone(id: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/zones/${id}`);
   }
 }

@@ -1,4 +1,4 @@
-import { Component, inject, signal, effect, untracked } from '@angular/core';
+import { Component, inject, signal, effect, untracked, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -10,6 +10,7 @@ import { AppFloatingConfigurator } from '../../layout/component/app.floatingconf
 import { AuthStore, UserStatus } from '../../core/stores/auth.store';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import fpPromise from '@fingerprintjs/fingerprintjs';
 
 @Component({
     selector: 'app-login',
@@ -27,17 +28,27 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                         </div>
 
                         <div class="flex flex-col gap-4">
-                            <div>
-                                <label for="email" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2" [class.text-right]="i18n.isRTL()">{{ 'auth.email' | t }}</label>
-                                <input pInputText id="email" type="email" [placeholder]="'auth.email_placeholder' | t" class="w-full mb-4" [class.text-right]="i18n.isRTL()" [(ngModel)]="email" dir="ltr" />
-                            </div>
+                            @if (!store.isWaitingChallenge()) {
+                                <div>
+                                    <label for="email" class="block text-surface-900 dark:text-surface-0 text-xl font-medium mb-2" [class.text-right]="i18n.isRTL()">{{ 'auth.email' | t }}</label>
+                                    <input pInputText id="email" type="email" [placeholder]="'auth.email_placeholder' | t" class="w-full mb-4" [class.text-right]="i18n.isRTL()" [(ngModel)]="email" dir="ltr" />
+                                </div>
 
-                            <div>
-                                <label for="password" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2" [class.text-right]="i18n.isRTL()">{{ 'auth.password' | t }}</label>
-                                <p-password id="password" [(ngModel)]="password" [placeholder]="'auth.password_placeholder' | t" [toggleMask]="true" styleClass="w-full mb-4" [fluid]="true" [feedback]="false" [inputStyleClass]="i18n.isRTL() ? 'text-right' : 'text-left'" dir="ltr"></p-password>
-                            </div>
+                                <div>
+                                    <label for="password" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2" [class.text-right]="i18n.isRTL()">{{ 'auth.password' | t }}</label>
+                                    <p-password id="password" [(ngModel)]="password" [placeholder]="'auth.password_placeholder' | t" [toggleMask]="true" styleClass="w-full mb-4" [fluid]="true" [feedback]="false" [inputStyleClass]="i18n.isRTL() ? 'text-right' : 'text-left'" dir="ltr"></p-password>
+                                </div>
 
-                            <p-button [label]="'auth.login_button' | t" styleClass="w-full py-3 text-xl font-bold" (onClick)="onLogin()" [loading]="store.loading()"></p-button>
+                                <p-button [label]="'auth.login_button' | t" styleClass="w-full py-3 text-xl font-bold" (onClick)="onLogin()" [loading]="store.loading()"></p-button>
+                            } @else {
+                                <div class="text-center py-6 flex flex-col items-center">
+                                    <i class="pi pi-mobile text-primary text-6xl mb-4" style="animation: bounce 1.5s infinite"></i>
+                                    <div class="text-xl font-bold mb-2">في انتظار تأكيدك</div>
+                                    <div class="text-muted-color mb-6">يرجى فتح تطبيق الهاتف وتأكيد تسجيل الدخول عبر البصمة لإكمال العملية.</div>
+                                    
+                                    <p-button label="إلغاء الطلب" severity="secondary" styleClass="w-full" (onClick)="store.cancelChallenge()" [outlined]="true"></p-button>
+                                </div>
+                            }
                             
                             @if (store.error()) {
                                 <div class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-center font-bold">
@@ -57,6 +68,10 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
         :host ::ng-deep .p-password input {
             width: 100%;
         }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
     `]
 })
 export class Login {
@@ -66,6 +81,8 @@ export class Login {
     readonly store = inject(AuthStore);
     private router = inject(Router);
     i18n = inject(I18nService);
+
+    fingerprintId = '';
 
     constructor() {
         // Use effect to navigate on login success
@@ -90,27 +107,32 @@ export class Login {
         });
     }
 
+    async ngOnInit() {
+        try {
+            const fp = await fpPromise.load();
+            const result = await fp.get();
+            this.fingerprintId = result.visitorId;
+        } catch (err) {
+            console.error('Failed to generate fingerprint', err);
+        }
+    }
+
     onLogin() {
         if (!this.email || !this.password) return;
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    this.store.login({
-                        email: this.email,
-                        password: this.password,
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                        device: navigator.userAgent
-                    });
-                },
-                (err) => {
-                    this.store.setError(this.i18n.t('auth.location_error'));
-                }
-            );
-        } else {
-            this.store.setError(this.i18n.t('auth.browser_error'));
+        if (!this.fingerprintId) {
+            this.store.setError('جار تهيئة الأمان، يرجى المحاولة بعد لحظات...');
+            return;
         }
+
+        const parser = navigator.userAgent; // For simplicitiy, pass userAgent
+        
+        this.store.login({
+            email: this.email,
+            password: this.password,
+            deviceFingerprint: this.fingerprintId,
+            browserInfo: parser
+        });
     }
 }
 
