@@ -185,22 +185,26 @@ import 'emoji-picker-element';
                   (click)="selectLead(lead)">
                   
                   <!-- Avatar -->
-                  <div class="w-12 h-12 rounded-full flex items-center justify-center font-black text-sm relative transition-transform group-hover:scale-105 shadow-sm border border-surface-100 dark:border-surface-700 overflow-hidden"
-                       [style.backgroundColor]="!lead.profilePicUrl ? getAvatarBg(lead.name) : 'transparent'"
-                       [style.color]="'white'">
-                    @if (lead.profilePicUrl) {
-                      <img [src]="lead.profilePicUrl" class="w-full h-full object-cover" alt="Profile" />
-                    } @else {
-                      {{ lead.name.substring(0, 1).toUpperCase() }}
-                    }
+                  <div class="relative shrink-0 transition-transform group-hover:scale-105">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center font-black text-sm shadow-sm border border-surface-100 dark:border-surface-700 overflow-hidden"
+                         [style.backgroundColor]="!lead.profilePicUrl ? getAvatarBg(lead.name) : 'transparent'"
+                         [style.color]="'white'">
+                      @if (lead.profilePicUrl) {
+                        <img [src]="lead.profilePicUrl" class="w-full h-full object-cover" alt="Profile" />
+                      } @else {
+                        {{ lead.name.substring(0, 1).toUpperCase() }}
+                      }
+                    </div>
+                    
                     @if (lead.isGroup) {
-                      <div class="absolute -top-0.5 -left-0.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center border border-white dark:border-surface-800 z-10">
-                        <i class="pi pi-users text-[8px] text-white"></i>
+                      <div class="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white dark:border-surface-900 shadow-sm z-10">
+                        <i class="pi pi-users text-[9px] text-white"></i>
                       </div>
                     }
+                    
                     @if (lead.isOnline) {
-                      <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-white dark:bg-surface-800 rounded-full flex items-center justify-center">
-                        <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+                      <div class="absolute -bottom-0.5 -left-0.5 w-4 h-4 bg-white dark:bg-surface-900 rounded-full flex items-center justify-center shadow-sm">
+                        <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse"></div>
                       </div>
                     }
                   </div>
