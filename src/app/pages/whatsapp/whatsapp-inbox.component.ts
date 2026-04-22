@@ -875,6 +875,12 @@ import 'emoji-picker-element';
         </div>
       }
     </div>
+    <input 
+      #fileInput 
+      type="file" 
+      class="hidden" 
+      (change)="onFileSelected($event)"
+      accept="image/*,video/*,audio/*,.webp,.pdf,.doc,.docx,.xls,.xlsx" />
   `,
   styles: [`
     :host ::ng-deep {
