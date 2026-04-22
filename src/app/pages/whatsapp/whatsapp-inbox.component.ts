@@ -47,6 +47,12 @@ import 'emoji-picker-element';
   providers: [MessageService],
   template: `
     <p-toast />
+    <input 
+      #fileInput 
+      type="file" 
+      class="hidden" 
+      (change)="onFileSelected($event)"
+      accept="image/*,video/*,audio/*,.webp,.pdf,.doc,.docx,.xls,.xlsx" />
     <div class="flex h-[calc(100vh-6rem)] lg:h-[calc(100vh-9rem)] lg:gap-4 overflow-hidden relative w-full">
       
       <!-- Sidebar (Channels & Leads) -->
@@ -875,12 +881,6 @@ import 'emoji-picker-element';
         </div>
       }
     </div>
-    <input 
-      #fileInput 
-      type="file" 
-      class="hidden" 
-      (change)="onFileSelected($event)"
-      accept="image/*,video/*,audio/*,.webp,.pdf,.doc,.docx,.xls,.xlsx" />
   `,
   styles: [`
     :host ::ng-deep {
