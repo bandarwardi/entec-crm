@@ -424,7 +424,7 @@ import 'emoji-picker-element';
                       <div class="mb-1 -mx-1 -mt-1 overflow-hidden rounded-t-lg bg-black/5 dark:bg-white/5 flex justify-center items-center min-h-[100px]">
                         <img [src]="msg.mediaUrl" 
                              class="max-w-full block cursor-pointer hover:opacity-95 transition-opacity" 
-                             style="height: auto; width: auto; max-height: 500px; object-fit: contain; image-rendering: auto;"
+                             style="height: auto; width: auto; max-height: 500px; object-fit: contain; image-rendering: -webkit-optimize-contrast; image-rendering: auto;"
                              alt="Image" />
                       </div>
                       @if (msg.content) {
