@@ -128,11 +128,19 @@ export class Login implements OnInit {
     private route = inject(ActivatedRoute);
 
     async ngOnInit() {
+        // Try to recover a previously generated stable fingerprint
+        const storedFp = localStorage.getItem('stable_device_fp');
+        if (storedFp) {
+            this.fingerprintId = storedFp;
+            console.log('[Login] Using stored stable fingerprint:', this.fingerprintId);
+        }
+
         // Force button activation after 1.5s no matter what
         setTimeout(() => {
             if (!this.fingerprintId) {
-                console.warn('[Login] Security init timeout - forcing activation');
-                this.fingerprintId = 'gen-' + Math.random().toString(36).substring(7);
+                console.warn('[Login] Security init timeout - forcing stable fallback');
+                this.fingerprintId = 'stable-gen-' + Math.random().toString(36).substring(7);
+                localStorage.setItem('stable_device_fp', this.fingerprintId);
             }
         }, 1500);
 
@@ -142,6 +150,8 @@ export class Login implements OnInit {
             try {
                 const user = JSON.parse(decodeURIComponent(params['user']));
                 this.store.setToken(params['token'], user);
+                // Also store magic link timestamp to prevent immediate presence kick
+                localStorage.setItem('last_login_timestamp', Date.now().toString());
                 return;
             } catch (e) {
                 console.error('Failed to parse auto-login data', e);
@@ -151,10 +161,19 @@ export class Login implements OnInit {
         try {
             const fp = await fpPromise.load();
             const result = await fp.get();
-            this.fingerprintId = result.visitorId || 'legacy-' + Math.random().toString(36).substring(7);
+            if (result.visitorId) {
+                this.fingerprintId = result.visitorId;
+                localStorage.setItem('stable_device_fp', this.fingerprintId);
+            } else if (!this.fingerprintId) {
+                this.fingerprintId = 'stable-fallback-' + Math.random().toString(36).substring(7);
+                localStorage.setItem('stable_device_fp', this.fingerprintId);
+            }
         } catch (err) {
             console.error('Failed to generate fingerprint', err);
-            this.fingerprintId = 'err-' + Math.random().toString(36).substring(7);
+            if (!this.fingerprintId) {
+                this.fingerprintId = 'stable-err-' + Math.random().toString(36).substring(7);
+                localStorage.setItem('stable_device_fp', this.fingerprintId);
+            }
         }
     }
 

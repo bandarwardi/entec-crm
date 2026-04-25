@@ -13,26 +13,38 @@ const CACHE_DURATION = 60000; // 1 minute cache
 let isRedirecting = false;
 
 export const presenceGuard: CanActivateFn = (route, state) => {
-  console.log(`%c [PresenceGuard] TRIGGERED for ${state.url}`, 'color: white; background: red; padding: 5px;');
-  
   const authStore = inject(AuthStore);
   const router = inject(Router);
   const http = inject(HttpClient);
   
-  // Try multiple ways to get the token
-
-  // If already redirecting, don't trigger again
   if (isRedirecting) return false;
 
-  const storeToken = authStore.token();
   const urlToken = route.queryParams['token'];
   const isAccessDeniedPage = state.url.includes('/access-denied');
 
   if (isAccessDeniedPage) return true;
 
-  // 1. Magic Link Logic (Priority)
+  // Track last login in localStorage to survive reloads during the sensitive first seconds
+  const lastLoginStr = localStorage.getItem('last_login_timestamp');
+  const lastLoginTime = lastLoginStr ? parseInt(lastLoginStr, 10) : 0;
+
+  // 1. Magic Link Logic (Priority) - Start/Update grace period
   if (urlToken) {
-    console.log('[PresenceGuard] Magic Token found, allowing access');
+    localStorage.setItem('last_login_timestamp', Date.now().toString());
+    lastCheckTime = 0; // Force fresh check after grace period
+    console.log('[PresenceGuard] Magic Token found, starting fresh grace period');
+    return true;
+  }
+
+  // Check if a fresh check is forced (e.g. after login)
+  if (localStorage.getItem('presence_fresh_check') === 'true') {
+    lastCheckTime = 0;
+    localStorage.removeItem('presence_fresh_check');
+  }
+
+  // Grace Period: Allow 10 seconds after login before strict checking
+  if (Date.now() - lastLoginTime < 10000) {
+    console.log('[PresenceGuard] Within persistent grace period');
     return true;
   }
 

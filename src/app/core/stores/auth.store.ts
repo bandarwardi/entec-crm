@@ -178,6 +178,8 @@ export const AuthStore = signalStore(
                 next: (res) => {
                   if (res.access_token) {
                     // Direct login (Bypassed)
+                    localStorage.setItem('last_login_timestamp', Date.now().toString());
+                    localStorage.setItem('presence_fresh_check', 'true');
                     patchState(store, {
                       user: res.user,
                       token: res.access_token,
@@ -248,10 +250,14 @@ export const AuthStore = signalStore(
       updateStatus: rxMethod<{ status: UserStatus; breakReason?: BreakReason; notes?: string }>(
         pipe(
           switchMap((data) => {
-            if (!store.presenceActive()) {
-              console.warn('[AuthStore] Blocking status update: Presence not active');
+            const token = store.token();
+            if (!token || !store.presenceActive()) {
               return of(null);
             }
+            
+            // Log to track frequency
+            console.log(`[AuthStore] Sending status update: ${data.status}`);
+            
             return http.put<User>(`${API_BASE_URL}/users/status`, data).pipe(
               tapResponse({
                 next: (updatedUser) => {

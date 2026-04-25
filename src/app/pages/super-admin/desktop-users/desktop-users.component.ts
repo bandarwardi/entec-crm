@@ -11,6 +11,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ToastModule } from 'primeng/toast';
+import { SelectModule } from 'primeng/select';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { API_BASE_URL } from '../../../core/constants/api.constants';
 
@@ -28,6 +29,7 @@ import { API_BASE_URL } from '../../../core/constants/api.constants';
     ConfirmDialogModule, 
     ToggleSwitchModule,
     ToastModule,
+    SelectModule,
     TranslatePipe
   ],
   providers: [MessageService, ConfirmationService],
@@ -35,17 +37,17 @@ import { API_BASE_URL } from '../../../core/constants/api.constants';
     <p-toast></p-toast>
     <p-confirmDialog></p-confirmDialog>
 
-    <div class="card">
-        <p-toolbar styleClass="mb-4">
+    <div class="card shadow-md rounded-2xl p-6">
+        <p-toolbar styleClass="mb-4 bg-transparent border-none p-0">
             <ng-template pTemplate="left">
                 <div class="flex flex-column gap-2">
-                    <h4 class="m-0">{{ 'desktop_users.title' | t }}</h4>
+                    <h4 class="m-0 font-bold text-xl">{{ 'desktop_users.title' | t }}</h4>
                     <span class="text-secondary text-sm">{{ 'desktop_users.subtitle' | t }}</span>
                 </div>
             </ng-template>
 
             <ng-template pTemplate="right">
-                <button pButton pRipple label="{{ 'desktop_users.add_button' | t }}" icon="pi pi-plus" class="p-button-success mr-2" (click)="openNew()"></button>
+                <button pButton pRipple label="{{ 'desktop_users.add_button' | t }}" icon="pi pi-plus" class="p-button-success rounded-xl" (click)="openNew()"></button>
             </ng-template>
         </p-toolbar>
 
@@ -54,6 +56,7 @@ import { API_BASE_URL } from '../../../core/constants/api.constants';
                 <tr>
                     <th>{{ 'desktop_users.table.name' | t }}</th>
                     <th>{{ 'desktop_users.table.username' | t }}</th>
+                    <th>الموظف المرتبط</th>
                     <th>{{ 'desktop_users.table.status' | t }}</th>
                     <th style="width: 8rem">{{ 'ui.actions' | t }}</th>
                 </tr>
@@ -61,7 +64,17 @@ import { API_BASE_URL } from '../../../core/constants/api.constants';
             <ng-template pTemplate="body" let-user>
                 <tr>
                     <td>{{ user.name }}</td>
-                    <td><code class="text-primary">{{ user.username }}</code></td>
+                    <td><code class="text-primary font-bold">{{ user.username }}</code></td>
+                    <td>
+                        @if (user.linkedUser) {
+                            <div class="flex items-center gap-2">
+                                <span class="pi pi-user text-xs"></span>
+                                {{ getCRMUserName(user.linkedUser) }}
+                            </div>
+                        } @else {
+                            <span class="text-surface-400 italic">غير مرتبط</span>
+                        }
+                    </td>
                     <td>
                         <span [class]="'badge status-' + (user.isActive ? 'active' : 'disabled')">
                             {{ (user.isActive ? 'ui.active' : 'ui.disabled') | t }}
@@ -75,7 +88,7 @@ import { API_BASE_URL } from '../../../core/constants/api.constants';
             </ng-template>
             <ng-template pTemplate="emptymessage">
                 <tr>
-                    <td colspan="4" class="text-center p-4">{{ 'ui.no_data' | t }}</td>
+                    <td colspan="5" class="text-center p-4">{{ 'ui.no_data' | t }}</td>
                 </tr>
             </ng-template>
         </p-table>
@@ -84,26 +97,31 @@ import { API_BASE_URL } from '../../../core/constants/api.constants';
     <p-dialog [(visible)]="userDialog" [style]="{width: '450px'}" [header]="'desktop_users.dialog.title' | t" [modal]="true" class="p-fluid" [draggable]="false" [resizable]="false">
         <ng-template pTemplate="content">
             <div class="field mb-4">
-                <label for="name">{{ 'desktop_users.dialog.name' | t }}</label>
-                <input type="text" pInputText id="name" [(ngModel)]="user.name" required autofocus />
+                <label for="name" class="block font-bold mb-2">{{ 'desktop_users.dialog.name' | t }}</label>
+                <input type="text" pInputText id="name" [(ngModel)]="user.name" required autofocus class="rounded-xl" />
             </div>
             <div class="field mb-4">
-                <label for="username">{{ 'desktop_users.dialog.username' | t }}</label>
-                <input type="text" pInputText id="username" [(ngModel)]="user.username" required />
+                <label for="username" class="block font-bold mb-2">{{ 'desktop_users.dialog.username' | t }}</label>
+                <input type="text" pInputText id="username" [(ngModel)]="user.username" required class="rounded-xl" />
             </div>
             <div class="field mb-4">
-                <label for="password">{{ 'desktop_users.dialog.password' | t }}</label>
-                <input type="password" pInputText id="password" [(ngModel)]="user.password" [placeholder]="user._id ? 'أتركه فارغاً لعدم التغيير' : ''" />
+                <label for="linkedUser" class="block font-bold mb-2">ربط بموظف CRM</label>
+                <p-select [options]="crmUsers" [(ngModel)]="user.linkedUser" optionLabel="name" optionValue="id" [filter]="true" filterBy="name" [showClear]="true" placeholder="اختر موظف للربط" class="rounded-xl"></p-select>
+                <small class="text-surface-500 block mt-1">هذا الموظف هو من سيظهر "أونلاين" عند تشغيل هذا الحساب.</small>
+            </div>
+            <div class="field mb-4">
+                <label for="password" class="block font-bold mb-2">{{ 'desktop_users.dialog.password' | t }}</label>
+                <input type="password" pInputText id="password" [(ngModel)]="user.password" [placeholder]="user._id ? 'أتركه فارغاً لعدم التغيير' : ''" class="rounded-xl" />
             </div>
             <div class="field flex align-items-center gap-3">
-                <label for="active">{{ 'ui.active' | t }}</label>
+                <label for="active" class="font-bold">{{ 'ui.active' | t }}</label>
                 <p-toggleSwitch [(ngModel)]="user.isActive"></p-toggleSwitch>
             </div>
         </ng-template>
 
         <ng-template pTemplate="footer">
             <button pButton pRipple label="{{ 'ui.cancel' | t }}" icon="pi pi-times" class="p-button-text" (click)="hideDialog()"></button>
-            <button pButton pRipple label="{{ 'ui.save' | t }}" icon="pi pi-check" class="p-button-primary" (click)="saveUser()"></button>
+            <button pButton pRipple label="{{ 'ui.save' | t }}" icon="pi pi-check" class="p-button-primary rounded-xl" (click)="saveUser()"></button>
         </ng-template>
     </p-dialog>
 
@@ -125,12 +143,28 @@ export class DesktopUsersComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
 
   users: any[] = [];
+  crmUsers: any[] = [];
   user: any = {};
   userDialog: boolean = false;
   loading: boolean = true;
 
   ngOnInit() {
     this.loadUsers();
+    this.loadCRMUsers();
+  }
+
+  loadCRMUsers() {
+    this.http.get<any[]>(`${API_BASE_URL}/users`).subscribe({
+      next: (data) => {
+        this.crmUsers = data;
+      },
+      error: () => console.error('Failed to load CRM users')
+    });
+  }
+
+  getCRMUserName(userId: string): string {
+    const u = this.crmUsers.find(x => x.id === userId || x._id === userId);
+    return u ? u.name : 'موظف غير معروف';
   }
 
   loadUsers() {

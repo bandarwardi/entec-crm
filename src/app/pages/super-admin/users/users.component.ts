@@ -55,7 +55,11 @@ import { TranslatePipe } from '@/app/core/i18n/translate.pipe';
                         <p-button [label]="'users.login_requests' | t" icon="pi pi-shield" 
                                   [routerLink]="['/super-admin/login-requests']" 
                                   styleClass="w-full sm:w-auto rounded-2xl px-5 py-3 md:h-12 font-bold bg-white/20 backdrop-blur-md text-white border border-white/40 hover:bg-white/30 transition-all text-xs md:text-sm uppercase tracking-widest shadow-sm" />
-                        
+
+                        <p-button [label]="'إدارة مستخدمي البرنامج'" icon="pi pi-desktop" 
+                                  [routerLink]="['/super-admin/desktop-users']" 
+                                  styleClass="w-full sm:w-auto rounded-2xl px-5 py-3 md:h-12 font-bold bg-white/20 backdrop-blur-md text-white border border-white/40 hover:bg-white/30 transition-all text-xs md:text-sm uppercase tracking-widest shadow-sm" />
+
                         <p-button [label]="'users.add_button' | t" icon="pi pi-plus" (onClick)="openNew()" 
                                   styleClass="w-full sm:w-auto rounded-2xl px-6 py-3 md:h-12 font-black bg-white text-emerald-600 border-transparent shadow-xl transform hover:-translate-y-0.5 transition-all text-xs md:text-sm uppercase tracking-widest" />
                     </div>
