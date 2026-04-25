@@ -163,7 +163,7 @@ import { TranslatePipe } from '@/app/core/i18n/translate.pipe';
                 <div class="flex flex-col gap-4">
                     <div class="flex gap-2 items-end">
                         <div class="flex-1 flex flex-col gap-2">
-                            <label class="font-bold text-sm">إضافة بصمة جهاز جديد (Fingerprint)</label>
+                            <label class="font-bold text-sm">إضافة معرّف المتصفح / الجهاز (Device Identifier)</label>
                             <input pInputText [(ngModel)]="newDeviceFingerprint" placeholder="1234abcd5678efgh..." class="w-full" />
                         </div>
                         <p-button icon="pi pi-plus" [disabled]="!newDeviceFingerprint" (onClick)="addDevice()" [loading]="devicesLoading"></p-button>
@@ -324,8 +324,8 @@ export class UsersComponent implements OnInit {
 
     addDevice() {
         if (!this.selectedUserForDevices || !this.newDeviceFingerprint) return;
-        this.devicesLoading = true;
-        this.userService.addAllowedDevice(this.selectedUserForDevices.id, this.newDeviceFingerprint).subscribe({
+        const normalizedFingerprint = this.newDeviceFingerprint.trim().toLowerCase();
+        this.userService.addAllowedDevice(this.selectedUserForDevices.id, normalizedFingerprint).subscribe({
             next: () => {
                 this.messageService.add({ severity: 'success', summary: 'نجاح', detail: 'تمت إضافة الجهاز' });
                 this.newDeviceFingerprint = '';

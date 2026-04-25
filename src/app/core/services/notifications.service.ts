@@ -43,7 +43,9 @@ export class NotificationsService {
   constructor() {
     effect(() => {
       const user = this.authStore.user();
-      if (user) {
+      const isPresenceActive = this.authStore.presenceActive();
+
+      if (user && isPresenceActive) {
         const userId = user.id || (user as any)._id;
         if (userId) {
           this.startListening(userId);

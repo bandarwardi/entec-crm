@@ -1,6 +1,6 @@
 import { Component, inject, signal, effect, untracked, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
@@ -39,7 +39,7 @@ import fpPromise from '@fingerprintjs/fingerprintjs';
                                     <p-password id="password" [(ngModel)]="password" [placeholder]="'auth.password_placeholder' | t" [toggleMask]="true" styleClass="w-full mb-4" [fluid]="true" [feedback]="false" [inputStyleClass]="i18n.isRTL() ? 'text-right' : 'text-left'" dir="ltr"></p-password>
                                 </div>
 
-                                <p-button [label]="'auth.login_button' | t" styleClass="w-full py-3 text-xl font-bold" (onClick)="onLogin()" [loading]="store.loading()"></p-button>
+                                <p-button [label]="'auth.login_button' | t" styleClass="w-full py-3 text-xl font-bold" (onClick)="onLogin()" [loading]="store.loading()" [disabled]="!fingerprintId"></p-button>
                             } @else {
                                 <div class="text-center py-6 flex flex-col items-center">
                                     <i class="pi pi-mobile text-primary text-6xl mb-4" style="animation: bounce 1.5s infinite"></i>
@@ -50,9 +50,26 @@ import fpPromise from '@fingerprintjs/fingerprintjs';
                                 </div>
                             }
                             
-                            @if (store.error()) {
-                                <div class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-center font-bold">
-                                    {{ store.error() }}
+                             @if (store.error()) {
+                                <div class="mt-4 p-4 rounded-2xl text-center space-y-2 border" 
+                                     [class.bg-red-50]="!store.error()?.includes('طلب اعتماد')"
+                                     [class.text-red-700]="!store.error()?.includes('طلب اعتماد')"
+                                     [class.border-red-200]="!store.error()?.includes('طلب اعتماد')"
+                                     [class.bg-emerald-50]="store.error()?.includes('طلب اعتماد')"
+                                     [class.text-emerald-700]="store.error()?.includes('طلب اعتماد')"
+                                     [class.border-emerald-200]="store.error()?.includes('طلب اعتماد')">
+                                    <div class="font-bold flex items-center justify-center gap-2">
+                                        <i class="pi" [class.pi-exclamation-circle]="!store.error()?.includes('طلب اعتماد')" [class.pi-info-circle]="store.error()?.includes('طلب اعتماد')" class="text-xl"></i>
+                                        <span>{{ store.error() }}</span>
+                                    </div>
+                                    @if (store.error()?.includes('غير مصرح') || store.error()?.includes('طلب اعتماد')) {
+                                        <div class="text-sm border-t pt-2 mt-2" [class.border-red-100]="!store.error()?.includes('طلب اعتماد')" [class.border-emerald-100]="store.error()?.includes('طلب اعتماد')">
+                                            <p class="mb-2 opacity-80">معرف هذا الجهاز الحالي (للإدارة):</p>
+                                            <div class="bg-white/50 p-2 rounded-xl font-mono text-xs break-all select-all border" [class.border-red-100]="!store.error()?.includes('طلب اعتماد')" [class.border-emerald-100]="store.error()?.includes('طلب اعتماد')">
+                                                {{ fingerprintId }}
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             }
                         </div>
@@ -74,7 +91,7 @@ import fpPromise from '@fingerprintjs/fingerprintjs';
         }
     `]
 })
-export class Login {
+export class Login implements OnInit {
     email = '';
     password = '';
 
@@ -83,6 +100,7 @@ export class Login {
     i18n = inject(I18nService);
 
     fingerprintId = '';
+    location = signal<{lat: number, lng: number} | null>(null);
 
     constructor() {
         // Use effect to navigate on login success
@@ -107,23 +125,41 @@ export class Login {
         });
     }
 
+    private route = inject(ActivatedRoute);
+
     async ngOnInit() {
+        // Force button activation after 1.5s no matter what
+        setTimeout(() => {
+            if (!this.fingerprintId) {
+                console.warn('[Login] Security init timeout - forcing activation');
+                this.fingerprintId = 'gen-' + Math.random().toString(36).substring(7);
+            }
+        }, 1500);
+
+        // Check for magic link / auto-login from Desktop App
+        const params = this.route.snapshot.queryParams as any;
+        if (params['token'] && params['user']) {
+            try {
+                const user = JSON.parse(decodeURIComponent(params['user']));
+                this.store.setToken(params['token'], user);
+                return;
+            } catch (e) {
+                console.error('Failed to parse auto-login data', e);
+            }
+        }
+
         try {
             const fp = await fpPromise.load();
             const result = await fp.get();
-            this.fingerprintId = result.visitorId;
+            this.fingerprintId = result.visitorId || 'legacy-' + Math.random().toString(36).substring(7);
         } catch (err) {
             console.error('Failed to generate fingerprint', err);
+            this.fingerprintId = 'err-' + Math.random().toString(36).substring(7);
         }
     }
 
     onLogin() {
-        if (!this.email || !this.password) return;
-
-        if (!this.fingerprintId) {
-            this.store.setError('جار تهيئة الأمان، يرجى المحاولة بعد لحظات...');
-            return;
-        }
+        if (!this.email || !this.password || !this.fingerprintId) return;
 
         const parser = navigator.userAgent; // For simplicitiy, pass userAgent
         
@@ -131,8 +167,10 @@ export class Login {
             email: this.email,
             password: this.password,
             deviceFingerprint: this.fingerprintId,
-            browserInfo: parser
-        });
+            browserInfo: parser,
+            latitude: this.location()?.lat,
+            longitude: this.location()?.lng
+        } as any);
     }
 }
 

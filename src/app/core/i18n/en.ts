@@ -10,6 +10,7 @@ export const en = {
     'menu.buying_areas': 'Buying Areas',
     'menu.chat': 'Chat',
     'menu.settings': 'System Settings',
+    'menu.desktop_users': 'Desktop Gateway Users',
     'menu.logout': 'Logout',
 
     // Topbar & Status
@@ -631,5 +632,18 @@ export const en = {
     'errors.load_messages': 'Failed to load messages',
     'errors.start_conversation': 'Failed to start conversation',
     'errors.send_file': 'Failed to send file',
-    'errors.generic': 'Something went wrong, please try again'
+    'errors.generic': 'Something went wrong, please try again',
+
+    // Desktop Users
+    'desktop_users.title': 'Desktop Gateway Users Management',
+    'desktop_users.subtitle': 'Manage accounts dedicated for login via the Desktop application',
+    'desktop_users.add_button': 'Add Gateway User',
+    'desktop_users.table.username': 'Username',
+    'desktop_users.table.name': 'Full Name',
+    'desktop_users.table.status': 'Status',
+    'desktop_users.dialog.title': 'Gateway User Details',
+    'desktop_users.dialog.username': 'Username',
+    'desktop_users.dialog.name': 'Full Name',
+    'desktop_users.dialog.password': 'Password',
+    'desktop_users.delete_confirm': 'Are you sure you want to delete this user? They will no longer be able to use the Desktop app.'
 };

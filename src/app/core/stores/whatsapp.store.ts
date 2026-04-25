@@ -4,6 +4,7 @@ import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap, catchError, of } from 'rxjs';
 import { WhatsappService, WhatsappChannel } from '../services/whatsapp.service';
 import { MessageService } from 'primeng/api';
+import { AuthStore } from './auth.store';
 import { db } from '../firebase/firebase.config';
 import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
 
@@ -29,27 +30,42 @@ export const WhatsappStore = signalStore(
   withMethods((store) => {
     const whatsappService = inject(WhatsappService);
     const messageService = inject(MessageService);
+    const authStore = inject(AuthStore);
     let unsubscribe: (() => void) | undefined;
 
-    return {
-      startListening() {
-        if (unsubscribe) return;
-        const q = query(collection(db, 'whatsappChannels'));
-        unsubscribe = onSnapshot(q, (snapshot) => {
-          const channels = snapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            lastConnectedAt: (doc.data()['lastConnectedAt'] as Timestamp)?.toDate()
-          })) as WhatsappChannel[];
-          patchState(store, { channels });
-        });
-      },
+    effect(() => {
+      const isPresenceActive = authStore.presenceActive();
+      const isLoggedIn = authStore.isLoggedIn();
 
-      stopListening() {
+      if (isLoggedIn && isPresenceActive) {
+        // Start listening
+        if (!unsubscribe) {
+          const q = query(collection(db, 'whatsappChannels'));
+          unsubscribe = onSnapshot(q, (snapshot) => {
+            const channels = snapshot.docs.map(doc => ({
+              ...doc.data(),
+              id: doc.id,
+              lastConnectedAt: (doc.data()['lastConnectedAt'] as Timestamp)?.toDate()
+            })) as WhatsappChannel[];
+            patchState(store, { channels });
+          });
+        }
+      } else {
+        // Stop listening
         if (unsubscribe) {
           unsubscribe();
           unsubscribe = undefined;
         }
+        patchState(store, { channels: [] });
+      }
+    });
+
+    return {
+      startListening() {
+        // Now handled by effect
+      },
+      stopListening() {
+        // Now handled by effect
       },
 
       loadChannels: rxMethod<void>(

@@ -1,5 +1,5 @@
 import { signalStore, withState, withMethods, patchState, withHooks } from '@ngrx/signals';
-import { inject } from '@angular/core';
+import { inject, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, tap, Subscription } from 'rxjs';
@@ -264,18 +264,41 @@ export const ChatStore = signalStore(
     };
 
     const init = () => {
-      loadConversations();
-      requestNotificationPermission();
-    };
-
-    const clearError = () => {
-      patchState(store, { error: null });
+      const isLoggedIn = authStore.isLoggedIn();
+      const isPresenceActive = authStore.presenceActive();
+      
+      if (isLoggedIn && isPresenceActive) {
+        loadConversations();
+        requestNotificationPermission();
+      }
     };
 
     const cleanup = () => {
       if (messagesSub) messagesSub.unsubscribe();
       metaSubs.forEach(sub => sub.unsubscribe());
       metaSubs.clear();
+      patchState(store, { 
+        conversations: [], 
+        messages: [], 
+        activeConversation: null,
+        initialized: false 
+      });
+    };
+
+    // Effect to manage chat lifecycle based on presence
+    effect(() => {
+      const isActive = authStore.presenceActive();
+      const isLoggedIn = authStore.isLoggedIn();
+      
+      if (isLoggedIn && isActive) {
+        init();
+      } else {
+        cleanup();
+      }
+    });
+
+    const clearError = () => {
+      patchState(store, { error: null });
     };
 
     return {

@@ -6,12 +6,13 @@ import { Landing } from './app/pages/landing/landing';
 import { Notfound } from './app/pages/notfound/notfound';
 import { authGuard } from './app/core/guards/auth.guard';
 import { roleGuard } from './app/core/guards/role.guard';
+import { presenceGuard } from './app/core/guards/presence.guard';
 
 export const appRoutes: Routes = [
     {
         path: '',
         component: AppLayout,
-        canActivate: [authGuard],
+        canActivate: [authGuard, presenceGuard],
         children: [
             { 
                 path: '', 
@@ -61,6 +62,12 @@ export const appRoutes: Routes = [
                 canActivate: [roleGuard],
                 data: { roles: ['super-admin', 'admin'] },
                 loadComponent: () => import('@/app/pages/super-admin/login-requests/login-requests.component').then(m => m.LoginRequestsComponent) 
+            },
+            { 
+                path: 'super-admin/desktop-users', 
+                canActivate: [roleGuard],
+                data: { roles: ['super-admin', 'admin'] },
+                loadComponent: () => import('./app/pages/super-admin/desktop-users/desktop-users.component').then(m => m.DesktopUsersComponent) 
             },
             { 
                 path: 'super-admin/whatsapp', 
@@ -137,7 +144,12 @@ export const appRoutes: Routes = [
     },
     { path: 'landing', component: Landing },
     { path: 'notfound', component: Notfound },
-    { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
+    {
+        path: 'auth',
+        canActivate: [presenceGuard],
+        loadChildren: () => import('./app/pages/auth/auth.routes')
+    },
+    { path: 'access-denied', loadComponent: () => import('./app/pages/access-denied/access-denied.component').then(m => m.AccessDeniedComponent) },
     { path: '**', redirectTo: '/notfound' }
 ];
 

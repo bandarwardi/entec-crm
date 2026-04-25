@@ -10,6 +10,7 @@ export const ar = {
     'menu.buying_areas': 'مناطق الشراء',
     'menu.chat': 'المحادثات',
     'menu.settings': 'إعدادات النظام',
+    'menu.desktop_users': 'مستخدمي بوابة الكمبيوتر',
     'menu.logout': 'تسجيل الخروج',
 
     // Topbar & Status
@@ -639,5 +640,18 @@ export const ar = {
     'orders.detail.device_name': 'Device',
     'orders.status.pending': 'قيد الانتظار',
     'orders.status.completed': 'مكتمل',
-    'orders.status.cancelled': 'ملغي'
+    'orders.status.cancelled': 'ملغي',
+
+    // Desktop Users
+    'desktop_users.title': 'إدارة مستخدمي بوابة الكمبيوتر',
+    'desktop_users.subtitle': 'إدارة الحسابات المخصصة للدخول عبر برنامج الكمبيوتر (السطح)',
+    'desktop_users.add_button': 'إضافة مستخدم بوابة',
+    'desktop_users.table.username': 'اسم المستخدم',
+    'desktop_users.table.name': 'الاسم الكامل',
+    'desktop_users.table.status': 'الحالة',
+    'desktop_users.dialog.title': 'تفاصيل مستخدم البوابة',
+    'desktop_users.dialog.username': 'اسم المستخدم (Username)',
+    'desktop_users.dialog.name': 'الاسم الكامل',
+    'desktop_users.dialog.password': 'كلمة المرور',
+    'desktop_users.delete_confirm': 'هل أنت متأكد من حذف هذا المستخدم؟ لن يتمكن من استخدام برنامج الكمبيوتر.'
 };

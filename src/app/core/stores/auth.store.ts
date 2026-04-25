@@ -33,6 +33,8 @@ export interface User {
   currentStatus?: UserStatus;
 }
 
+import { safeGetItem, safeSetItem, safeRemoveItem } from '../utils/storage.utils';
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -41,16 +43,18 @@ interface AuthState {
   challengeExpiresAt: Date | null;
   loading: boolean;
   error: string | null;
+  presenceActive: boolean;
 }
 
 const initialState: AuthState = {
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  token: localStorage.getItem('token'),
-  firebaseToken: localStorage.getItem('firebaseToken'),
+  user: JSON.parse(safeGetItem('user') || 'null'),
+  token: safeGetItem('token'),
+  firebaseToken: safeGetItem('firebaseToken'),
   challengeToken: null,
   challengeExpiresAt: null,
   loading: false,
   error: null,
+  presenceActive: false,
 };
 
 export const AuthStore = signalStore(
@@ -99,8 +103,8 @@ export const AuthStore = signalStore(
                     token: res.access_token,
                     firebaseToken: res.firebaseToken
                   });
-                  localStorage.setItem('token', res.access_token);
-                  localStorage.setItem('user', JSON.stringify(res.user));
+                  safeSetItem('token', res.access_token);
+                  safeSetItem('user', JSON.stringify(res.user));
                 }
               },
               error: (err: any) => {
@@ -135,8 +139,8 @@ export const AuthStore = signalStore(
                 challengeExpiresAt: null,
                 loading: false
               });
-              localStorage.setItem('token', res.jwtToken);
-              localStorage.setItem('user', JSON.stringify(res.user));
+              safeSetItem('token', res.jwtToken);
+              safeSetItem('user', JSON.stringify(res.user));
               startRefreshTimer();
             } else if (res.status === 'rejected') {
               stopPollTimer();
@@ -179,8 +183,8 @@ export const AuthStore = signalStore(
                       token: res.access_token,
                       loading: false
                     });
-                    localStorage.setItem('token', res.access_token);
-                    localStorage.setItem('user', JSON.stringify(res.user));
+                    safeSetItem('token', res.access_token);
+                    safeSetItem('user', JSON.stringify(res.user));
                     startRefreshTimer();
                   } else if (res.challengeToken) {
                     // Need MFA Challenge validation
@@ -190,6 +194,12 @@ export const AuthStore = signalStore(
                       loading: false
                     });
                     startPollingChallenge(res.challengeToken);
+                  } else if (res.status === 'request_pending') {
+                    // Device registration request submitted
+                    patchState(store, {
+                      error: res.message,
+                      loading: false
+                    });
                   }
                 },
                 error: (err: any) => {
@@ -210,6 +220,13 @@ export const AuthStore = signalStore(
         patchState(store, { challengeToken: null, challengeExpiresAt: null, loading: false });
       },
 
+      clearToken() {
+        patchState(store, { user: null, token: null, firebaseToken: null, presenceActive: false });
+        safeRemoveItem('token');
+        safeRemoveItem('user');
+        safeRemoveItem('firebaseToken');
+      },
+
       logout() {
         stopRefreshTimer();
         const currentToken = store.token();
@@ -217,26 +234,34 @@ export const AuthStore = signalStore(
           http.post(`${apiUrl}/logout`, {}).subscribe();
         }
         signOut(auth).catch(err => console.error('Firebase: Signout failed', err));
-        patchState(store, { user: null, token: null, firebaseToken: null });
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('firebaseToken');
+        patchState(store, { user: null, token: null, firebaseToken: null, presenceActive: false });
+        safeRemoveItem('token');
+        safeRemoveItem('user');
+        safeRemoveItem('firebaseToken');
         router.navigate(['/auth/login']);
+      },
+
+      setPresenceActive(presenceActive: boolean) {
+        patchState(store, { presenceActive });
       },
 
       updateStatus: rxMethod<{ status: UserStatus; breakReason?: BreakReason; notes?: string }>(
         pipe(
-          switchMap((data) =>
-            http.put<User>(`${API_BASE_URL}/users/status`, data).pipe(
+          switchMap((data) => {
+            if (!store.presenceActive()) {
+              console.warn('[AuthStore] Blocking status update: Presence not active');
+              return of(null);
+            }
+            return http.put<User>(`${API_BASE_URL}/users/status`, data).pipe(
               tapResponse({
                 next: (updatedUser) => {
                   patchState(store, { user: updatedUser });
-                  localStorage.setItem('user', JSON.stringify(updatedUser));
+                  safeSetItem('user', JSON.stringify(updatedUser));
                 },
                 error: (err: any) => console.error('Failed to update status', err),
               })
-            )
-          )
+            );
+          })
         )
       ),
 
@@ -262,6 +287,13 @@ export const AuthStore = signalStore(
 
       verifyPassword(password: string) {
         return http.post<{ isValid: boolean }>(`${apiUrl}/verify-password`, { password });
+      },
+
+      setToken(token: string, user: User) {
+        patchState(store, { token, user, loading: false, presenceActive: true });
+        safeSetItem('token', token);
+        safeSetItem('user', JSON.stringify(user));
+        startRefreshTimer();
       }
     };
   })

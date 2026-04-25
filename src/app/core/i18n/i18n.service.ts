@@ -1,4 +1,5 @@
 import { Injectable, signal, computed, effect } from '@angular/core';
+import { safeGetItem, safeSetItem } from '../utils/storage.utils';
 import { ar } from './ar';
 import { en } from './en';
 
@@ -11,7 +12,7 @@ export class I18nService {
     private readonly STORAGE_KEY = 'app_lang';
     
     // Signal for current language
-    currentLang = signal<Lang>((localStorage.getItem(this.STORAGE_KEY) as Lang) || 'ar');
+    currentLang = signal<Lang>((safeGetItem(this.STORAGE_KEY) as Lang) || 'ar');
 
     // Computed signals
     isRTL = computed(() => this.currentLang() === 'ar');
@@ -35,7 +36,7 @@ export class I18nService {
                 document.body.style.fontFamily = "'Inter', sans-serif";
             }
 
-            localStorage.setItem(this.STORAGE_KEY, lang);
+            safeSetItem(this.STORAGE_KEY, lang);
         });
     }
 

@@ -1,4 +1,5 @@
 import { Injectable, effect, signal, computed } from '@angular/core';
+import { safeGetItem, safeSetItem } from '../../core/utils/storage.utils';
 
 export interface LayoutConfig {
     preset: string;
@@ -23,13 +24,13 @@ interface LayoutState {
 })
 export class LayoutService {
     layoutConfig = signal<LayoutConfig>(
-        JSON.parse(localStorage.getItem('layoutConfig') || 'null') || {
+        JSON.parse(safeGetItem('layoutConfig') || 'null') || {
             preset: 'Aura',
             primary: 'emerald',
             surface: null,
             darkTheme: false,
             menuMode: 'static',
-            lang: (localStorage.getItem('app_lang') as 'ar' | 'en') || 'ar'
+            lang: (safeGetItem('app_lang') as 'ar' | 'en') || 'ar'
         }
     );
 
@@ -65,13 +66,13 @@ export class LayoutService {
             if (!this.initialized) {
                 this.initialized = true;
                 if (config) {
-                    localStorage.setItem('layoutConfig', JSON.stringify(config));
+                    safeSetItem('layoutConfig', JSON.stringify(config));
                     this.toggleDarkMode(config); // apply without transition on boot
                 }
                 return;
             }
 
-            localStorage.setItem('layoutConfig', JSON.stringify(config));
+            safeSetItem('layoutConfig', JSON.stringify(config));
 
             this.handleDarkModeTransition(config);
         });

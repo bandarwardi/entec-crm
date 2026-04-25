@@ -44,6 +44,13 @@ export class AppMenu {
                 class: 'menu-users'
             },
             {
+                label: this.i18n.t('menu.desktop_users'),
+                icon: 'pi pi-fw pi-desktop',
+                routerLink: ['/super-admin/desktop-users'],
+                visible: !isAgent,
+                class: 'menu-desktop-users'
+            },
+            {
                 label: this.i18n.t('menu.leads'),
                 icon: 'pi pi-fw pi-phone',
                 routerLink: ['/leads'],
