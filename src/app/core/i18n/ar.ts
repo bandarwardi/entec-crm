@@ -344,6 +344,7 @@ export const ar = {
     'order_form.device_mac': 'MAC Address',
     'order_form.device_key': 'Device Key',
     'order_form.device_name': 'Device Name',
+    'order_form.device_username': 'اسم المستخدم للجهاز',
     'order_form.device_name_placeholder': 'مثلاً: Smart TV Samsung, Apple iPad Pro, etc.',
     'order_form.notes': 'ملاحظات إضافية',
     'order_form.submit_create': 'حجز الطلب وإصدار الفاتورة',

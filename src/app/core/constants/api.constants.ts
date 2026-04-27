@@ -1,4 +1,4 @@
-// export const API_BASE_URL = 'http://localhost:3000/api';
+// export const API_BASE_URL = 'http://127.0.0.1:3000/api';
 // export const API_BASE_URL = 'https://entec-crm-nestjs.vercel.app/api';
 export const API_BASE_URL = 'https://entec-crm-nestjs-production.up.railway.app/api';
 export const UPLOADS_URL = 'https://entec.store/api/uploads';

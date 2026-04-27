@@ -319,6 +319,7 @@ export const en = {
     'order_form.device_mac': 'MAC Address',
     'order_form.device_key': 'Device Key',
     'order_form.device_name': 'Device Name',
+    'order_form.device_username': 'Device Username',
     'order_form.device_name_placeholder': 'e.g., Smart TV Samsung, Apple iPad Pro, etc.',
     'order_form.notes': 'Additional Notes',
     'order_form.attachments': 'Attachments (Payment Proof, Device Images...)',

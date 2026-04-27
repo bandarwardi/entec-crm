@@ -21,8 +21,9 @@ export const presenceGuard: CanActivateFn = (route, state) => {
 
   const urlToken = route.queryParams['token'];
   const isAccessDeniedPage = state.url.includes('/access-denied');
+  const isAuthPage = state.url.includes('/auth');
 
-  if (isAccessDeniedPage) return true;
+  if (isAccessDeniedPage || isAuthPage) return true;
 
   // Track last login in localStorage to survive reloads during the sensitive first seconds
   const lastLoginStr = localStorage.getItem('last_login_timestamp');

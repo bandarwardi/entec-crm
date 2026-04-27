@@ -12,7 +12,7 @@ import { Component } from '@angular/core';
       </svg>
       <h2 style="font-size: 1.6rem; font-weight: 500; margin-bottom: 15px; color: #1a1a1a;">This site can’t be reached</h2>
       <p style="font-size: 1.05rem; color: #5f6368; max-width: 450px; line-height: 1.5; margin: 0 auto 30px auto;">
-        The connection has timed out. The server at <b>entec-crm.web.app</b> is taking too long to respond.
+        The connection has timed out. The server is taking too long to respond.
       </p>
       
       <div style="text-align: left; background-color: #f8f9fa; border-radius: 8px; padding: 20px; width: 100%; max-width: 450px; border: 1px solid #eee;">

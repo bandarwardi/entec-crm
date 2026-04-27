@@ -337,6 +337,12 @@ import { COUNTRIES } from '../../core/constants/countries.constants';
                         
                         <div class="flex flex-col md:flex-row gap-6">
                             <div class="flex-1">
+                                <label class="text-xs font-bold uppercase text-surface-400 dark:text-surface-500 mb-2 block tracking-widest">{{ 'order_form.device_username' | t }}</label>
+                                <input pInputText formControlName="username" 
+                                       class="w-full p-inputtext-sm border-surface-300 dark:bg-surface-900 dark:border-surface-700 dark:text-surface-0 focus:border-primary" 
+                                       [placeholder]="'order_form.device_username' | t" />
+                            </div>
+                            <div class="flex-1">
                                 <label class="text-xs font-bold uppercase text-surface-400 dark:text-surface-500 mb-2 block tracking-widest">{{ 'order_form.device_mac' | t }}</label>
                                 <div class="p-inputgroup">
                                     <input pInputText formControlName="macAddress" 
@@ -352,7 +358,7 @@ import { COUNTRIES } from '../../core/constants/countries.constants';
                                            placeholder="KEY-123" />
                                 </div>
                             </div>
-                            <div class="flex-[2]">
+                            <div class="flex-1">
                                 <label class="text-xs font-bold uppercase text-surface-400 dark:text-surface-500 mb-2 block tracking-widest">{{ 'order_form.device_name' | t }}</label>
                                 <input pInputText formControlName="deviceName" 
                                        class="w-full p-inputtext-sm border-surface-300 dark:bg-surface-900 dark:border-surface-700 dark:text-surface-0 focus:border-primary" 
@@ -581,7 +587,8 @@ export class OrderFormComponent implements OnInit {
     const deviceGroup = this.fb.group({
       macAddress: [deviceData?.macAddress || ''],
       deviceKey: [deviceData?.deviceKey || ''],
-      deviceName: [deviceData?.deviceName || '']
+      deviceName: [deviceData?.deviceName || ''],
+      username: [deviceData?.username || '']
     });
     this.devices.push(deviceGroup);
   }
@@ -602,7 +609,20 @@ export class OrderFormComponent implements OnInit {
   }
 
   loadUsers() {
-    this.userService.getUsers().subscribe(u => this.users.set(u));
+    this.userService.getUsers().subscribe(u => {
+        this.users.set(u);
+        
+        // If creating a new order, set default to Company if found
+        if (!this.isEdit) {
+            const companyAgent = u.find(user => user.name?.toLowerCase() === 'company');
+            if (companyAgent) {
+                this.orderForm.patchValue({
+                    leadAgentId: companyAgent.id,
+                    closerAgentId: companyAgent.id
+                });
+            }
+        }
+    });
   }
 
   loadOrderData(id: string) {

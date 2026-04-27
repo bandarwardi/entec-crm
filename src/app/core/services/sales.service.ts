@@ -35,6 +35,7 @@ export interface OrderDevice {
   macAddress: string;
   deviceKey: string;
   deviceName: string;
+  username?: string;
 }
 
 export interface Order {
