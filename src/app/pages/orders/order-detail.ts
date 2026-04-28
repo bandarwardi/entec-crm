@@ -161,18 +161,18 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                     
                     <h3 class="text-xl font-black text-surface-900 dark:text-surface-0 mb-8 flex items-center gap-3">
                         <div class="w-10 h-10 bg-blue-500/10 text-blue-600 rounded-xl flex items-center justify-center"><i class="pi pi-id-card text-xl"></i></div>
-                        الوكلاء والمسؤولين
+                        {{ 'orders.detail.agents_title' | t }}
                     </h3>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div class="space-y-4">
-                            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">من قام بجلب الطلب (Lead Agent)</span>
+                            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.lead_agent_label' | t }}</span>
                             <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
                                 <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.leadAgentName || order()?.leadAgent?.name }}</div>
                             </div>
                         </div>
                         <div class="space-y-4">
-                            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">من قام بإغلاق الطلب (Closer Agent)</span>
+                            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.closer_agent_label' | t }}</span>
                             <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
                                 <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.closerAgentName || order()?.closerAgent?.name }}</div>
                             </div>
