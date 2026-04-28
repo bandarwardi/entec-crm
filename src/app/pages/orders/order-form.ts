@@ -157,13 +157,29 @@ import { COUNTRIES } from '../../core/constants/countries.constants';
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-2">{{ 'order_form.lead_agent' | t }}</label>
-                    <p-select [options]="users()" formControlName="leadAgentId" optionLabel="name" optionValue="id" 
-                               [filter]="true" [placeholder]="'order_form.select_agent_placeholder' | t" styleClass="w-full rounded-xl dark:bg-surface-950 dark:border-surface-800"></p-select>
+                    <div class="flex items-center gap-2 bg-surface-50 dark:bg-surface-800 rounded-xl px-4 py-2 border border-surface-100 dark:border-surface-800">
+                        @if (!editingLeadAgent() && (orderForm.get('leadAgentName')?.value || orderForm.get('leadAgentId')?.value)) {
+                            <span class="font-bold flex-grow">{{ getAgentName('lead') }}</span>
+                            <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" (onClick)="editingLeadAgent.set(true)" size="small"></p-button>
+                        } @else {
+                            <p-select [options]="users()" formControlName="leadAgentId" optionLabel="name" optionValue="id" 
+                                     [filter]="true" [placeholder]="'order_form.select_agent_placeholder' | t" 
+                                     styleClass="w-full border-0 bg-transparent" (onChange)="onAgentSelect('lead')"></p-select>
+                        }
+                    </div>
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-2">{{ 'order_form.closer_agent' | t }}</label>
-                    <p-select [options]="users()" formControlName="closerAgentId" optionLabel="name" optionValue="id" 
-                               [filter]="true" [placeholder]="'order_form.select_agent_placeholder' | t" styleClass="w-full rounded-xl dark:bg-surface-950 dark:border-surface-800"></p-select>
+                    <div class="flex items-center gap-2 bg-surface-50 dark:bg-surface-800 rounded-xl px-4 py-2 border border-surface-100 dark:border-surface-800">
+                        @if (!editingCloserAgent() && (orderForm.get('closerAgentName')?.value || orderForm.get('closerAgentId')?.value)) {
+                            <span class="font-bold flex-grow">{{ getAgentName('closer') }}</span>
+                            <p-button icon="pi pi-pencil" [text]="true" [rounded]="true" (onClick)="editingCloserAgent.set(true)" size="small"></p-button>
+                        } @else {
+                            <p-select [options]="users()" formControlName="closerAgentId" optionLabel="name" optionValue="id" 
+                                     [filter]="true" [placeholder]="'order_form.select_agent_placeholder' | t" 
+                                     styleClass="w-full border-0 bg-transparent" (onChange)="onAgentSelect('closer')"></p-select>
+                        }
+                    </div>
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-2">{{ 'order_form.order_type' | t }}</label>
@@ -432,6 +448,8 @@ export class OrderFormComponent implements OnInit {
   users = signal<User[]>([]);
   filteredCustomers = signal<any[]>([]);
   isGeocoding = false;
+  editingLeadAgent = signal(false);
+  editingCloserAgent = signal(false);
   countries = COUNTRIES;
   uploadUrl = `${API_BASE_URL}/sales/upload-attachment`;
 
@@ -516,6 +534,8 @@ export class OrderFormComponent implements OnInit {
       }),
       leadAgentId: [null],
       closerAgentId: [null],
+      leadAgentName: [''],
+      closerAgentName: [''],
       type: ['new'],
       status: ['completed'],
       referrerName: [''],
@@ -632,6 +652,8 @@ export class OrderFormComponent implements OnInit {
         existingCustomer: o.customer,
         leadAgentId: o.leadAgent.id,
         closerAgentId: o.closerAgent.id,
+        leadAgentName: o.leadAgentName || '',
+        closerAgentName: o.closerAgentName || '',
         type: o.type,
         status: o.status,
         referrerName: o.referrerName,
@@ -648,6 +670,13 @@ export class OrderFormComponent implements OnInit {
         subscriptionDate: o.subscriptionDate ? new Date(o.subscriptionDate) : new Date(o.createdAt)
       });
 
+      // If we have names from sheet, don't show select by default
+      if (o.leadAgentName) this.editingLeadAgent.set(false);
+      else this.editingLeadAgent.set(true);
+      
+      if (o.closerAgentName) this.editingCloserAgent.set(false);
+      else this.editingCloserAgent.set(true);
+
       this.devices.clear();
       o.devices.forEach(d => this.addDevice(d));
       this.onCustomerTypeChange();
@@ -659,6 +688,31 @@ export class OrderFormComponent implements OnInit {
       this.filteredCustomers.set(res.data);
       this.cdr.detectChanges();
     });
+  }
+
+  getAgentName(type: 'lead' | 'closer'): string {
+    const nameField = type === 'lead' ? 'leadAgentName' : 'closerAgentName';
+    const idField = type === 'lead' ? 'leadAgentId' : 'closerAgentId';
+    const rawName = this.orderForm.get(nameField)?.value;
+    if (rawName) return rawName;
+    
+    const id = this.orderForm.get(idField)?.value;
+    const user = this.users().find(u => u.id === id);
+    return user?.name || '';
+  }
+
+  onAgentSelect(type: 'lead' | 'closer') {
+    if (type === 'lead') this.editingLeadAgent.set(false);
+    else this.editingCloserAgent.set(false);
+    
+    // Update the name field to match selected user if we want to sync
+    const id = this.orderForm.get(type === 'lead' ? 'leadAgentId' : 'closerAgentId')?.value;
+    const user = this.users().find(u => u.id === id);
+    if (user) {
+        this.orderForm.patchValue({
+            [type === 'lead' ? 'leadAgentName' : 'closerAgentName']: user.name
+        });
+    }
   }
 
   fetchGeocoding() {

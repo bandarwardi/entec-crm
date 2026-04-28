@@ -168,19 +168,13 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                         <div class="space-y-4">
                             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">من قام بجلب الطلب (Lead Agent)</span>
                             <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
-                                <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.leadAgent?.name }}</div>
-                                @if (order()?.leadAgentName && order()?.leadAgentName !== order()?.leadAgent?.name) {
-                                    <div class="text-xs text-surface-400 mt-1">الاسم الأصلي في الشيت: {{ order()?.leadAgentName }}</div>
-                                }
+                                <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.leadAgentName || order()?.leadAgent?.name }}</div>
                             </div>
                         </div>
                         <div class="space-y-4">
                             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">من قام بإغلاق الطلب (Closer Agent)</span>
                             <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
-                                <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.closerAgent?.name }}</div>
-                                @if (order()?.closerAgentName && order()?.closerAgentName !== order()?.closerAgent?.name) {
-                                    <div class="text-xs text-surface-400 mt-1">الاسم الأصلي في الشيت: {{ order()?.closerAgentName }}</div>
-                                }
+                                <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.closerAgentName || order()?.closerAgent?.name }}</div>
                             </div>
                         </div>
                     </div>
