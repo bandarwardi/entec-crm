@@ -55,6 +55,9 @@ import { COUNTRIES } from '../../core/constants/countries.constants';
                      class="w-full md:w-96 rounded-2xl border-white/20 bg-white/10 backdrop-blur-md text-white placeholder:text-white/50 focus:ring-white/20 text-left" />
             </p-iconField>
             @if (!isAgent()) {
+              <p-button [label]="'تحديث الإحداثيات' | t" icon="pi pi-map" (onClick)="onGeocodeAll()" 
+                      [loading]="isGeocodingAll"
+                      styleClass="rounded-2xl px-6 py-3 font-black bg-teal-600 text-white border-none shadow-xl transform hover:scale-105 transition-all text-md"></p-button>
               <p-button [label]="'customers.list.add_button' | t" icon="pi pi-plus" routerLink="/orders/new" 
                       styleClass="rounded-2xl px-8 py-3 font-black bg-white text-emerald-600 border-none shadow-xl transform hover:scale-105 transition-all text-lg"></p-button>
             }
@@ -196,6 +199,7 @@ export class CustomersListComponent implements OnInit {
   displayEditDialog = false;
   editingCustomer: any = {};
   isGeocoding = false;
+  isGeocodingAll = false;
   countries = COUNTRIES;
   private salesService = inject(SalesService);
 
@@ -265,6 +269,34 @@ export class CustomersListComponent implements OnInit {
         this.isGeocoding = false;
       },
       error: () => this.isGeocoding = false
+    });
+  }
+
+  onGeocodeAll() {
+    this.confirmationService.confirm({
+      message: 'هل أنت متأكد من رغبتك في جلب الإحداثيات لجميع العملاء الذين ليس لديهم إحداثيات؟ قد تستغرق هذه العملية بعض الوقت.',
+      header: 'تحديث إحداثيات العملاء',
+      icon: 'pi pi-map-marker',
+      acceptLabel: this.i18n.t('ui.yes'),
+      rejectLabel: this.i18n.t('ui.no'),
+      accept: () => {
+        this.isGeocodingAll = true;
+        this.salesService.geocodeAllCustomers().subscribe({
+          next: (res) => {
+            this.messageService.add({ 
+              severity: 'success', 
+              summary: 'تمت العملية', 
+              detail: `تم تحديث إحداثيات ${res.geocoded} عميل من أصل ${res.total}` 
+            });
+            this.isGeocodingAll = false;
+            this.store.loadCustomers({ page: 1, limit: this.store.pageSize(), search: this.searchTerm });
+          },
+          error: (err) => {
+            this.messageService.add({ severity: 'error', summary: 'خطأ', detail: 'فشل جلب الإحداثيات' });
+            this.isGeocodingAll = false;
+          }
+        });
+      }
     });
   }
 

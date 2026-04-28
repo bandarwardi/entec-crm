@@ -153,6 +153,39 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                     </div>
                 </div>
             </div>
+
+            <!-- Agents Card -->
+            <div class="lg:col-span-12">
+                <div class="card shadow-xl border-0 rounded-[2.5rem] bg-surface-0 dark:bg-surface-900 p-8 relative overflow-hidden transition-all hover:shadow-2xl">
+                     <div class="absolute top-0 end-0 w-32 h-32 bg-blue-500/5 rounded-bl-[4rem]"></div>
+                    
+                    <h3 class="text-xl font-black text-surface-900 dark:text-surface-0 mb-8 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-500/10 text-blue-600 rounded-xl flex items-center justify-center"><i class="pi pi-id-card text-xl"></i></div>
+                        الوكلاء والمسؤولين
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div class="space-y-4">
+                            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">من قام بجلب الطلب (Lead Agent)</span>
+                            <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
+                                <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.leadAgent?.name }}</div>
+                                @if (order()?.leadAgentName && order()?.leadAgentName !== order()?.leadAgent?.name) {
+                                    <div class="text-xs text-surface-400 mt-1">الاسم الأصلي في الشيت: {{ order()?.leadAgentName }}</div>
+                                }
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">من قام بإغلاق الطلب (Closer Agent)</span>
+                            <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
+                                <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.closerAgent?.name }}</div>
+                                @if (order()?.closerAgentName && order()?.closerAgentName !== order()?.closerAgent?.name) {
+                                    <div class="text-xs text-surface-400 mt-1">الاسم الأصلي في الشيت: {{ order()?.closerAgentName }}</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
           </div>
 
           <!-- Device List Card -->

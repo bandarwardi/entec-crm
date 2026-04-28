@@ -43,6 +43,8 @@ export interface Order {
   customer: Customer;
   leadAgent: { id: string; name: string };
   closerAgent: { id: string; name: string };
+  leadAgentName?: string;
+  closerAgentName?: string;
   type: OrderType;
   referrerName: string | null;
   amount: number;
@@ -167,6 +169,10 @@ export class SalesService {
     return this.http.get<{ latitude: number, longitude: number }>(`${this.apiUrl}/geocode`, {
       params: { address, state, country: country || '' }
     });
+  }
+
+  geocodeAllCustomers(): Observable<{ success: boolean, total: number, geocoded: number }> {
+    return this.http.post<{ success: boolean, total: number, geocoded: number }>(`${this.apiUrl}/customers/geocode-all`, {});
   }
 
   uploadAttachment(file: File): Observable<{ url: string }> {
