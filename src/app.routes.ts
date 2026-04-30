@@ -120,6 +120,14 @@ export const appRoutes: Routes = [
                 loadComponent: () => import('./app/pages/orders/order-form').then(m => m.OrderFormComponent) 
             },
 
+            { 
+                path: 'calendar', 
+                loadComponent: () => import('./app/pages/calendar/calendar.component').then(m => m.CalendarComponent) 
+            },
+            { 
+                path: 'commissions', 
+                loadComponent: () => import('./app/pages/commissions/commissions.component').then(m => m.CommissionsComponent) 
+            },
             { path: 'leads', loadComponent: () => import('./app/pages/leads/leads.component').then(m => m.LeadsComponent) },
             { 
                 path: 'whatsapp/inbox', 

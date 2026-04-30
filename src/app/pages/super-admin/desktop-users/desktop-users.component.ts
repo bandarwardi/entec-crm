@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -141,6 +141,7 @@ export class DesktopUsersComponent implements OnInit {
   private http = inject(HttpClient);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
+  private cdr = inject(ChangeDetectorRef);
 
   users: any[] = [];
   crmUsers: any[] = [];
@@ -157,6 +158,7 @@ export class DesktopUsersComponent implements OnInit {
     this.http.get<any[]>(`${API_BASE_URL}/users`).subscribe({
       next: (data) => {
         this.crmUsers = data;
+        this.cdr.detectChanges();
       },
       error: () => console.error('Failed to load CRM users')
     });
@@ -173,10 +175,12 @@ export class DesktopUsersComponent implements OnInit {
       next: (data) => {
         this.users = data;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load users' });
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -200,6 +204,7 @@ export class DesktopUsersComponent implements OnInit {
         this.http.delete(`${API_BASE_URL}/auth/desktop-users/${user._id}`).subscribe(() => {
           this.users = this.users.filter(val => val._id !== user._id);
           this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'User Deleted', life: 3000 });
+          this.cdr.detectChanges();
         });
       }
     });
@@ -217,6 +222,7 @@ export class DesktopUsersComponent implements OnInit {
           this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'User Updated', life: 3000 });
           this.userDialog = false;
           this.user = {};
+          this.cdr.detectChanges();
         });
       } else {
         this.http.post(`${API_BASE_URL}/auth/desktop-users`, this.user).subscribe(() => {
@@ -224,6 +230,7 @@ export class DesktopUsersComponent implements OnInit {
           this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'User Created', life: 3000 });
           this.userDialog = false;
           this.user = {};
+          this.cdr.detectChanges();
         });
       }
     }

@@ -31,10 +31,10 @@ import * as XLSX from 'xlsx';
 import { AuthStore } from '../../core/stores/auth.store';
 import { WhatsappStore } from '../../core/stores/whatsapp.store';
 import { WhatsappService } from '../../core/services/whatsapp.service';
-
 import { PLATFORMS } from '../../core/constants/platforms.constants';
 import { SCREENS } from '../../core/constants/screens.constants';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'app-leads',
@@ -59,7 +59,8 @@ import { InputNumberModule } from 'primeng/inputnumber';
     PopoverModule,
     TextareaModule,
     TranslatePipe,
-    InputNumberModule
+    InputNumberModule,
+    DragDropModule
   ],
   template: `
     <div class="card p-0 overflow-visible shadow-xl border-0 rounded-[2rem] dark:bg-surface-900 transition-all hover:shadow-2xl">
@@ -67,22 +68,35 @@ import { InputNumberModule } from 'primeng/inputnumber';
       <div class="bg-gradient-to-br from-emerald-600 to-teal-500 p-8 rounded-t-[2rem]">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div class="flex items-center gap-4">
-            <!-- <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shadow-inner">
-              <i class="pi pi-phone text-2xl font-bold"></i>
-            </div> -->
             <div>
               <h3 class="text-3xl font-black m-0 text-white tracking-tight">{{ 'leads.title' | t }}</h3>
               <p class="text-emerald-50/80 font-bold text-xs uppercase tracking-widest mt-1">{{ 'leads.subtitle' | t }}</p>
             </div>
           </div>
           
-          <div class="flex flex-wrap gap-3 w-full md:w-auto">
+          <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <!-- View Mode Toggle -->
+            <div class="bg-white/10 p-1 rounded-2xl flex gap-1 border border-white/20 mr-2">
+              <button (click)="viewMode.set('table')" 
+                      [class]="viewMode() === 'table' ? 'bg-white text-emerald-600 shadow-lg' : 'text-white hover:bg-white/10'"
+                      class="px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2">
+                <i class="pi pi-table"></i>
+                <span>{{ 'ui.table' | t }}</span>
+              </button>
+              <button (click)="viewMode.set('kanban')" 
+                      [class]="viewMode() === 'kanban' ? 'bg-white text-emerald-600 shadow-lg' : 'text-white hover:bg-white/10'"
+                      class="px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2">
+                <i class="pi pi-th-large"></i>
+                <span>{{ 'ui.kanban' | t }}</span>
+              </button>
+            </div>
+
             <p-iconField iconPosition="left" class="flex-grow md:flex-initial">
               <p-inputIcon class="pi pi-search text-white/70" />
               <input pInputText type="text" (input)="onSearch($event)" 
                      [placeholder]="'leads.list.search_placeholder' | t" 
                      autocomplete="off" dir="ltr"
-                     class="w-full md:w-96 rounded-2xl header-search-input" />
+                     class="w-full md:w-80 rounded-2xl header-search-input" />
             </p-iconField>
             <p-button [label]="'leads.import' | t" icon="pi pi-file-import" (onClick)="fileInput.click()" [loading]="store.loading()" styleClass="rounded-2xl bg-white/20 border-white/30 text-white hover:bg-white/30 px-6 font-bold"></p-button>
             <p-button [label]="'leads.export' | t" icon="pi pi-file-export" (onClick)="exportExcel()" [loading]="store.loading()" styleClass="rounded-2xl bg-white/20 border-white/30 text-white hover:bg-white/30 px-6 font-bold"></p-button>
@@ -116,135 +130,197 @@ import { InputNumberModule } from 'primeng/inputnumber';
           <p-button [label]="'leads.check_subscription' | t" icon="pi pi-search-plus" (onClick)="displayCheckSub = true" styleClass="rounded-2xl bg-amber-500 border-none text-white hover:bg-amber-600 px-6 font-bold"></p-button>
         </div>
 
-        <!-- Leads Table -->
-      <p-table 
-        [value]="store.allLeads()" 
-        [lazy]="true" 
-        (onLazyLoad)="loadLeads($event)" 
-        [paginator]="true" 
-        [rows]="store.pageSize()" 
-        [totalRecords]="store.total()" 
-        [loading]="store.loading()" 
-        [rowsPerPageOptions]="[10, 20, 50]"
-        [paginatorDropdownAppendTo]="'body'"
-        dataKey="id"
-        [tableStyle]="{ 'min-width': '70rem' }"
-        styleClass="p-datatable-sm cell-selection-table"
-        [rowHover]="true"
-      >
-        <ng-template pTemplate="header">
-          <tr>
-            <th>{{ 'leads.table.name' | t }}</th>
-            <th>{{ 'leads.table.phone' | t }}</th>
-            <th>{{ 'leads.table.state' | t }}</th>
-            <th>{{ 'leads.table.status' | t }}</th>
-            <th>{{ 'leads.notes' | t }}</th>
-            <th>{{ 'leads.table.creator' | t }}</th>
-            <th>{{ 'leads.table.reminder' | t }}</th>
-            <th style="width: 8rem"></th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-lead let-ri="rowIndex">
-          <tr [attr.data-index]="getGlobalIndex(ri)">
-            <td (mousedown)="onMouseDown($event, ri, 0)" 
-                (mouseenter)="onMouseEnter(ri, 0)" 
-                [class.selected-cell]="isCellSelected(ri, 0)"
-                [pEditableColumn]="lead.name" pEditableColumnField="name" [pEditableColumnDisabled]="editingLeadId !== null">
-              <p-cellEditor>
-                <ng-template pTemplate="input">
-                  <input pInputText type="text" [(ngModel)]="lead.name" (blur)="onEditLead(lead)" class="w-full" />
-                </ng-template>
-                <ng-template pTemplate="output">
-                  {{ lead.name }}
-                </ng-template>
-              </p-cellEditor>
-            </td>
-            <td (mousedown)="onMouseDown($event, ri, 1)" 
-                (mouseenter)="onMouseEnter(ri, 1)" 
-                [class.selected-cell]="isCellSelected(ri, 1)"
-                [pEditableColumn]="lead.phone" pEditableColumnField="phone" [pEditableColumnDisabled]="editingLeadId !== null">
-              <p-cellEditor>
-                <ng-template pTemplate="input">
-                  <input pInputText type="text" [(ngModel)]="lead.phone" (blur)="onEditLead(lead)" dir="ltr" class="w-full" style="text-align: right;" />
-                </ng-template>
-                <ng-template pTemplate="output">
-                  <span dir="ltr">{{ lead.phone }}</span>
-                </ng-template>
-              </p-cellEditor>
-            </td>
-            <td (mousedown)="onMouseDown($event, ri, 2)" 
-                (mouseenter)="onMouseEnter(ri, 2)" 
-                [class.selected-cell]="isCellSelected(ri, 2)"
-                [pEditableColumn]="lead.state" pEditableColumnField="state" [pEditableColumnDisabled]="editingLeadId !== null">
-              <p-cellEditor>
-                <ng-template pTemplate="input">
-                  <p-select [options]="states" [(ngModel)]="lead.state" (onChange)="onEditLead(lead)" [filter]="true" [filterBy]="stateFilterBy()" (onFilter)="handleStateFilter($event)" [fluid]="true" appendTo="body"></p-select>
-                </ng-template>
-                <ng-template pTemplate="output">
-                  {{ lead.state }}
-                </ng-template>
-              </p-cellEditor>
-            </td>
-            <td (mousedown)="onMouseDown($event, ri, 3)" 
-                (mouseenter)="onMouseEnter(ri, 3)" 
-                [class.selected-cell]="isCellSelected(ri, 3)"
-                [pEditableColumn]="lead.status" pEditableColumnField="status" [pEditableColumnDisabled]="editingLeadId !== null">
-              <p-cellEditor>
-                <ng-template pTemplate="input">
-                  <p-select [options]="statuses()" [(ngModel)]="lead.status" (onChange)="onEditLead(lead)" [fluid]="true" appendTo="body"></p-select>
-                </ng-template>
-                <ng-template pTemplate="output">
-                  <p-tag [value]="getStatusLabel(lead.status)" [severity]="getStatusSeverity(lead.status)"></p-tag>
-                </ng-template>
-              </p-cellEditor>
-            </td>
-            <td (mousedown)="onMouseDown($event, ri, 4)" 
-                (mouseenter)="onMouseEnter(ri, 4)" 
-                [class.selected-cell]="isCellSelected(ri, 4)"
-                (dblclick)="startEditingNotes(lead, notesOp)">
-               @if (editingLeadId === lead.id) {
-                <input pInputText type="text" [(ngModel)]="lead.notes" (blur)="stopEditingNotes(lead)" class="w-full" />
-               } @else {
-                 <div class="max-w-[150px] truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-surface-700 dark:text-surface-200" 
-                      [pTooltip]="lead.notes" tooltipPosition="top"
-                      (click)="notesOp.toggle($event)">
-                   {{ lead.notes || '---' }}
-                 </div>
-               }
-               <p-popover #notesOp styleClass="dark:bg-surface-900 dark:border-surface-700">
-                 <div class="p-3 max-w-[300px] text-sm break-words whitespace-pre-wrap text-surface-700 dark:text-surface-200">
-                    {{ lead.notes }}
-                 </div>
-               </p-popover>
-            </td>
-            <td (mousedown)="onMouseDown($event, ri, 5)" 
-                (mouseenter)="onMouseEnter(ri, 5)" 
-                [class.selected-cell]="isCellSelected(ri, 5)">{{ lead.createdBy?.name }}</td>
-            <td (mousedown)="onMouseDown($event, ri, 6)" 
-                (mouseenter)="onMouseEnter(ri, 6)" 
-                [class.selected-cell]="isCellSelected(ri, 6)"
-                (click)="openReminderDialog(lead)" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-surface-800 p-2 rounded transition-colors">
-              <i class="pi pi-bell ml-2" [class.text-blue-500]="lead.reminderAt"></i>
-              <span class="text-sm text-surface-700 dark:text-surface-200">
-                @if (lead.reminderAt) {
-                  {{ lead.reminderAt | date:'short' }}
-                } @else {
-                  {{ 'leads.table.no_reminder' | t }}
-                }
-              </span>
-            </td>
-            <td>
-              <div class="flex gap-2">
-                <p-button type="button" icon="pi pi-whatsapp" [rounded]="true" [outlined]="true" severity="success" (click)="$event.stopPropagation(); openWhatsapp(lead)"></p-button>
-                <p-button type="button" icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="primary" (click)="$event.stopPropagation(); openEditLeadDialog(lead)"></p-button>
-                @if (isSuperAdmin() || isAdmin() || isAgent()) {
-                  <p-button type="button" icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger" (click)="$event.stopPropagation(); onDeleteLead(lead)"></p-button>
-                }
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
+        <!-- View Switcher -->
+         @if (viewMode() === 'table') {
+            <!-- Leads Table -->
+            <p-table 
+              [value]="store.allLeads()" 
+              [lazy]="true" 
+              (onLazyLoad)="loadLeads($event)" 
+              [paginator]="true" 
+              [rows]="store.pageSize()" 
+              [totalRecords]="store.total()" 
+              [loading]="store.loading()" 
+              [rowsPerPageOptions]="[10, 20, 50, 100]"
+              [paginatorDropdownAppendTo]="'body'"
+              dataKey="id"
+              [tableStyle]="{ 'min-width': '70rem' }"
+              styleClass="p-datatable-sm cell-selection-table"
+              [rowHover]="true"
+            >
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>{{ 'leads.table.name' | t }}</th>
+                  <th>{{ 'leads.table.phone' | t }}</th>
+                  <th>{{ 'leads.table.state' | t }}</th>
+                  <th>{{ 'leads.table.status' | t }}</th>
+                  <th>{{ 'leads.notes' | t }}</th>
+                  <th>{{ 'leads.table.creator' | t }}</th>
+                  <th>{{ 'leads.table.reminder' | t }}</th>
+                  <th style="width: 8rem"></th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-lead let-ri="rowIndex">
+                <tr [attr.data-index]="getGlobalIndex(ri)">
+                  <td (mousedown)="onMouseDown($event, ri, 0)" 
+                      (mouseenter)="onMouseEnter(ri, 0)" 
+                      [class.selected-cell]="isCellSelected(ri, 0)"
+                      [pEditableColumn]="lead.name" pEditableColumnField="name" [pEditableColumnDisabled]="editingLeadId !== null">
+                    <p-cellEditor>
+                      <ng-template pTemplate="input">
+                        <input pInputText type="text" [(ngModel)]="lead.name" (blur)="onEditLead(lead)" class="w-full" />
+                      </ng-template>
+                      <ng-template pTemplate="output">
+                        {{ lead.name }}
+                      </ng-template>
+                    </p-cellEditor>
+                  </td>
+                  <td (mousedown)="onMouseDown($event, ri, 1)" 
+                      (mouseenter)="onMouseEnter(ri, 1)" 
+                      [class.selected-cell]="isCellSelected(ri, 1)"
+                      [pEditableColumn]="lead.phone" pEditableColumnField="phone" [pEditableColumnDisabled]="editingLeadId !== null">
+                    <p-cellEditor>
+                      <ng-template pTemplate="input">
+                        <input pInputText type="text" [(ngModel)]="lead.phone" (blur)="onEditLead(lead)" dir="ltr" class="w-full" style="text-align: right;" />
+                      </ng-template>
+                      <ng-template pTemplate="output">
+                        <span dir="ltr">{{ lead.phone }}</span>
+                      </ng-template>
+                    </p-cellEditor>
+                  </td>
+                  <td (mousedown)="onMouseDown($event, ri, 2)" 
+                      (mouseenter)="onMouseEnter(ri, 2)" 
+                      [class.selected-cell]="isCellSelected(ri, 2)"
+                      [pEditableColumn]="lead.state" pEditableColumnField="state" [pEditableColumnDisabled]="editingLeadId !== null">
+                    <p-cellEditor>
+                      <ng-template pTemplate="input">
+                        <p-select [options]="states" [(ngModel)]="lead.state" (onChange)="onEditLead(lead)" [filter]="true" [filterBy]="stateFilterBy()" (onFilter)="handleStateFilter($event)" [fluid]="true" appendTo="body"></p-select>
+                      </ng-template>
+                      <ng-template pTemplate="output">
+                        {{ lead.state }}
+                      </ng-template>
+                    </p-cellEditor>
+                  </td>
+                  <td (mousedown)="onMouseDown($event, ri, 3)" 
+                      (mouseenter)="onMouseEnter(ri, 3)" 
+                      [class.selected-cell]="isCellSelected(ri, 3)"
+                      [pEditableColumn]="lead.status" pEditableColumnField="status" [pEditableColumnDisabled]="editingLeadId !== null">
+                    <p-cellEditor>
+                      <ng-template pTemplate="input">
+                        <p-select [options]="statuses()" [(ngModel)]="lead.status" (onChange)="onEditLead(lead)" [fluid]="true" appendTo="body"></p-select>
+                      </ng-template>
+                      <ng-template pTemplate="output">
+                        <p-tag [value]="getStatusLabel(lead.status)" [severity]="getStatusSeverity(lead.status)"></p-tag>
+                      </ng-template>
+                    </p-cellEditor>
+                  </td>
+                  <td (mousedown)="onMouseDown($event, ri, 4)" 
+                      (mouseenter)="onMouseEnter(ri, 4)" 
+                      [class.selected-cell]="isCellSelected(ri, 4)"
+                      (dblclick)="startEditingNotes(lead, notesOp)">
+                    @if (editingLeadId === lead.id) {
+                      <input pInputText type="text" [(ngModel)]="lead.notes" (blur)="stopEditingNotes(lead)" class="w-full" />
+                    } @else {
+                      <div class="max-w-[150px] truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-surface-700 dark:text-surface-200" 
+                            [pTooltip]="lead.notes || ''" tooltipPosition="top"
+                            (click)="notesOp.toggle($event)">
+                        {{ lead.notes || '---' }}
+                      </div>
+                    }
+                    <p-popover #notesOp styleClass="dark:bg-surface-900 dark:border-surface-700">
+                      <div class="p-3 max-w-[300px] text-sm break-words whitespace-pre-wrap text-surface-700 dark:text-surface-200">
+                          {{ lead.notes }}
+                      </div>
+                    </p-popover>
+                  </td>
+                  <td (mousedown)="onMouseDown($event, ri, 5)" 
+                      (mouseenter)="onMouseEnter(ri, 5)" 
+                      [class.selected-cell]="isCellSelected(ri, 5)">{{ lead.createdBy?.name }}</td>
+                  <td (mousedown)="onMouseDown($event, ri, 6)" 
+                      (mouseenter)="onMouseEnter(ri, 6)" 
+                      [class.selected-cell]="isCellSelected(ri, 6)"
+                      (click)="openReminderDialog(lead)" class="cursor-pointer hover:bg-gray-100 dark:hover:bg-surface-800 p-2 rounded transition-colors">
+                    <i class="pi pi-bell ml-2" [class.text-blue-500]="lead.reminderAt"></i>
+                    <span class="text-sm text-surface-700 dark:text-surface-200">
+                      @if (lead.reminderAt) {
+                        {{ lead.reminderAt | date:'short' }}
+                      } @else {
+                        {{ 'leads.table.no_reminder' | t }}
+                      }
+                    </span>
+                  </td>
+                  <td>
+                    <div class="flex gap-2">
+                      <p-button type="button" icon="pi pi-whatsapp" [rounded]="true" [outlined]="true" severity="success" (click)="$event.stopPropagation(); openWhatsapp(lead)"></p-button>
+                      <p-button type="button" icon="pi pi-pencil" [rounded]="true" [outlined]="true" severity="primary" (click)="$event.stopPropagation(); openEditLeadDialog(lead)"></p-button>
+                      @if (isSuperAdmin() || isAdmin() || isAgent()) {
+                        <p-button type="button" icon="pi pi-trash" [rounded]="true" [outlined]="true" severity="danger" (click)="$event.stopPropagation(); onDeleteLead(lead)"></p-button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+         } @else {
+            <!-- Kanban View -->
+            <div class="kanban-board flex gap-6 overflow-x-auto pb-6" cdkDropListGroup>
+              @for (status of statuses(); track status.value) {
+                <div class="kanban-column flex-shrink-0 w-80 bg-surface-100/50 dark:bg-surface-800/50 rounded-3xl p-4 flex flex-col min-h-[500px]">
+                  <div class="flex items-center justify-between mb-4 px-2">
+                    <div class="flex items-center gap-2">
+                      <span class="w-3 h-3 rounded-full" [class]="getStatusSeverityClass(status.value)"></span>
+                      <h4 class="font-black text-sm uppercase tracking-wider m-0">{{ status.label }}</h4>
+                    </div>
+                    <span class="bg-white dark:bg-surface-900 px-2 py-0.5 rounded-lg text-[10px] font-black shadow-sm">
+                      {{ getLeadsByStatus(status.value).length }}
+                    </span>
+                  </div>
+
+                  <div class="kanban-list flex-grow flex flex-col gap-4"
+                       cdkDropList
+                       [cdkDropListData]="status.value"
+                       (cdkDropListDropped)="onDrop($event)">
+                    @for (lead of getLeadsByStatus(status.value); track lead.id) {
+                      <div class="kanban-card card m-0 p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing border border-surface-200 dark:border-surface-700 relative group"
+                           cdkDrag [cdkDragData]="lead">
+                        
+                        <div class="flex justify-between items-start mb-2">
+                          <span class="font-black text-sm text-surface-900 dark:text-white">{{ lead.name }}</span>
+                          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" size="small" (click)="openEditLeadDialog(lead)"></p-button>
+                             <p-button icon="pi pi-whatsapp" [rounded]="true" [text]="true" severity="success" size="small" (click)="openWhatsapp(lead)"></p-button>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 mb-3">
+                          <i class="pi pi-phone text-xs text-surface-400"></i>
+                          <span class="text-xs font-bold text-surface-500 font-mono" dir="ltr">{{ lead.phone }}</span>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-auto pt-3 border-t border-surface-100 dark:border-surface-800">
+                          <div class="flex items-center gap-1.5">
+                            <i class="pi pi-map-marker text-[10px] text-emerald-500"></i>
+                            <span class="text-[10px] font-black uppercase text-surface-400">{{ lead.state || '---' }}</span>
+                          </div>
+                          
+                          @if (lead.reminderAt) {
+                            <div class="flex items-center gap-1 text-blue-500" [pTooltip]="lead.reminderNote || ''">
+                              <i class="pi pi-bell text-[10px]"></i>
+                              <span class="text-[9px] font-bold">{{ lead.reminderAt | date:'MMM d' }}</span>
+                            </div>
+                          }
+                        </div>
+
+                        <!-- Drag Placeholder -->
+                        <div *cdkDragPlaceholder class="kanban-placeholder h-32 rounded-2xl border-2 border-dashed border-emerald-500 bg-emerald-500/5 mb-4"></div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+         }
+      </div>
     </div>
 
     <p-confirmdialog [header]="'leads.delete.confirm_title' | t" icon="pi pi-exclamation-triangle" [acceptLabel]="'ui.yes' | t" [rejectLabel]="'ui.no' | t"></p-confirmdialog>
@@ -511,7 +587,46 @@ export class LeadsComponent implements OnInit, OnDestroy {
   readonly whatsappStore = inject(WhatsappStore);
   private whatsappService = inject(WhatsappService);
 
-  displayCheckSub = false;
+  viewMode = signal<'table' | 'kanban'>('table');
+
+  getLeadsByStatus(status: string): Lead[] {
+    return this.store.allLeads().filter(l => l.status === status);
+  }
+
+  getStatusSeverityClass(status: string): string {
+    switch (status) {
+      case LeadStatus.NEW: return 'bg-blue-500';
+      case LeadStatus.INTERESTED: return 'bg-emerald-500';
+      case LeadStatus.PENDING_CALLBACK: return 'bg-amber-500';
+      case LeadStatus.CONVERTED: return 'bg-purple-500';
+      case LeadStatus.NOT_INTERESTED: return 'bg-red-500';
+      case LeadStatus.SUBSCRIBED_ELSEWHERE: return 'bg-slate-500';
+      default: return 'bg-surface-500';
+    }
+  }
+
+  onDrop(event: CdkDragDrop<any>) {
+    if (event.previousContainer === event.container) {
+      // Reordering within same column - not implemented for persistence yet but could be
+      return;
+    } else {
+      const lead = event.item.data as Lead;
+      const newStatus = event.container.data as LeadStatus;
+      
+      // Update locally first for immediate feedback
+      this.store.updateLeadLocal(lead.id, { status: newStatus });
+      
+      // Persist to backend
+      this.store.updateLead({ id: lead.id, changes: { status: newStatus } });
+      
+      this.messageService.add({
+        severity: 'info',
+        summary: this.i18n.t('ui.success'),
+        detail: `${this.i18n.t('leads.status.updated')}: ${lead.name}`,
+        life: 2000
+      });
+    }
+  }
   checkPhone = '';
   checkingSub = false;
   hasChecked = false;
@@ -587,6 +702,7 @@ export class LeadsComponent implements OnInit, OnDestroy {
   displayReminder = false;
   displayEditLead = false;
   displayAddLead = false;
+  displayCheckSub = false;
   selectedLead: any = {};
   editingLeadId: number | null = null;
   

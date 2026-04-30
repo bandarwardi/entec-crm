@@ -141,7 +141,7 @@ export const en = {
     'chat.search_users_placeholder': 'Search users by name or email...',
     'chat.no_users_found': 'No users found with this name',
     'chat.attach_file_tooltip': 'Attach image or file',
-    
+
     // WhatsApp
     'whatsapp.admin.title': 'WhatsApp Channels Management',
     'whatsapp.admin.add_channel': 'Add New Channel',
@@ -178,7 +178,7 @@ export const en = {
     'whatsapp.inbox.record_audio': 'Record Voice Note',
     'whatsapp.inbox.upload_sticker': 'Send Sticker',
     'whatsapp.inbox.upload_document': 'Send Document',
-    
+
     'leads.check_subscription': 'Check Subscription',
     'leads.filter.all_agents': 'All Agents',
     'leads.no_subscriptions_found': 'No subscriptions found for this number',
@@ -322,7 +322,7 @@ export const en = {
     'order_form.device_username': 'Device Username',
     'order_form.device_name_placeholder': 'e.g., Smart TV Samsung, Apple iPad Pro, etc.',
     'order_form.notes': 'Additional Notes',
-    'order_form.attachments': 'Attachments (Payment Proof, Device Images...)',
+    'order_form.attachments': 'Attachments',
     'order_form.drag_drop_hint': 'Drag and drop files here to upload',
     'order_form.submit_create': 'Book Order & Issue Invoice',
     'order_form.submit_edit': 'Update Order & Invoice',
@@ -464,11 +464,19 @@ export const en = {
     'login_requests.status.approved': 'Approved',
     'login_requests.status.rejected': 'Rejected',
     'login_requests.status.pending': 'Pending',
+    'login_requests.status.unregistered': 'Unregistered User',
     'login_requests.trust_dialog.header': 'Device Trust Options',
     'login_requests.trust_dialog.question': 'Do you want to add this device to trusted devices?',
     'login_requests.trust_dialog.description': 'If you choose to approve as a trusted device, the employee will not be asked for login permission again when using this specific device to increase workflow smoothness.',
     'login_requests.trust_dialog.button_trust': 'Approve as Trusted Device',
     'login_requests.trust_dialog.button_once': 'Approve for this time only',
+    'login_requests.tabs.audit_logs': 'Login Audit Logs',
+    'login_requests.table.platform': 'Platform',
+    'login_requests.table.failure_reason': 'Failure Reason',
+    'login_requests.table.empty_logs': 'No login attempt logs currently',
+    'login_requests.platform.web': 'Web Browser',
+    'login_requests.platform.mobile': 'Mobile App',
+    'login_requests.platform.desktop': 'Desktop App',
 
     // Profile
     'profile.title': 'Profile',

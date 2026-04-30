@@ -85,4 +85,8 @@ export class UserLeadService {
   deleteLead(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  getReminders(): Observable<Lead[]> {
+    return this.http.get<Lead[]>(`${this.apiUrl}/reminders`);
+  }
 }

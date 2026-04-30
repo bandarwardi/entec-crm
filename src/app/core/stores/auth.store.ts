@@ -137,7 +137,8 @@ export const AuthStore = signalStore(
                 token: res.jwtToken,
                 challengeToken: null,
                 challengeExpiresAt: null,
-                loading: false
+                loading: false,
+                presenceActive: true
               });
               safeSetItem('token', res.jwtToken);
               safeSetItem('user', JSON.stringify(res.user));
@@ -183,7 +184,8 @@ export const AuthStore = signalStore(
                     patchState(store, {
                       user: res.user,
                       token: res.access_token,
-                      loading: false
+                      loading: false,
+                      presenceActive: true
                     });
                     safeSetItem('token', res.access_token);
                     safeSetItem('user', JSON.stringify(res.user));
@@ -279,13 +281,19 @@ export const AuthStore = signalStore(
         patchState(store, { error });
       },
 
+      saveFCMToken(fcmToken: string) {
+        return http.put(`${API_BASE_URL}/users/fcm-token`, { fcmToken }).pipe(
+          tapResponse({
+            next: () => console.log('FCM Token saved successfully'),
+            error: (err) => console.error('Failed to save FCM token', err)
+          })
+        ).subscribe();
+      },
+
       async init() {
         if (store.isLoggedIn()) {
           startRefreshTimer();
-          // const fbToken = store.firebaseToken();
-          // if (fbToken) {
-          //   await loginToFirebase(fbToken);
-          // }
+          patchState(store, { presenceActive: true });
         }
       },
 

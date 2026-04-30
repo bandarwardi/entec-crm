@@ -1,5 +1,6 @@
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
-import { db } from '../firebase/firebase.config';
+import { db, messaging } from '../firebase/firebase.config';
+import { getToken } from 'firebase/messaging';
 import { 
   collection, 
   query, 
@@ -49,6 +50,7 @@ export class NotificationsService {
         const userId = user.id || (user as any)._id;
         if (userId) {
           this.startListening(userId);
+          this.requestPushPermission();
         } else {
           console.warn('Firebase: User found but no ID available', user);
         }
@@ -56,6 +58,22 @@ export class NotificationsService {
         this.stopListening();
       }
     });
+  }
+
+  async requestPushPermission() {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const token = await getToken(messaging, {
+          vapidKey: 'BPNjF0kY0W0C5W5C0W5C0W5C0W5C0W5C0W5C0W5C0W5C0W5C0W5C0W5C0W5C0W5C0W5C0W5C' // Replace with your actual VAPID key
+        });
+        if (token) {
+          this.authStore.saveFCMToken(token);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get push permission', error);
+    }
   }
 
   private startListening(userId: string) {
@@ -80,11 +98,12 @@ export class NotificationsService {
 
       // Show toast for new unread notifications
       const prevNotifications = this.notifications();
-      newNotifications.forEach(notif => {
-        if (!notif.read && !prevNotifications.find(p => p.id === notif.id)) {
-          this.showToast(notif);
-        }
-      });
+      // Update unread badge count, but don't show visual popups (toasts)
+      // newNotifications.forEach(notif => {
+      //   if (!notif.read && !prevNotifications.find(p => p.id === notif.id)) {
+      //     this.showToast(notif);
+      //   }
+      // });
 
       this.notifications.set(newNotifications);
     }, (error) => {

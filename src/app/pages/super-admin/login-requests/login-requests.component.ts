@@ -99,7 +99,7 @@ import { I18nService } from '../../../core/i18n/i18n.service';
             </tr>
           </ng-template>
         </p-table>
-      } @else {
+      } @else if (activeTab() === 'history') {
         <!-- History Requests Table -->
         <p-table [value]="store.history()" [loading]="store.loading()" [rows]="10" [paginator]="true" responsiveLayout="scroll" styleClass="p-datatable-sm">
           <ng-template pTemplate="header">
@@ -152,6 +152,58 @@ import { I18nService } from '../../../core/i18n/i18n.service';
             </tr>
           </ng-template>
         </p-table>
+      } @else {
+        <!-- Audit Logs Table -->
+        <p-table [value]="store.loginLogs()" [loading]="store.loading()" [rows]="10" [paginator]="true" 
+                 [totalRecords]="store.loginLogsTotal()" [lazy]="true" (onLazyLoad)="loadLogs($event)"
+                 responsiveLayout="scroll" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header">
+            <tr>
+              <th class="p-4 text-xs text-surface-400 dark:text-surface-500 font-black uppercase bg-surface-50 dark:bg-surface-800">{{ 'login_requests.table.user' | t }}</th>
+              <th class="p-4 text-xs text-surface-400 dark:text-surface-500 font-black uppercase bg-surface-50 dark:bg-surface-800">{{ 'login_requests.table.platform' | t }}</th>
+              <th class="p-4 text-xs text-surface-400 dark:text-surface-500 font-black uppercase bg-surface-50 dark:bg-surface-800">{{ 'login_requests.table.ip' | t }}</th>
+              <th class="p-4 text-xs text-surface-400 dark:text-surface-500 font-black uppercase bg-surface-50 dark:bg-surface-800">{{ 'login_requests.table.date' | t }}</th>
+              <th class="p-4 text-xs text-surface-400 dark:text-surface-500 font-black uppercase bg-surface-50 dark:bg-surface-800">{{ 'login_requests.table.status' | t }}</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-log>
+            <tr class="dark:border-surface-700">
+              <td class="p-4 dark:bg-surface-900">
+                @if (log.user) {
+                  <div class="font-bold text-surface-900 dark:text-surface-0">{{ log.user.name }}</div>
+                  <div class="text-xs text-surface-500">{{ log.user.email }}</div>
+                } @else {
+                  <div class="font-bold text-surface-900 dark:text-surface-0">{{ log.email }}</div>
+                  <div class="text-xs text-surface-400 italic font-medium">{{ 'login_requests.status.unregistered' | t }}</div>
+                }
+              </td>
+              <td class="p-4 dark:bg-surface-900">
+                <div class="flex items-center gap-2">
+                  <i [class]="getPlatformIcon(log.platform)" class="text-surface-500"></i>
+                  <span class="text-sm font-bold text-surface-700 dark:text-surface-200">{{ getPlatformLabel(log.platform) }}</span>
+                </div>
+              </td>
+              <td class="p-4 font-mono text-sm text-surface-700 dark:text-surface-200 dark:bg-surface-900">{{ log.ipAddress }}</td>
+              <td class="p-4 text-sm text-surface-500 dark:text-surface-400 dark:bg-surface-900">{{ log.timestamp | date: 'short' }}</td>
+              <td class="p-4 dark:bg-surface-900">
+                <div class="flex flex-col gap-1">
+                  <p-tag [value]="getStatusLabel(log.status)" [severity]="getStatusSeverity(log.status)" styleClass="text-xs font-black uppercase px-3 w-fit"></p-tag>
+                  @if (log.failureReason) {
+                    <span class="text-[10px] text-red-500 font-bold max-w-[150px] leading-tight">{{ log.failureReason }}</span>
+                  }
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="text-center p-12 text-surface-400 dark:text-surface-500 bg-white dark:bg-surface-900">
+                <i class="pi pi-list text-4xl mb-4 block"></i>
+                {{ 'login_requests.table.empty_logs' | t }}
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
       }
       </div>
 
@@ -190,7 +242,8 @@ export class LoginRequestsComponent implements OnInit {
 
   tabOptions = computed(() => [
     { label: this.i18n.t('login_requests.tabs.pending'), value: 'pending' },
-    { label: this.i18n.t('login_requests.tabs.history'), value: 'history' }
+    { label: this.i18n.t('login_requests.tabs.history'), value: 'history' },
+    { label: this.i18n.t('login_requests.tabs.audit_logs'), value: 'audit_logs' }
   ]);
 
   ngOnInit() {
@@ -200,31 +253,57 @@ export class LoginRequestsComponent implements OnInit {
   onTabChange() {
     if (this.activeTab() === 'history') {
       this.store.ensureHistoryLoaded();
+    } else if (this.activeTab() === 'audit_logs') {
+      this.store.ensureLogsLoaded();
     } else {
       this.store.ensureRequestsLoaded();
     }
   }
 
+  loadLogs(event: any) {
+    const page = (event.first / event.rows) + 1;
+    this.store.loadLogs({ page, limit: event.rows });
+  }
+
   refreshData() {
     if (this.activeTab() === 'history') {
       this.store.loadHistory();
+    } else if (this.activeTab() === 'audit_logs') {
+      this.store.loadLogs({ page: 1, limit: 10 });
     } else {
       this.store.loadRequests();
     }
   }
 
+  getPlatformIcon(platform: string) {
+    switch (platform) {
+      case 'web': return 'pi pi-globe';
+      case 'mobile': return 'pi pi-mobile';
+      case 'desktop': return 'pi pi-desktop';
+      default: return 'pi pi-question-circle';
+    }
+  }
+
+  getPlatformLabel(platform: string) {
+    return this.i18n.t(`login_requests.platform.${platform || 'web'}`);
+  }
+
   getStatusLabel(status: string) {
     switch (status) {
-      case 'approved': return this.i18n.t('login_requests.status.approved');
-      case 'rejected': return this.i18n.t('login_requests.status.rejected');
+      case 'approved': 
+      case 'success': return this.i18n.t('login_requests.status.approved');
+      case 'rejected':
+      case 'failure': return this.i18n.t('login_requests.status.rejected');
       default: return this.i18n.t('login_requests.status.pending');
     }
   }
 
   getStatusSeverity(status: string) {
     switch (status) {
-      case 'approved': return 'success';
-      case 'rejected': return 'danger';
+      case 'approved': 
+      case 'success': return 'success';
+      case 'rejected':
+      case 'failure': return 'danger';
       default: return 'warn';
     }
   }

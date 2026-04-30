@@ -49,6 +49,18 @@ export class AppMenu {
                 routerLink: ['/leads'],
                 class: 'menu-leads'
             },
+            {
+                label: this.i18n.t('ui.calendar'),
+                icon: 'pi pi-fw pi-calendar',
+                routerLink: ['/calendar'],
+                class: 'menu-calendar'
+            },
+            {
+                label: this.i18n.t('ui.commissions'),
+                icon: 'pi pi-fw pi-money-bill',
+                routerLink: ['/commissions'],
+                class: 'menu-commissions'
+            },
             { 
                 label: this.i18n.t('whatsapp.inbox.title'), 
                 icon: 'pi pi-fw pi-whatsapp', 

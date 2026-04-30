@@ -194,4 +194,12 @@ export class SalesService {
     formData.append('file', file);
     return this.http.post(`${this.apiUrl}/import/excel`, formData);
   }
+
+  getCommissions(month?: number, year?: number, agentId?: string): Observable<any> {
+    let params = new HttpParams();
+    if (month) params = params.set('month', month.toString());
+    if (year) params = params.set('year', year.toString());
+    if (agentId) params = params.set('agentId', agentId);
+    return this.http.get<any>(`${this.apiUrl}/commissions`, { params });
+  }
 }

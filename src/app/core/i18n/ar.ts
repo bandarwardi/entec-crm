@@ -165,7 +165,7 @@ export const ar = {
     'chat.search_users_placeholder': 'ابحث عن مستخدم بالاسم أو البريد...',
     'chat.no_users_found': 'لا يوجد مستخدمين بهذا الاسم',
     'chat.attach_file_tooltip': 'إرفاق صورة أو ملف',
-    
+
     // WhatsApp
     'whatsapp.admin.title': 'إدارة قنوات واتساب',
     'whatsapp.admin.add_channel': 'إضافة قناة جديدة',
@@ -202,7 +202,7 @@ export const ar = {
     'whatsapp.inbox.record_audio': 'تسجيل رسالة صوتية',
     'whatsapp.inbox.upload_sticker': 'إرسال ملصق',
     'whatsapp.inbox.upload_document': 'إرسال مستند',
-    
+
     'leads.check_subscription': 'تحقق من الاشتراك',
     'leads.filter.all_agents': 'الكل (موظفين)',
     'leads.no_subscriptions_found': 'لم يتم العثور على اشتراكات لهذا الرقم',
@@ -337,7 +337,7 @@ export const ar = {
     'order_form.devices_section': 'الأجهزة المرتبطة بالطلب',
     'order_form.devices_desc': 'أضف بيانات الأجهزة التي سيتم تفعيل الاشتراك عليها',
     'order_form.add_device_button': 'إضافة جهاز',
-    'order_form.attachments': 'مرفقات الطلب (إثبات الدفع، صور للجهاز، الخ)',
+    'order_form.attachments': 'مرفقات الطلب',
     'order_form.drag_drop_hint': 'اسحب وأفلت الملفات هنا أو اضغط للاختيار',
     'order_form.no_devices': 'لم يتم إضافة أي أجهزة بعد',
     'order_form.no_devices_hint': 'اضغط على زر "إضافة جهاز" بالأعلى للبدء',
@@ -491,11 +491,19 @@ export const ar = {
     'login_requests.status.approved': 'مقبول',
     'login_requests.status.rejected': 'مرفوض',
     'login_requests.status.pending': 'معلق',
+    'login_requests.status.unregistered': 'مستخدم غير مسجل',
     'login_requests.trust_dialog.header': 'خيارات موثوقية الجهاز',
     'login_requests.trust_dialog.question': 'هل تريد إضافة هذا الجهاز إلى الأجهزة الموثوقة؟',
     'login_requests.trust_dialog.description': 'إذا اخترت الموافقة كجهاز موثوق، لن يُطلب من الموظف إذن تسجيل الدخول مرة أخرى عند استخدام هذا الجهاز تحديداً لزيادة سلاسة العمل.',
     'login_requests.trust_dialog.button_trust': 'موافقة كجهاز موثوق',
     'login_requests.trust_dialog.button_once': 'موافقة فقط لهذه المرة',
+    'login_requests.tabs.audit_logs': 'سجل محاولات الدخول',
+    'login_requests.table.platform': 'المنصة',
+    'login_requests.table.failure_reason': 'سبب الفشل',
+    'login_requests.table.empty_logs': 'لا يوجد سجل لمحاولات الدخول حالياً',
+    'login_requests.platform.web': 'متصفح ويب',
+    'login_requests.platform.mobile': 'تطبيق هاتف',
+    'login_requests.platform.desktop': 'برنامج كمبيوتر',
 
     // Profile
     'profile.title': 'الملف الشخصي',

@@ -15,6 +15,8 @@ export interface WorkSettings {
   securityEnabled: boolean;
   autoLogoutDelayMinutes: number;
   challengeExpiryMinutes: number;
+  leadAgentCommissionRate?: number;
+  closerAgentCommissionRate?: number;
 }
 
 export interface AllowedZone {

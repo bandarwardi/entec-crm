@@ -13,10 +13,12 @@ import { TopStatesWidget } from './components/topstateswidget';
 import { I18nService } from '../../core/i18n/i18n.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
+import { SkeletonModule } from 'primeng/skeleton';
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, SelectButtonModule, StatsWidget, RecentSalesWidget, BestSellingWidget, RevenueStreamWidget, NotificationsWidget, TopStatesWidget, TranslatePipe],
+  imports: [CommonModule, FormsModule, SelectButtonModule, StatsWidget, RecentSalesWidget, BestSellingWidget, RevenueStreamWidget, NotificationsWidget, TopStatesWidget, TranslatePipe, SkeletonModule],
   template: `
         <div class="flex flex-col gap-8 font-tajawal">
             <!-- Global Dashboard Header -->
@@ -27,7 +29,6 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                 
                 <div class="relative z-10">
                   <h1 class="text-4xl font-black text-white mb-2">{{ 'dashboard.title' | t }}</h1>
-                  <!-- <p class="text-emerald-50 font-bold text-xs uppercase tracking-[0.2em] opacity-80">EN TEC Analytics & Global Performance</p> -->
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-center gap-3 md:gap-5 relative z-10 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 shadow-sm rtl:mr-auto ltr:ml-auto w-full sm:w-auto">
@@ -47,11 +48,55 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
                 </div>
             </div>
 
-            <!-- Loading State -->
+            <!-- Loading State with Skeletons -->
              @if (store.loading()) {
-                <div class="py-20 text-center w-full">
-                    <i class="pi pi-spin pi-spinner text-4xl text-primary mb-4"></i>
-                    <p class="font-black text-surface-400">{{ 'dashboard.loading' | t }}</p>
+                <div class="grid grid-cols-12 gap-8">
+                    <!-- Stats Skeleton -->
+                    @for (i of [1,2,3,4]; track i) {
+                        <div class="col-span-12 lg:col-span-6 xl:col-span-3">
+                            <div class="card p-6 rounded-2xl border border-surface-100 dark:border-surface-800">
+                                <div class="flex justify-between mb-4">
+                                    <div class="w-full">
+                                        <p-skeleton width="40%" height="1rem" styleClass="mb-2" />
+                                        <p-skeleton width="70%" height="2.5rem" />
+                                    </div>
+                                    <p-skeleton width="3rem" height="3rem" borderRadius="12px" />
+                                </div>
+                                <p-skeleton width="60%" height="1.2rem" borderRadius="20px" />
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Chart & List Skeleton -->
+                    <div class="col-span-12 xl:col-span-6 flex flex-col gap-8">
+                        <div class="card p-6 rounded-2xl">
+                            <p-skeleton width="40%" height="1.5rem" styleClass="mb-6" />
+                            <p-skeleton width="100%" height="15rem" />
+                        </div>
+                        <div class="card p-6 rounded-2xl">
+                            <p-skeleton width="30%" height="1.5rem" styleClass="mb-6" />
+                            @for (i of [1,2,3,4,5]; track i) {
+                                <div class="flex items-center gap-4 mb-4">
+                                    <p-skeleton shape="circle" size="3rem" />
+                                    <div class="flex-1">
+                                        <p-skeleton width="50%" styleClass="mb-2" />
+                                        <p-skeleton width="30%" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-span-12 xl:col-span-6 flex flex-col gap-8">
+                         <div class="card p-6 rounded-2xl">
+                            <p-skeleton width="40%" height="1.5rem" styleClass="mb-6" />
+                            <p-skeleton width="100%" height="20rem" />
+                        </div>
+                         <div class="card p-6 rounded-2xl">
+                            <p-skeleton width="30%" height="1.5rem" styleClass="mb-6" />
+                            <p-skeleton width="100%" height="10rem" />
+                        </div>
+                    </div>
                 </div>
              }
 

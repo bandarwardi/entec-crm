@@ -274,6 +274,39 @@ import { I18nService } from '@/app/core/i18n/i18n.service';
                 </p-table>
             </div>
         </div>
+
+        <!-- Commission Settings -->
+        <div class="card p-8 bg-surface-0 dark:bg-surface-900 shadow-xl border-0 rounded-[2.5rem] relative overflow-hidden transition-all hover:shadow-2xl">
+          <div class="absolute top-0 end-0 w-32 h-32 bg-purple-500/5 rounded-bl-[4rem]"></div>
+          
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-600">
+              <i class="pi pi-money-bill text-xl"></i>
+            </div>
+            <h2 class="text-xl font-black m-0 tracking-tight">إعدادات العمولات التلقائية</h2>
+          </div>
+
+          <div class="flex flex-col gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-surface-50 dark:bg-surface-800/40 rounded-3xl border border-surface-100 dark:border-surface-700/50">
+                <div class="flex flex-col gap-2">
+                    <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest">عمولة موظف الجذب (Lead Agent %)</label>
+                    <p-inputnumber [(ngModel)]="settings().leadAgentCommissionRate" [min]="0" [max]="100" [showButtons]="true" styleClass="w-full custom-input-number" suffix="%"></p-inputnumber>
+                    <small class="text-surface-400 italic text-[10px]">النسبة المئوية من إجمالي الطلب</small>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="text-[10px] font-black text-surface-400 uppercase tracking-widest">عمولة موظف الإغلاق (Closer Agent %)</label>
+                    <p-inputnumber [(ngModel)]="settings().closerAgentCommissionRate" [min]="0" [max]="100" [showButtons]="true" styleClass="w-full custom-input-number" suffix="%"></p-inputnumber>
+                    <small class="text-surface-400 italic text-[10px]">النسبة المئوية من إجمالي الطلب</small>
+                </div>
+            </div>
+
+            <div class="flex justify-end mt-4">
+                <p-button label="حفظ نسب العمولات" icon="pi pi-check" (onClick)="saveSettings()" [loading]="saving()" 
+                styleClass="bg-gradient-to-r from-purple-600 to-violet-500 border-0 rounded-2xl px-8 py-3 font-black shadow-lg shadow-purple-500/20"></p-button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   `,
@@ -311,7 +344,9 @@ export class WorkSettingsComponent implements OnInit {
     timezone: 'Africa/Cairo',
     securityEnabled: true,
     autoLogoutDelayMinutes: 60,
-    challengeExpiryMinutes: 5
+    challengeExpiryMinutes: 5,
+    leadAgentCommissionRate: 5,
+    closerAgentCommissionRate: 10
   });
   
   holidays = signal<Holiday[]>([]);

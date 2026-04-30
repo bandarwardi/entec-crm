@@ -25,6 +25,12 @@ export const presenceGuard: CanActivateFn = (route, state) => {
 
   if (isAccessDeniedPage || isAuthPage) return true;
 
+  // BYPASS IN LOCALHOST MODE
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log('[PresenceGuard] Bypassing security in localhost mode');
+    return true;
+  }
+
   // Track last login in localStorage to survive reloads during the sensitive first seconds
   const lastLoginStr = localStorage.getItem('last_login_timestamp');
   const lastLoginTime = lastLoginStr ? parseInt(lastLoginStr, 10) : 0;

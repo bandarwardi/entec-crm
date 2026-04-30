@@ -28,21 +28,21 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
       
       <!-- Gradient Header Wrapper -->
       <div class="card p-0 overflow-hidden shadow-2xl border-0 rounded-[2.5rem] mb-10 dark:bg-surface-900 transition-all hover:shadow-2xl no-print">
-        <div class="bg-gradient-to-br from-emerald-600 to-teal-500 p-8 sm:p-10">
-          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-            <div class="flex items-center gap-6">
-              <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shadow-inner border border-white/20">
-                <i class="pi pi-box text-3xl font-bold"></i>
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-500 p-6 sm:p-10">
+          <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 lg:gap-8">
+            <div class="flex items-start sm:items-center gap-4 sm:gap-6 w-full">
+              <div class="w-12 h-12 sm:w-16 sm:h-16 shrink-0 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shadow-inner border border-white/20">
+                <i class="pi pi-box text-2xl sm:text-3xl font-bold"></i>
               </div>
-              <div>
-                <div class="flex items-center gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <p-button icon="pi pi-arrow-left" routerLink="/orders" [rounded]="true" [text]="true" styleClass="text-white bg-white/10 hover:bg-white/20" size="small"></p-button>
-                   <h1 class="text-3xl font-black m-0 text-white tracking-tight">{{ 'orders.detail.title' | t }} <span class="opacity-70" [pTooltip]="order()?.id" tooltipPosition="top">#{{ order()?.id?.slice(0, 5) }}</span></h1>
+                   <h1 class="text-xl sm:text-3xl font-black m-0 text-white tracking-tight break-all">{{ 'orders.detail.title' | t }} <span class="opacity-70" [pTooltip]="order()?.id" tooltipPosition="top">#{{ order()?.id?.slice(0, 5) }}</span></h1>
                 </div>
-                <div class="flex items-center gap-4 text-xs text-emerald-50/80 font-bold uppercase tracking-widest mt-2">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-emerald-50/80 font-bold uppercase tracking-widest mt-3">
                     <span>{{ order()?.createdAt | date:'fullDate' }}</span>
-                    <span class="w-1 h-1 rounded-full bg-white/40"></span>
-                    <div class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 border border-white/10">
+                    <span class="w-1 h-1 rounded-full bg-white/40 hidden sm:block"></span>
+                    <div class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-2 border border-white/10 mt-1 sm:mt-0">
                       <span class="text-white/60">{{ 'orders.detail.status_label' | t }}</span>
                       <p-select [options]="statusOptions()" [(ngModel)]="currentStatus" 
                                 (onChange)="onStatusChange($event)" [disabled]="ordersStore.saving()"
@@ -54,30 +54,30 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
               </div>
             </div>
             
-            <div class="flex flex-wrap gap-3 w-full md:w-auto">
+            <div class="flex flex-col sm:flex-row flex-wrap gap-3 w-full lg:w-auto mt-2 lg:mt-0">
                 <p-button [label]="'orders.detail.send_email' | t" icon="pi pi-envelope" (onClick)="sendEmail()" 
                           [loading]="sendingEmail()"
                           [disabled]="ordersStore.saving() || sendingEmail()"
-                          styleClass="rounded-2xl bg-white/10 border-white/30 text-white hover:bg-white/20 px-6 py-3 font-bold"></p-button>
+                          styleClass="w-full sm:w-auto rounded-2xl bg-white/10 border-white/30 text-white hover:bg-white/20 px-6 py-3 font-bold justify-center"></p-button>
                 <p-button [label]="'orders.detail.edit' | t" icon="pi pi-pencil" [routerLink]="['/orders', order()?.id, 'edit']" 
-                          styleClass="rounded-2xl bg-white/10 border-white/30 text-white hover:bg-white/20 px-6 py-3 font-bold"></p-button>
+                          styleClass="w-full sm:w-auto rounded-2xl bg-white/10 border-white/30 text-white hover:bg-white/20 px-6 py-3 font-bold justify-center"></p-button>
                 <p-button [label]="'orders.detail.export_pdf' | t" icon="pi pi-file-pdf" (onClick)="printInvoice()" 
-                          styleClass="rounded-2xl bg-white text-emerald-600 border-none shadow-xl hover:scale-105 transition-all px-8 py-3 font-black"></p-button>
+                          styleClass="w-full sm:w-auto rounded-2xl bg-white text-emerald-600 border-none shadow-xl hover:scale-105 transition-all px-8 py-3 font-black justify-center"></p-button>
             </div>
           </div>
         </div>
 
         <!-- Order Summary Row inside Card -->
-        <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-surface-100 dark:divide-surface-800 bg-surface-50/50 dark:bg-surface-800/30">
-          <div class="p-6 text-center">
+        <div class="grid grid-cols-2 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-surface-100 dark:divide-surface-800 bg-surface-50/50 dark:bg-surface-800/30">
+          <div class="p-4 sm:p-6 text-center col-span-2 md:col-span-1">
             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.type' | t }}</span>
             <p-tag [value]="('dashboard.types.' + order()?.type) | t" [severity]="getTypeSeverity(order()?.type || '')" styleClass="text-xs px-4 py-1 rounded-full uppercase font-black"></p-tag>
           </div>
-          <div class="p-6 text-center">
+          <div class="p-4 sm:p-6 text-center">
             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.payment_method' | t }}</span>
-            <span class="text-lg font-black text-surface-900 dark:text-surface-0">{{ getPaymentMethodLabel(order()?.paymentMethod || '') }}</span>
+            <span class="text-base sm:text-lg font-black text-surface-900 dark:text-surface-0">{{ getPaymentMethodLabel(order()?.paymentMethod || '') }}</span>
           </div>
-          <div class="p-6 text-center">
+          <div class="p-4 sm:p-6 text-center">
             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.status_label' | t }}</span>
             <p-tag [value]="('orders.status.' + order()?.status) | t" [severity]="getStatusSeverity(order()?.status || '')" styleClass="text-xs px-4 py-1 rounded-full uppercase font-black"></p-tag>
           </div>
@@ -89,24 +89,24 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <!-- Customer Summary Card -->
             <div class="lg:col-span-5">
-                <div class="card shadow-xl border-0 rounded-[2.5rem] h-full p-8 bg-surface-0 dark:bg-surface-900 relative overflow-hidden transition-all hover:shadow-2xl">
+                <div class="card shadow-xl border-0 rounded-[2.5rem] h-full p-6 sm:p-8 bg-surface-0 dark:bg-surface-900 relative overflow-hidden transition-all hover:shadow-2xl">
                     <div class="absolute top-0 end-0 w-32 h-32 bg-emerald-500/5 rounded-bl-[4rem]"></div>
-                    <h3 class="text-xl font-black text-surface-900 dark:text-surface-0 mb-8 flex items-center gap-3">
-                        <div class="w-10 h-10 bg-emerald-500/10 text-emerald-600 rounded-xl flex items-center justify-center"><i class="pi pi-user text-xl"></i></div>
+                    <h3 class="text-lg sm:text-xl font-black text-surface-900 dark:text-surface-0 mb-6 sm:mb-8 flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0 bg-emerald-500/10 text-emerald-600 rounded-xl flex items-center justify-center"><i class="pi pi-user text-xl"></i></div>
                         {{ 'orders.detail.customer' | t }}
                     </h3>
-                    <div class="space-y-8">
+                    <div class="space-y-6 sm:space-y-8">
                         <div>
-                            <p class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest block mb-2 px-1">{{ 'orders.detail.full_name' | t }}</p>
-                            <p class="text-3xl font-black text-surface-900 dark:text-surface-0 tracking-tight">{{ order()?.customer?.name }}</p>
+                            <p class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest block mb-1 sm:mb-2 px-1">{{ 'orders.detail.full_name' | t }}</p>
+                            <p class="text-2xl sm:text-3xl font-black text-surface-900 dark:text-surface-0 tracking-tight break-words">{{ order()?.customer?.name }}</p>
                         </div>
-                        <div class="p-6 rounded-3xl bg-surface-50/50 dark:bg-surface-800/40 border border-surface-100 dark:border-surface-700 shadow-inner">
+                        <div class="p-4 sm:p-6 rounded-3xl bg-surface-50/50 dark:bg-surface-800/40 border border-surface-100 dark:border-surface-700 shadow-inner">
                             <p class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase px-1 mb-2 tracking-widest">{{ 'orders.detail.contact' | t }}</p>
-                            <div class="flex items-center gap-4">
-                              <div class="w-12 h-12 bg-white dark:bg-surface-900 rounded-2xl flex items-center justify-center shadow-sm border border-surface-200 dark:border-surface-700">
-                                <i class="pi pi-phone text-emerald-600 text-lg"></i>
+                            <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                              <div class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 bg-white dark:bg-surface-900 rounded-2xl flex items-center justify-center shadow-sm border border-surface-200 dark:border-surface-700">
+                                <i class="pi pi-phone text-emerald-600 text-base sm:text-lg"></i>
                               </div>
-                              <p class="font-mono text-2xl font-black text-emerald-600 tracking-tighter">{{ order()?.customer?.phone }}</p>
+                              <p class="font-mono text-xl sm:text-2xl font-black text-emerald-600 tracking-tighter break-all">{{ order()?.customer?.phone }}</p>
                             </div>
                         </div>
                     </div>
@@ -115,38 +115,38 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
             <!-- Service Summary Card -->
             <div class="lg:col-span-7">
-                <div class="card shadow-xl border-0 rounded-[2.5rem] h-full bg-surface-0 dark:bg-surface-900 p-8 relative overflow-hidden transition-all hover:shadow-2xl">
+                <div class="card shadow-xl border-0 rounded-[2.5rem] h-full bg-surface-0 dark:bg-surface-900 p-6 sm:p-8 relative overflow-hidden transition-all hover:shadow-2xl">
                      <div class="absolute top-0 end-0 w-32 h-32 bg-teal-500/5 rounded-bl-[4rem]"></div>
                     
-                    <h3 class="text-xl font-black text-surface-900 dark:text-surface-0 mb-8 flex items-center gap-3">
-                        <div class="w-10 h-10 bg-teal-500/10 text-teal-600 rounded-xl flex items-center justify-center"><i class="pi pi-shield text-xl"></i></div>
+                    <h3 class="text-lg sm:text-xl font-black text-surface-900 dark:text-surface-0 mb-6 sm:mb-8 flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0 bg-teal-500/10 text-teal-600 rounded-xl flex items-center justify-center"><i class="pi pi-shield text-xl"></i></div>
                         {{ 'orders.detail.subscription_details' | t }}
                     </h3>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
+                        <div class="space-y-4 sm:space-y-6">
                             <!-- Financial Big Display -->
-                            <div class="p-8 rounded-[2rem] bg-slate-900 dark:bg-surface-950 text-white shadow-2xl relative overflow-hidden group">
+                            <div class="p-6 sm:p-8 rounded-[2rem] bg-slate-900 dark:bg-surface-950 text-white shadow-2xl relative overflow-hidden group">
                                 <div class="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-500/20 to-emerald-500/20 opacity-50"></div>
-                                <p class="text-[10px] font-black uppercase opacity-60 mb-3 tracking-widest relative z-10">{{ 'orders.detail.amount' | t }}</p>
-                                <p class="text-5xl font-black font-mono leading-none tracking-tighter relative z-10 group-hover:scale-110 transition-transform origin-left">{{ order()?.amount | number:'1.2-2' }} <span class="text-xs opacity-50 font-sans tracking-widest uppercase ml-1">$</span></p>
+                                <p class="text-[10px] font-black uppercase opacity-60 mb-2 sm:mb-3 tracking-widest relative z-10">{{ 'orders.detail.amount' | t }}</p>
+                                <p class="text-4xl sm:text-5xl font-black font-mono leading-none tracking-tighter relative z-10 group-hover:scale-110 transition-transform origin-left">{{ order()?.amount | number:'1.2-2' }} <span class="text-xs opacity-50 font-sans tracking-widest uppercase ml-1">$</span></p>
                             </div>
                             
-                            <div class="flex justify-between items-center p-5 rounded-2xl bg-surface-50/50 dark:bg-surface-800 shadow-inner">
-                                <span class="text-xs font-bold text-surface-400 uppercase tracking-widest">{{ 'orders.detail.payment_method' | t }}</span>
-                                <span class="font-black text-surface-900 dark:text-surface-0 bg-white dark:bg-surface-900 px-4 py-1 rounded-xl shadow-sm">{{ getPaymentMethodLabel(order()?.paymentMethod || '') }}</span>
+                            <div class="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-2 p-4 sm:p-5 rounded-2xl bg-surface-50/50 dark:bg-surface-800 shadow-inner">
+                                <span class="text-[10px] sm:text-xs font-bold text-surface-400 uppercase tracking-widest">{{ 'orders.detail.payment_method' | t }}</span>
+                                <span class="font-black text-sm sm:text-base text-surface-900 dark:text-surface-0 bg-white dark:bg-surface-900 px-3 sm:px-4 py-1 rounded-xl shadow-sm">{{ getPaymentMethodLabel(order()?.paymentMethod || '') }}</span>
                             </div>
                         </div>
-                        <div class="space-y-6">
-                            <div class="flex flex-col gap-2 p-6 rounded-3xl border border-surface-100 dark:border-surface-800 bg-surface-50/30 dark:bg-surface-800/20">
+                        <div class="space-y-4 sm:space-y-6">
+                            <div class="flex flex-col gap-2 p-4 sm:p-6 rounded-3xl border border-surface-100 dark:border-surface-800 bg-surface-50/30 dark:bg-surface-800/20">
                                 <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest">{{ 'orders.detail.server_name' | t }}</span>
-                                <span class="text-2xl font-black text-emerald-600 tracking-tight">{{ order()?.serverName }}</span>
+                                <span class="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">{{ order()?.serverName }}</span>
                             </div>
-                            <div class="flex flex-col gap-2 p-6 rounded-3xl border border-primary/10 bg-primary/5">
+                            <div class="flex flex-col gap-2 p-4 sm:p-6 rounded-3xl border border-primary/10 bg-primary/5">
                                 <span class="text-[10px] font-black text-primary/60 uppercase tracking-widest">{{ 'orders.detail.expiry_date' | t }}</span>
                                 <div class="flex items-center gap-3">
                                   <i class="pi pi-calendar-times text-emerald-600"></i>
-                                  <span class="text-xl font-black text-surface-900 dark:text-surface-0 font-mono">{{ order()?.appExpiryDate | date:'mediumDate' }}</span>
+                                  <span class="text-lg sm:text-xl font-black text-surface-900 dark:text-surface-0 font-mono">{{ order()?.appExpiryDate | date:'mediumDate' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -156,25 +156,25 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
             <!-- Agents Card -->
             <div class="lg:col-span-12">
-                <div class="card shadow-xl border-0 rounded-[2.5rem] bg-surface-0 dark:bg-surface-900 p-8 relative overflow-hidden transition-all hover:shadow-2xl">
+                <div class="card shadow-xl border-0 rounded-[2.5rem] bg-surface-0 dark:bg-surface-900 p-6 sm:p-8 relative overflow-hidden transition-all hover:shadow-2xl">
                      <div class="absolute top-0 end-0 w-32 h-32 bg-blue-500/5 rounded-bl-[4rem]"></div>
                     
-                    <h3 class="text-xl font-black text-surface-900 dark:text-surface-0 mb-8 flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-500/10 text-blue-600 rounded-xl flex items-center justify-center"><i class="pi pi-id-card text-xl"></i></div>
+                    <h3 class="text-lg sm:text-xl font-black text-surface-900 dark:text-surface-0 mb-6 sm:mb-8 flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0 bg-blue-500/10 text-blue-600 rounded-xl flex items-center justify-center"><i class="pi pi-id-card text-xl"></i></div>
                         {{ 'orders.detail.agents_title' | t }}
                     </h3>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                        <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10">
+                        <div class="space-y-3 sm:space-y-4">
                             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.lead_agent_label' | t }}</span>
-                            <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
-                                <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.leadAgentName || order()?.leadAgent?.name }}</div>
+                            <div class="p-3 sm:p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
+                                <div class="font-black text-base sm:text-lg text-surface-900 dark:text-surface-0 break-words">{{ order()?.leadAgentName || order()?.leadAgent?.name }}</div>
                             </div>
                         </div>
-                        <div class="space-y-4">
+                        <div class="space-y-3 sm:space-y-4">
                             <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest block mb-1">{{ 'orders.detail.closer_agent_label' | t }}</span>
-                            <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
-                                <div class="font-black text-lg text-surface-900 dark:text-surface-0">{{ order()?.closerAgentName || order()?.closerAgent?.name }}</div>
+                            <div class="p-3 sm:p-4 rounded-2xl bg-surface-50 dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
+                                <div class="font-black text-base sm:text-lg text-surface-900 dark:text-surface-0 break-words">{{ order()?.closerAgentName || order()?.closerAgent?.name }}</div>
                             </div>
                         </div>
                     </div>
@@ -183,30 +183,31 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
           </div>
 
           <!-- Device List Card -->
-          <div class="card shadow-xl border-0 rounded-[2.5rem] overflow-hidden bg-surface-0 dark:bg-surface-900 mb-12 transition-all hover:shadow-2xl">
-            <div class="p-8 pb-4 flex justify-between items-center bg-white dark:bg-surface-900">
-                <h2 class="text-2xl font-black text-surface-900 dark:text-surface-0 flex items-center gap-3 tracking-tight">
-                    <div class="w-10 h-10 bg-surface-100 dark:bg-surface-800 rounded-xl flex items-center justify-center text-surface-500">
+          <!-- Device List Card -->
+          <div class="card shadow-xl border-0 rounded-[2.5rem] overflow-hidden bg-surface-0 dark:bg-surface-900 mb-8 sm:mb-12 transition-all hover:shadow-2xl">
+            <div class="p-6 sm:p-8 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-surface-900">
+                <h2 class="text-xl sm:text-2xl font-black text-surface-900 dark:text-surface-0 flex items-center gap-3 tracking-tight">
+                    <div class="w-10 h-10 shrink-0 bg-surface-100 dark:bg-surface-800 rounded-xl flex items-center justify-center text-surface-500">
                       <i class="pi pi-desktop"></i>
                     </div>
                     {{ 'orders.detail.connected_devices' | t }}
                 </h2>
-                <div class="px-4 py-1 bg-surface-100 dark:bg-surface-800 rounded-lg text-xs font-black text-surface-400 uppercase tracking-widest">
+                <div class="px-4 py-1 bg-surface-100 dark:bg-surface-800 rounded-lg text-[10px] sm:text-xs font-black text-surface-400 uppercase tracking-widest shrink-0">
                   {{ order()?.devices?.length || 0 }} {{ 'orders.detail.table.devices' | t }}
                 </div>
             </div>
             
-            <p-table [value]="order()?.devices || []" styleClass="p-datatable-sm cell-selection-table">
+            <p-table [value]="order()?.devices || []" responsiveLayout="scroll" styleClass="p-datatable-sm cell-selection-table">
                 <ng-template pTemplate="header">
                     <tr>
-                        <th class="p-6 text-[10px] text-surface-400 font-black uppercase bg-surface-50 dark:bg-surface-800/50 border-none tracking-widest">{{ 'orders.detail.mac_address' | t }}</th>
-                        <th class="p-6 text-[10px] text-surface-400 font-black uppercase bg-surface-50 dark:bg-surface-800/50 border-none tracking-widest">{{ 'orders.detail.device_name' | t }}</th>
+                        <th class="p-4 sm:p-6 text-[10px] text-surface-400 font-black uppercase bg-surface-50 dark:bg-surface-800/50 border-none tracking-widest whitespace-nowrap">{{ 'orders.detail.mac_address' | t }}</th>
+                        <th class="p-4 sm:p-6 text-[10px] text-surface-400 font-black uppercase bg-surface-50 dark:bg-surface-800/50 border-none tracking-widest">{{ 'orders.detail.device_name' | t }}</th>
                     </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-device>
                     <tr class="dark:border-surface-800">
-                        <td class="p-6 font-mono text-emerald-600 font-bold dark:bg-surface-900 border-surface-100 dark:border-surface-800">{{ device.macAddress }}</td>
-                        <td class="p-6 font-black text-surface-700 dark:text-surface-100 dark:bg-surface-900 border-surface-100 dark:border-surface-800">{{ device.deviceName }}</td>
+                        <td class="p-4 sm:p-6 font-mono text-sm sm:text-base text-emerald-600 font-bold dark:bg-surface-900 border-surface-100 dark:border-surface-800 whitespace-nowrap">{{ device.macAddress }}</td>
+                        <td class="p-4 sm:p-6 font-black text-sm sm:text-base text-surface-700 dark:text-surface-100 dark:bg-surface-900 border-surface-100 dark:border-surface-800 break-words">{{ device.deviceName }}</td>
                     </tr>
                 </ng-template>
             </p-table>
@@ -215,14 +216,14 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
       <!-- Attachments Card -->
       <div class="col-span-1 xl:col-span-3">
           <div class="card shadow-xl border-0 rounded-[2.5rem] overflow-hidden bg-surface-0 dark:bg-surface-900 mb-12 transition-all hover:shadow-2xl">
-            <div class="p-8 pb-4 flex justify-between items-center bg-white dark:bg-surface-900 border-b border-surface-100 dark:border-surface-800">
-                <h2 class="text-2xl font-black text-surface-900 dark:text-surface-0 flex items-center gap-3 tracking-tight">
-                    <div class="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
+            <div class="p-6 sm:p-8 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-surface-900 border-b border-surface-100 dark:border-surface-800">
+                <h2 class="text-xl sm:text-2xl font-black text-surface-900 dark:text-surface-0 flex items-center gap-3 tracking-tight">
+                    <div class="w-10 h-10 shrink-0 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
                       <i class="pi pi-paperclip"></i>
                     </div>
-                    {{ 'order_form.attachments' | t }}
+                    <span class="truncate whitespace-normal leading-tight">{{ 'order_form.attachments' | t }}</span>
                 </h2>
-                <div class="px-4 py-1 bg-surface-100 dark:bg-surface-800 rounded-lg text-xs font-black text-surface-400 uppercase tracking-widest">
+                <div class="px-4 py-1 bg-surface-100 dark:bg-surface-800 rounded-lg text-[10px] sm:text-xs font-black text-surface-400 uppercase tracking-widest shrink-0">
                   {{ order()?.attachments?.length || 0 }} {{ 'orders.detail.table.attachments' | t }}
                 </div>
             </div>

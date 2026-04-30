@@ -18,22 +18,41 @@ export interface LoginRequest {
   createdAt: string;
 }
 
+export interface LoginLog {
+  id: string;
+  user: { name: string; email: string };
+  email: string;
+  status: string;
+  ipAddress: string;
+  deviceFingerprint: string;
+  deviceInfo: string;
+  platform: string;
+  failureReason: string;
+  timestamp: string;
+}
+
 interface LoginRequestsState {
   requests: LoginRequest[];
   history: LoginRequest[];
+  loginLogs: LoginLog[];
+  loginLogsTotal: number;
   loading: boolean;
   error: string | null;
   lastRequestsFetched: number | null;
   lastHistoryFetched: number | null;
+  lastLogsFetched: number | null;
 }
 
 const initialState: LoginRequestsState = {
   requests: [],
   history: [],
+  loginLogs: [],
+  loginLogsTotal: 0,
   loading: false,
   error: null,
   lastRequestsFetched: null,
   lastHistoryFetched: null,
+  lastLogsFetched: null,
 };
 
 export const LoginRequestsStore = signalStore(
@@ -80,6 +99,25 @@ export const LoginRequestsStore = signalStore(
       )
     );
 
+    const loadLogsAction = rxMethod<{ page: number; limit: number }>(
+      pipe(
+        tap(() => patchState(store, { loading: true })),
+        switchMap((params) =>
+          http.get<{ data: LoginLog[]; total: number }>(`${apiUrl}/login-logs`, { params: params as any }).pipe(
+            tapResponse({
+              next: (response) => patchState(store, { 
+                loginLogs: response.data,
+                loginLogsTotal: response.total,
+                loading: false,
+                lastLogsFetched: Date.now()
+              }),
+              error: (err: any) => patchState(store, { loading: false, error: err.error?.message })
+            })
+          )
+        )
+      )
+    );
+
     return {
       loadRequests: loadRequestsAction,
 
@@ -100,6 +138,17 @@ export const LoginRequestsStore = signalStore(
         const isStale = !last || (Date.now() - last) > CACHE_TTL;
         if (isStale || force || store.history().length === 0) {
           loadHistoryAction();
+        }
+      },
+
+      loadLogs: loadLogsAction,
+
+      ensureLogsLoaded: (page = 1, limit = 50, force = false) => {
+        const CACHE_TTL = 30 * 1000;
+        const last = store.lastLogsFetched();
+        const isStale = !last || (Date.now() - last) > CACHE_TTL;
+        if (isStale || force || store.loginLogs().length === 0) {
+          loadLogsAction({ page, limit });
         }
       },
 
